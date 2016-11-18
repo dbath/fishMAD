@@ -7,6 +7,7 @@ import numpy as np
 pygame.init()
 DisplayWidth, DisplayHeight = 1240,850
 screen = pygame.display.set_mode((DisplayWidth, DisplayHeight), pygame.FULLSCREEN)
+pygame.display.mode_ok((DisplayWidth, DisplayHeight), pygame.DOUBLEBUF)
 
 VERTICAL_BARS = os.path.join(os.path.dirname(__file__), 'vertical_bars.png')
 HORIZONTAL_BARS = os.path.join(os.path.dirname(__file__), 'horizontal_bars.png')
@@ -41,7 +42,8 @@ def run_stimulus(_pygame, IMAGE, DIRECTION, SPEED, DURATION, COLOUR):
     global running
     start_time = time.time()
     while ((time.time() - start_time) < DURATION) & running:
-
+        
+        #_pygame.display.update()
         for event in _pygame.event.get():
             if event.type == _pygame.QUIT:
                 print 'QUITTING!!'
@@ -66,7 +68,7 @@ def run_stimulus(_pygame, IMAGE, DIRECTION, SPEED, DURATION, COLOUR):
         screen.blit(stim, (x1,y1))
 
         _pygame.display.flip()
-        _pygame.display.update()
+        #_pygame.display.update()
 
 
 running = True
