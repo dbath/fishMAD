@@ -5,7 +5,7 @@ import pygame
 import numpy as np
 
 pygame.init()
-DisplayWidth, DisplayHeight = 1240,850
+DisplayWidth, DisplayHeight = 600,450
 screen = pygame.display.set_mode((DisplayWidth, DisplayHeight), pygame.FULLSCREEN)
 pygame.display.mode_ok((DisplayWidth, DisplayHeight), pygame.DOUBLEBUF)
 
@@ -73,14 +73,15 @@ def run_stimulus(_pygame, IMAGE, DIRECTION, SPEED, DURATION, COLOUR):
 
 running = True
 while running:
-    run_stimulus(pygame, HORIZONTAL_BARS, 'vertical', [0,-10], 5, (255,255,255))
-    run_stimulus(pygame, BLANK, 'vertical', [0,-10], 5, (50,50,50))
-    run_stimulus(pygame, VERTICAL_BARS, 'horizontal', [2,0], 5, (255,255,255))
-    run_stimulus(pygame, VERTICAL_BARS, 'horizontal', [-2,0], 5, (200,200,0))
-    run_stimulus(pygame, BLACKSTARS, 'vertical', [0,14], 15, (255,255,30))
-    run_stimulus(pygame, WHITESTARS, 'horizontal', [2,0], 15, (20,20,20))
-    run_stimulus(pygame, DIAGONAL, 'vertical', [0,23], 15, (0,100,120))
-    run_stimulus(pygame, DIAGONAL2, 'vertical', [0,44], 15, (150,20,20))
+    run_stimulus(pygame, BLANK, 'vertical', [0,-1], 30, (255,255,255))
+    run_stimulus(pygame, HORIZONTAL_BARS, 'vertical', [0,-2], 60, (255,255,255))
+    run_stimulus(pygame, BLANK, 'vertical', [0,-1], 30, (255,255,255))
+    run_stimulus(pygame, VERTICAL_BARS, 'horizontal', [2,0], 60, (255,255,255))
+    run_stimulus(pygame, BLANK, 'vertical', [0,-1], 30, (255,255,255))
+    run_stimulus(pygame, HORIZONTAL_BARS, 'vertical', [0,2], 60, (255,255,255))
+    run_stimulus(pygame, BLANK, 'vertical', [0,-1], 30, (255,255,255))
+    run_stimulus(pygame, VERTICAL_BARS, 'horizontal', [-2,0], 60, (255,255,255))
+    run_stimulus(pygame, BLANK, 'vertical', [0,-1], 30, (255,255,255))
 
 
     pygame.quit()
