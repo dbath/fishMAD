@@ -56,15 +56,15 @@ win = visual.Window(
     size=(1440, 900), fullscr=True, screen=0,
     allowGUI=False, allowStencil=False,
     monitor='testMonitor', color=[0,0,0], colorSpace='rgb',
-    blendMode='avg')
-print win
+    blendMode='avg', checkTiming=False)
 # store frame rate of monitor if we can measure it
 expInfo['frameRate'] = win.getActualFrameRate()
 if expInfo['frameRate'] != None:
     frameDur = 1.0 / round(expInfo['frameRate'])
+    print "FOUND THE FRAMERATE!!!!!!!!!!!!!!!!"
 else:
     frameDur = 1.0 / 60.0  # could not measure, so guess
-
+print frameDur
 # Initialize components for Routine "rest"
 restClock = core.Clock()
 image_2 = visual.ImageStim(
