@@ -73,6 +73,7 @@ def runBlock(_image, _dots):
     myClock = core.Clock()
     myClock.reset()  # clock
     continueRoutine = True
+    global routineTimer
     routineTimer.add(60.000000)
     # update component parameters for each repeat
     # keep track of which components have finished
@@ -123,7 +124,7 @@ image = visual.ImageStim(
     win=win, name='image',
     image=None, mask=None,
     ori=0, pos=(0, 0), size=(2, 2),
-    color=[1.000,1.000,1.000], colorSpace='rgb', opacity=1,
+    color=[0.50,0.800,1.000], colorSpace='rgb', opacity=1,
     flipHoriz=False, flipVert=False,
     texRes=128, interpolate=True, depth=0.0)
 dots = visual.DotStim(
@@ -304,57 +305,19 @@ dots_2 = visual.DotStim(
 globalClock = core.Clock()  # to track the time since experiment started
 routineTimer = core.CountdownTimer()  # to track time remaining of each (non-slip) routine
 
-def runBlock(_image, _dots):
-    # ------Prepare to start Routine "rest"-------
-    t = 0
-    myClock = core.Clock()
-    myClock.reset()  # clock
-    continueRoutine = True
-    global routineTimer
-    routineTimer.add(60.000000)
-    # update component parameters for each repeat
-    # keep track of which components have finished
-    myComponents = [_image, _dots]
-    for thisComponent in myComponents:
-        if hasattr(thisComponent, 'status'):
-            thisComponent.status = NOT_STARTED
-        
-    # -------Start Routine "rest"-------
-    while continueRoutine and routineTimer.getTime() > 0:
-        # get current time
-        t = myClock.getTime()
-            
-        # *dots_2* updates
-        if t >= 0.0 and _dots.status == NOT_STARTED:
-            _image.setAutoDraw(True)
-            _dots.setAutoDraw(True)
-        frameRemains = 0.0 + 60.0- win.monitorFramePeriod * 0.75  # most of one frame period left
-        if _dots.status == STARTED and t >= frameRemains:
-            _dots.setAutoDraw(False)
-            _image.setAutoDraw(False)
-            
-        # check if all components have finished
-        if not continueRoutine:  # a component has requested a forced-end of Routine
-            break
-        continueRoutine = False  # will revert to True if at least one component still running
-        for thisComponent in myComponents:
-            if hasattr(thisComponent, "status") and thisComponent.status != FINISHED:
-                continueRoutine = True
-                break  # at least one component has not yet finished
-            
-        # check for quit (the Esc key)
-        if endExpNow or event.getKeys(keyList=["escape"]):
-            core.quit()
-            
-        # refresh the screen
-        if continueRoutine:  # don't flip if this routine is over or we'll get a blank screen
-            win.flip()
-        
-    # -------Ending Routine "my"-------
-    for thisComponent in myComponents:
-        if hasattr(thisComponent, "setAutoDraw"):
-            thisComponent.setAutoDraw(False)
-    return
+
+
+
+
+
+
+
+
+
+
+
+
+
         
 # ------Prepare to start Routine "routine_1"-------
 t = 0
