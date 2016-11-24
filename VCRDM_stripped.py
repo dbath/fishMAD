@@ -67,6 +67,12 @@ else:
 print frameDur, round(expInfo['frameRate'])
 win.monitorFramePeriod = frameDur
 
+
+# Create some handy timers
+globalClock = core.Clock()  # to track the time since experiment started
+routineTimer = core.CountdownTimer()  # to track time remaining of each (non-slip) routine
+
+
 def runBlock(_image, _dots):
     # ------Prepare to start Routine "rest"-------
     t = 0
@@ -301,9 +307,6 @@ dots_2 = visual.DotStim(
     color=[-1.0,-1.0,-1.0], colorSpace='rgb', opacity=1,
     depth=-1.0)
 
-# Create some handy timers
-globalClock = core.Clock()  # to track the time since experiment started
-routineTimer = core.CountdownTimer()  # to track time remaining of each (non-slip) routine
 
 
 
