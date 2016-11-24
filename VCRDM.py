@@ -64,7 +64,8 @@ if expInfo['frameRate'] != None:
     print "FOUND THE FRAMERATE!!!!!!!!!!!!!!!!"
 else:
     frameDur = 1.0 / 60.0  # could not measure, so guess
-print frameDur
+print frameDur, round(expInfo['frameRate'])
+win.monitorFramePeriod = frameDur
 # Initialize components for Routine "rest"
 restClock = core.Clock()
 image_2 = visual.ImageStim(
