@@ -73,14 +73,14 @@ globalClock = core.Clock()  # to track the time since experiment started
 routineTimer = core.CountdownTimer()  # to track time remaining of each (non-slip) routine
 
 
-def runBlock(_image, _dots):
+def runBlock(_image, _dots, _duration):
     # ------Prepare to start Routine "rest"-------
     t = 0
     myClock = core.Clock()
     myClock.reset()  # clock
     continueRoutine = True
     global routineTimer
-    routineTimer.add(60.000000)
+    routineTimer.add(_duration)
     # update component parameters for each repeat
     # keep track of which components have finished
     myComponents = [_image, _dots]
@@ -97,7 +97,7 @@ def runBlock(_image, _dots):
         if t >= 0.0 and _dots.status == NOT_STARTED:
             _image.setAutoDraw(True)
             _dots.setAutoDraw(True)
-        frameRemains = 0.0 + 60.0- win.monitorFramePeriod * 0.75  # most of one frame period left
+        frameRemains = 0.0 + _duration - win.monitorFramePeriod * 0.75  # most of one frame period left
         if _dots.status == STARTED and t >= frameRemains:
             _dots.setAutoDraw(False)
             _image.setAutoDraw(False)
@@ -125,14 +125,27 @@ def runBlock(_image, _dots):
             thisComponent.setAutoDraw(False)
     return
 
+def setStim(_nDots, _dotSize, _speed, _dir, _co):
+    dots = visual.DotStim(
+        win=win, name='dots',
+        nDots=_ndots, dotSize=_dotSize,
+        speed=_speed, dir=_dir, coherence=_co,
+        fieldPos=(0.0, 0.0), fieldSize=4,fieldShape='square',
+        signalDots='different', noiseDots='direction',dotLife=1000,
+        color=[-1.0,-1.0,-1.0], colorSpace='rgb', opacity=1,
+        depth=-1.0)
+    return dots
+
+
 # Initialize components for Routine "TEST"
 image = visual.ImageStim(
     win=win, name='image',
     image=None, mask=None,
     ori=0, pos=(0, 0), size=(2, 2),
-    color=[0.50,0.800,1.000], colorSpace='rgb', opacity=1,
+    color=[1.0,1.00,1.000], colorSpace='rgb', opacity=1,
     flipHoriz=False, flipVert=False,
     texRes=128, interpolate=True, depth=0.0)
+
 dots = visual.DotStim(
     win=win, name='dots',
     nDots=400, dotSize=20,
@@ -143,8 +156,16 @@ dots = visual.DotStim(
     depth=-1.0)
 
 print "Here goes nothing"
-runBlock(image, dots)
+rest = setStim(400, 20, 0, 0, 1)
+runBlock(image, rest, 10)
+stim1 = setStim(400, 20, 0.5, 0, 1)
+runBlock(image, stim1, 10)
+runBlock(image, rest, 10)
+stim2 = setStim(400, 20, 0.5, 180, 1)
+runBlock(image, stim2, 10)
 print "**********************************finished!"
+
+
 # Initialize components for Routine "rest"
 restClock = core.Clock()
 image_2 = visual.ImageStim(
