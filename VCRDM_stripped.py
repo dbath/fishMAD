@@ -128,7 +128,7 @@ def runBlock(_image, _dots, _duration):
 def setStim(_nDots, _dotSize, _speed, _dir, _co):
     dots = visual.DotStim(
         win=win, name='dots',
-        nDots=_ndots, dotSize=_dotSize,
+        nDots=_nDots, dotSize=_dotSize,
         speed=_speed, dir=_dir, coherence=_co,
         fieldPos=(0.0, 0.0), fieldSize=4,fieldShape='square',
         signalDots='different', noiseDots='direction',dotLife=1000,
