@@ -163,6 +163,12 @@ runBlock(image, stim1, 10)
 runBlock(image, rest, 10)
 stim2 = setStim(400, 20, 0.5, 180, 1)
 runBlock(image, stim2, 10)
+runBlock(image, rest, 10)
+stim2.speed = 0.25
+stim2.coherence=0.6
+runBlock(image, stim2,10)
+runBlock(image, rest, 10)
+
 print "**********************************finished!"
 
 
