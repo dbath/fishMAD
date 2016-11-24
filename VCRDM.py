@@ -11,7 +11,7 @@ If you publish work using this script please cite the PsychoPy publications:
 """
 
 from __future__ import absolute_import, division
-from psychopy import locale_setup, gui, visual, core, data, event, logging, sound
+from psychopy import gui, visual, core, data, event, logging, sound #locale_setup,
 from psychopy.constants import (NOT_STARTED, STARTED, PLAYING, PAUSED,
                                 STOPPED, FINISHED, PRESSED, RELEASED, FOREVER)
 import numpy as np  # whole numpy lib is available, prepend 'np.'
@@ -44,7 +44,7 @@ thisExp = data.ExperimentHandler(name=expName, version='',
     savePickle=True, saveWideText=True,
     dataFileName=filename)
 # save a log file for detail verbose info
-logFile = logging.LogFile(filename+'.log', level=logging.EXP)
+#logFile = logging.LogFile(filename+'.log', level=logging.EXP)
 logging.console.setLevel(logging.WARNING)  # this outputs to the screen, not a file
 
 endExpNow = False  # flag for 'escape' or other condition => quit the exp
@@ -231,7 +231,8 @@ globalClock = core.Clock()  # to track the time since experiment started
 routineTimer = core.CountdownTimer()  # to track time remaining of each (non-slip) routine 
 
 # set up handler to look after randomisation of conditions etc
-repeat = data.TrialHandler(nReps=5, method='random', 
+"""
+repeat = data.TrialHandler(nReps=5, method='random',
     extraInfo=expInfo, originPath=-1,
     trialList=[None],
     seed=None, name='repeat')
@@ -242,13 +243,14 @@ if thisRepeat != None:
     for paramName in thisRepeat.keys():
         exec(paramName + '= thisRepeat.' + paramName)
 
-for thisRepeat in repeat:
+for thisRepeat in repeat:  #replaced repeat with 'a'
     currentLoop = repeat
     # abbreviate parameter names if possible (e.g. rgb = thisRepeat.rgb)
     if thisRepeat != None:
         for paramName in thisRepeat.keys():
             exec(paramName + '= thisRepeat.' + paramName)
-    
+"""
+for a in 'a':  #lazy hack by Danno
     # ------Prepare to start Routine "rest"-------
     t = 0
     restClock.reset()  # clock
@@ -813,8 +815,8 @@ for thisComponent in restComponents:
     if hasattr(thisComponent, "setAutoDraw"):
         thisComponent.setAutoDraw(False)
 # these shouldn't be strictly necessary (should auto-save)
-thisExp.saveAsWideText(filename+'.csv')
-thisExp.saveAsPickle(filename)
+#thisExp.saveAsWideText(filename+'.csv')
+#thisExp.saveAsPickle(filename)
 logging.flush()
 # make sure everything is closed down
 thisExp.abort()  # or data files will save again on exit
