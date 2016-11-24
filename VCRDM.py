@@ -89,14 +89,14 @@ routine_1Clock = core.Clock()
 image = visual.ImageStim(
     win=win, name='image',
     image=None, mask=None,
-    ori=0, pos=(0, 0), size=(2, 2),
+    ori=0, pos=(0, 0), size=(1.5, 1.5),
     color=[1.000,1.000,1.000], colorSpace='rgb', opacity=1,
     flipHoriz=False, flipVert=False,
     texRes=128, interpolate=True, depth=0.0)
 dots = visual.DotStim(
     win=win, name='dots',
     nDots=400, dotSize=20,
-    speed=0.005, dir=0.0, coherence=1.0,
+    speed=0.5, dir=0.0, coherence=1.0,
     fieldPos=(0.0, 0.0), fieldSize=4,fieldShape='square',
     signalDots='different', noiseDots='direction',dotLife=1000,
     color=[-1.0,-1.0,-1.0], colorSpace='rgb', opacity=1,
