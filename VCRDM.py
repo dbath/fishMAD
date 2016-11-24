@@ -77,7 +77,7 @@ image_2 = visual.ImageStim(
     texRes=128, interpolate=True, depth=0.0)
 dots_2 = visual.DotStim(
     win=win, name='dots_2',
-    nDots=4000, dotSize=20,
+    nDots=400, dotSize=20,
     speed=0, dir=0.0, coherence=1.0,
     fieldPos=(0.0, 0.0), fieldSize=4,fieldShape='circle',
     signalDots='same', noiseDots='direction',dotLife=1000,
@@ -95,8 +95,8 @@ image = visual.ImageStim(
     texRes=128, interpolate=True, depth=0.0)
 dots = visual.DotStim(
     win=win, name='dots',
-    nDots=4000, dotSize=20,
-    speed=0.0005, dir=0.0, coherence=1.0,
+    nDots=400, dotSize=20,
+    speed=0.005, dir=0.0, coherence=1.0,
     fieldPos=(0.0, 0.0), fieldSize=4,fieldShape='square',
     signalDots='different', noiseDots='direction',dotLife=1000,
     color=[-1.0,-1.0,-1.0], colorSpace='rgb', opacity=1,
