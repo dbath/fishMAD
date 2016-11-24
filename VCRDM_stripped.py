@@ -310,6 +310,7 @@ def runBlock(_image, _dots):
     myClock = core.Clock()
     myClock.reset()  # clock
     continueRoutine = True
+    global routineTimer
     routineTimer.add(60.000000)
     # update component parameters for each repeat
     # keep track of which components have finished
