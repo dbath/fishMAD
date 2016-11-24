@@ -96,7 +96,7 @@ image = visual.ImageStim(
 dots = visual.DotStim(
     win=win, name='dots',
     nDots=400, dotSize=20,
-    speed=0.5, dir=0.0, coherence=1.0,
+    speed=0.05, dir=0.0, coherence=1.0,
     fieldPos=(0.0, 0.0), fieldSize=4,fieldShape='square',
     signalDots='different', noiseDots='direction',dotLife=1000,
     color=[-1.0,-1.0,-1.0], colorSpace='rgb', opacity=1,
