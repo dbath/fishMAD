@@ -1,8 +1,8 @@
 
 int THING_SIZE = 50;
 float SPEED = 0.2;
-Dots first = new Dots(0.5, 65, -1.0*SPEED); 
-Dots second = new Dots(1.0, 135, 1.0*SPEED); 
+Dots first = new Dots(0.5, 500, -1.0*SPEED); 
+Dots second = new Dots(1.0, 100, 1.0*SPEED); 
 
 
 void setup() 
@@ -27,64 +27,59 @@ class Dots {
   int NUMBER_OF_THINGS;
   float ORDER;
   float DIR; 
-  float[] x;
-  float[] y;
-  float[] colour;
-  float[] velocities;
+  Dot[] dotList;
   Dots (float order, int numDots, float direction) { 
     NUMBER_OF_THINGS = numDots; 
     DIR = direction; 
     ORDER = order;
-    x = new float[NUMBER_OF_THINGS];
-    y = new float[NUMBER_OF_THINGS];
-    colour = new float[NUMBER_OF_THINGS];
-    velocities = new float[NUMBER_OF_THINGS];
-    for (int i=0; i < NUMBER_OF_THINGS; i++) {
-      //x[i] = random(-8*width, 8*width);
-      //y[i] = random(-8*height, 8*height);
-      //colour[i] = random(80);
-      x[i], y[i], colour[i], velocities[i] = generate_dot();
-      x[i] = x[i] + velocities[i];
-      y[i] = y[i] + velocities[i];
-      if (x[i] > 8*width){ x[i], y[i], colour[i], velocities[i] = generate_dot();}
-      if (y[i] > 8*height){ x[i], y[i], colour[i], velocities[i] = generate_dot();}
-      if (x[i] < -8*width){ x[i], y[i], colour[i], velocities[i] = generate_dot();}
-      if (y[i] < -8*height){ x[i], y[i], colour[i], velocities[i] = generate_dot();}
-      
-      
-      
-      Dot d = new Dot();
-      
-      d.X = d.X + d.VEL;
-      d.Y = 
-      x[i] = x[i] + velocities[i];
-      y[i] = y[i] + velocities[i];
-      if (x[i] > 8*width){ x[i], y[i], colour[i], velocities[i] = generate_dot();}
-      if (y[i] > 8*height){ x[i], y[i], colour[i], velocities[i] = generate_dot();}
-      if (x[i] < -8*width){ x[i], y[i], colour[i], velocities[i] = generate_dot();}
-      if (y[i] < -8*height){ x[i], y[i], colour[i], velocities[i] = generate_dot();}
-      
+    dotList = new Dot[NUMBER_OF_THINGS];
+    for (int i=0; i < dotList.length; i++) {
+      dotList[i] = new Dot();      
     }
   } 
+  
   void update() { 
     rotate(ORDER*DIR*radians(frameCount));
     for (int i=0; i< NUMBER_OF_THINGS; i++){
-      fill(0, 0,0, colour[i]);
-      ellipse(x[i], y[i], THING_SIZE, THING_SIZE);
+      dotList[i].X = dotList[i].X + dotList[i].VELX;
+      dotList[i].Y = dotList[i].Y + dotList[i].VELY;
+      
+      if (abs(dotList[i].X) > 8*width){ dotList[i].refresh() ;}
+      if (abs(dotList[i].Y) > 8*height){ dotList[i].refresh() ;}
+      //if (abs(dotList[i].X) > 8*width){ dotList[i].refresh() ;}
+      //if (abs(dotList[i].Y) > 8*height){ dotList[i].refresh() ;}
+      
+      
+      fill(0, 0,0, dotList[i].COLOUR);
+      ellipse(dotList[i].X, dotList[i].Y, THING_SIZE, THING_SIZE);
+      
+      
+      
+      
     }
   }
 
 }
 
-Class Dot {
-  int X, Y;
-  float COLOUR, VEL;
+class Dot {
+  float X, Y;
+  float COLOUR, VELX, VELY;
   
   Dot() {
     this.X=random(-8*width, 8*width);
     this.Y = random(-8*height, 8*height);
     this.COLOUR = random(80);
-    this.VEL = random(0,2);    
+    this.VELX = random(-0.125,0.125); 
+    this.VELY = random(-0.125,0.125);   
   }
+  
+  void refresh(){
+    X=random(-8*width, 8*width);
+    Y = random(-8*height, 8*height);
+    COLOUR = random(80);
+    VELX = random(-0.125,0.125);
+    VELY = random(-0.125,0.125);
+  }
+  
   
 }
