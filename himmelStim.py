@@ -5,7 +5,7 @@ import pygame
 import numpy as np
 
 pygame.init()
-DisplayWidth, DisplayHeight = 600,450
+DisplayWidth, DisplayHeight = 1250,850
 screen = pygame.display.set_mode((DisplayWidth, DisplayHeight), pygame.FULLSCREEN)
 pygame.display.mode_ok((DisplayWidth, DisplayHeight), pygame.DOUBLEBUF)
 

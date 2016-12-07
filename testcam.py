@@ -1,11 +1,38 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="11134" systemVersion="15F34" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
-    <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="11134"/>
-    </dependencies>
-    <objects>
-        <customObject id="-2" userLabel="File's Owner"/>
-        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
-        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-    </objects>
-</document>
+import cv2
+import pypylon
+
+print('Build against pylon library version:', pypylon.pylon_version.version)
+
+available_cameras = pypylon.factory.find_devices()
+print('Available cameras are', available_cameras)
+
+# Grep the first one and create a camera for it
+cam = pypylon.factory.create_device(available_cameras[-1])
+
+# We can still get information of the camera back
+#print('Camera info of camera object:', cam.device_info)
+
+# Open camera and grep some images
+cam.open()
+
+# Hard code exposure time
+cam.properties['ExposureTime'] = 10000.0
+cam.properties['PixelFormat'] = 'Mono12'
+cam.properties['AcquisitionFrameRateEnable'] = True
+cam.properties['AcquisitionFrameRate'] = 30 #FPS
+#print(cam.properties.keys())
+
+
+FILENAME = '/Users/bathd/Desktop/test2/desk.mp4'
+
+
+
+camera = cv2.VideoCapture(0)
+video  = cv2.VideoWriter(FILENAME, -1, 25, (2048, 2048));
+while True:
+   f,img = camera.read()
+   video.write(img)
+   cv2.imshow("webcam",img)
+   if (cv2.waitKey(5) != -1):
+       break
+video.release()
