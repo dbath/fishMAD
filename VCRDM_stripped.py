@@ -142,7 +142,7 @@ image = visual.ImageStim(
     win=win, name='image',
     image=None, mask=None,
     ori=0, pos=(0, 0), size=(2, 2),
-    color=[1.0,1.00,1.000], colorSpace='rgb', opacity=1,
+    color=[0.5,0.5,0.5], colorSpace='rgb', opacity=1,
     flipHoriz=False, flipVert=False,
     texRes=128, interpolate=True, depth=0.0)
 
@@ -157,7 +157,7 @@ dots = visual.DotStim(
 
 print "Here goes nothing"
 rest = setStim(400, 20, 0, 0, 1)
-stim1 = setStim(400, 20, 0.0125, 0, 1)
+stim1 = setStim(400, 20, 0.0125, 90, 0.5)
 stim2 = setStim(400, 20, 0.0625, 180, 1)
 stim3 = setStim(400, 20, 0.0625, 245, 0.8)
 runBlock(image, rest, 3)
