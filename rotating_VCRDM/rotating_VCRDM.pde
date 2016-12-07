@@ -2,8 +2,14 @@
 int THING_SIZE = 50;
 float SPEED = 0.2;
 int t0;
-Dots first = new Dots(0.5, 500, -1.0*SPEED); 
-Dots second = new Dots(1.0, 100, 1.0*SPEED); 
+int t1;
+int startTime;
+boolean tick = true;
+int wait = 30*60*1000;
+Dots test1 = new Dots(0.5, 500, -1.0*SPEED); 
+Dots test2 = new Dots(1.0, 100, 1.0*SPEED); 
+Dots rest1 = new Dots(0.5, 00, -1.0*SPEED); 
+Dots rest2 = new Dots(1.0, 00, 1.0*SPEED); 
 
 
 void setup() 
@@ -14,23 +20,52 @@ void setup()
   background(100);
   stroke(0,0,0,0);
   t0=millis();
+  startTime = millis();
+  //doit();
 }
 
 
 void draw() { 
-  int t1=millis();
+  t1=millis();
   int fps = (int)(1000./((float)(t1-t0)));
   t0=t1;
+  
+  if(t1 - startTime >= wait){
+    //if(tick=true){tick=false;}
+    //else if (tick=false){tick=true;}
+    tick = !tick;
+    startTime = t1;
+  }
+  println(tick);
   background(100);
   translate(width/2, height/2);
-  first.update(); 
-  second.update();  
+  if(tick == true){
+    test1.update(); 
+    test2.update(); 
+  }
+  else if(tick==false){
+    rest1.update(); 
+    rest2.update(); 
+  }
+  
   translate(-width/2, -height/2);
   fill(0,100,100,100);
   textSize(100);
-  text(str(fps),width/2, height/2);
+  //text(str(fps),width/2, height/2);
+  //text(str(tick),width/2, height/2);
   
 } 
+
+ 
+void doit(){
+ for (int i=0; i < 20; i++) {
+  fill(0,100,100,100);
+  textSize(200);
+  text("FOOBAR",width/2, height/2);
+  //delay(2000);
+  } 
+  
+}
  
 class Dots { 
   int NUMBER_OF_THINGS;
