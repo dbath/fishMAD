@@ -2,15 +2,15 @@
 int THING_SIZE = 50;
 float SPEED = 0.2;
 int t0;
-Dots first = new Dots(0.5, 600, -1.0*SPEED); 
-Dots second = new Dots(1.0, 600, 1.0*SPEED); 
+Dots first = new Dots(0.5, 500, -1.0*SPEED); 
+Dots second = new Dots(1.0, 100, 1.0*SPEED); 
 
 
 void setup() 
 {
   fullScreen();//size(200, 200);
   //frameRate(30);
-  colorMode(HSB, 100, 100, 100);//, 100);
+  colorMode(HSB, 100, 100, 100, 100);
   background(100);
   stroke(0,0,0,0);
   t0=millis();
@@ -59,7 +59,7 @@ class Dots {
       //if (abs(dotList[i].Y) > 8*height){ dotList[i].refresh() ;}
       
       
-      fill(0, 0,0);//, dotList[i].COLOUR);
+      fill(0, 0,0, dotList[i].COLOUR);
       ellipse(dotList[i].X, dotList[i].Y, THING_SIZE, THING_SIZE);
       
       
