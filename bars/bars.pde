@@ -3,24 +3,24 @@ int t0;
 int t1;
 int startTime;
 boolean tick = false;
-int wait = 1*30*1000;
+int wait = 1*10*1000;
 int counter = 0;
 int WIDTH;
 int HEIGHT;
 int alpha = 0;
-int fadeTime = 5000;
+int fadeTime = 1000;
 
 
   
-Bars test1 = new Bars(100, -5, 0, 1, 0, 100);
-Bars rest1 = new Bars(5, 0, 0, 1, 0, 100);
+Bars test1 = new Bars(10, 0, 0, 1, 0, 100);
+Bars rest1 = new Bars(1, 0, 0, 1, 1, 50);
 
 
 void setup() {
-  fullScreen();
+  size(700,600);//fullScreen();
   WIDTH = width;
   HEIGHT = height;
-  println(WIDTH);
+  println(WIDTH, HEIGHT);
   //size(800,800);
   colorMode(HSB, 100, 100, 100, 100);
   background(100);
@@ -36,10 +36,10 @@ void setup() {
 void draw() {
   t1=millis();
   t0=t1;
-  if (counter == 0) { Set(test1, 10, 0, -3, 0, 1);}
-  if (counter == 2) { Set(test1, 4, 0, 2, 0, 1);} 
-  if (counter == 4) { Set(test1, 2, 2, 0, 1, 0);} 
-  if (counter == 6) { Set(test1, 6, -1, 0, 1, 0);} 
+  if (counter == 0) { Set(test1, 10, 8, 0, 1, 0);}
+  if (counter == 2) { Set(test1, 10, -8, 0, 1, 0);} 
+  if (counter == 4) { Set(test1, 6, 0, 8, 0, 1);} 
+  if (counter == 6) { Set(test1, 6, 0, -8, 0, 1);} 
   background(100);
   if(tick == true){
     test1.update();  
@@ -67,7 +67,7 @@ void draw() {
   }
   
   
-  println(alpha);
+  //println(alpha);
   fill(100,0,50, alpha);
   rect(0,0,width,height);
 
