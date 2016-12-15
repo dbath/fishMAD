@@ -3,12 +3,12 @@ int t0;
 int t1;
 int startTime;
 boolean tick = false;
-int wait = 1*10*1000;
+int wait = 10*60*1000;
 int counter = 0;
 int WIDTH;
 int HEIGHT;
 int alpha = 0;
-int fadeTime = 1000;
+int fadeTime = 10000;
 
 
   
@@ -67,7 +67,6 @@ void draw() {
   }
   
   
-  //println(alpha);
   fill(100,0,50, alpha);
   rect(0,0,width,height);
 

@@ -1,28 +1,35 @@
 
-int THING_SIZE = 50;
+int THING_SIZE = 25;
 float SPEED = 0.2;
+float speed;
 int t0;
 int t1;
 int startTime;
-boolean tick = false;
-int wait = 1*5*1000;
+int tick;
+int wait = 10*60*1000;
 int counter = 0;
-Dots test1 = new Dots(0.5, 500, -1.0*SPEED); 
-Dots test2 = new Dots(1.0, 100, 1.0*SPEED); 
-Dots rest1 = new Dots(0.5, 00, -1.0*SPEED); 
-Dots rest2 = new Dots(1.0, 00, 1.0*SPEED); 
+int rotationCounter = 0;
+int rotation;
+Dots test1 = new Dots(0.5, 1000, -1.0*SPEED); 
+Dots test2 = new Dots(1.0, 200, 1.0*SPEED); 
+//Dots rest1 = new Dots(0.5, 100, -1.0*SPEED); 
+//Dots rest2 = new Dots(1.0, 100, 1.0*SPEED); 
 
 
 void setup() 
 {
-  fullScreen();//size(200, 200);
+  size(700,600);//fullScreen();//size(200, 200);
   //frameRate(30);
   colorMode(HSB, 100, 100, 100, 100);
   background(100);
   stroke(0,0,0,0);
   t0=millis();
   startTime = millis();
-  //doit();
+  test1.Init();
+  test2.Init();
+  tick = -1;
+  //rest1.Init();
+  //rest2.Init();
 }
 
 
@@ -30,40 +37,48 @@ void draw() {
   t1=millis();
   int fps = (int)(1000./((float)(t1-t0)));
   t0=t1;
-  
-  if (counter == 0) { set_C(test1, test2, 500, 100);}
-  if (counter == 2) { set_C(test1, test2, 0, 600);}
-  if (counter == 4) { set_C(test1, test2, 300, 300);}
-  if (counter == 6) { set_C(test1, test2, 600, 000);}
-  if (counter == 8) { set_C(test1, test2, 150, 450);}
+
   
   if(t1 - startTime >= wait){
-    tick = !tick;
+    tick = -1*tick;
     startTime = t1;
+      
+    if (counter == 0) { set_C(test1, test2, 1000, 200);}
+    if (counter == 2) { set_C(test1, test2, 0, 1200);}
+    if (counter == 4) { set_C(test1, test2, 600, 600);}
+    if (counter == 6) { set_C(test1, test2, 1200, 000);}
+    if (counter == 8) { set_C(test1, test2, 300, 900);}
+    
     counter = counter + 1;
-  }
-  if (frameCount % 50 == 0){
-    println(test1.NUMBER_OF_THINGS);
   }
   background(100);
   translate(width/2, height/2);
   
   
-  if(tick == true){
-    test1.update(); 
-    test2.update(); 
+  if(tick < 0){
+    //test1.update(); 
+    //test2.update(); 
+    rotation = 1;
   }
-  else if(tick==false){
-    rest1.update(); 
-    rest2.update(); 
+  else if(tick > 0){
+    //test1.update(); 
+    //test2.update(); 
+    rotation = 0;
   }
+  rotationCounter = rotationCounter + rotation;
+  
+  test1.update(); 
+  test2.update(); 
   
   translate(-width/2, -height/2);
   fill(0,100,100,100);
   textSize(100);
   //text(str(fps),width/2, height/2);
   //text(str(tick),width/2, height/2);
-  
+
+   
+    
+
 } 
 
 void set_C(Dots group1, Dots group2, int num1, int num2) {
@@ -87,13 +102,14 @@ public class Dots {
   int NUMBER_OF_THINGS;
   float ORDER;
   float DIR; 
+  float ROTATION;
   Dot[] dotList;    
   
   public Dots(float order, int numDots, float direction) {     
     NUMBER_OF_THINGS = numDots; 
     DIR = direction; 
     ORDER = order;
-    Init();
+    ROTATION = 1;
   }
   
   public void Reset(){
@@ -109,7 +125,7 @@ public class Dots {
   }
       
   void update() { 
-    rotate(ORDER*DIR*radians(frameCount));
+    rotate((float)ORDER*DIR*radians(rotationCounter));
     for (int i=0; i< NUMBER_OF_THINGS; i++){
       dotList[i].X = dotList[i].X + dotList[i].VELX;
       dotList[i].Y = dotList[i].Y + dotList[i].VELY;
