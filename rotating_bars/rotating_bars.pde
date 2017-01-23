@@ -4,10 +4,10 @@ int t0;
 int t1;
 int startTime;
 boolean tick = false;
-int wait = 1*10*1000;
+int wait = 5*60*1000;
 int counter = 0;
 int alpha = 0;
-int fadeTime = 3000;
+int fadeTime = 10000;
 
 Bars test1 = new Bars(30, 0.01, 1, 200);
 Bars test2 = new Bars(0, 0.01, -1, 100);
@@ -32,10 +32,10 @@ void setup() {
 void draw() {
   t1 = millis();
   t0 = t1;
-  if (counter == 0) { Set(test1, 30, 0.01, 1);}
-  if (counter == 2) { Set(test1, 10, 0.03, -1);} 
-  if (counter == 4) { Set(test1, 6, 0.01, 1);} 
-  if (counter == 6) { Set(test1, 6, 0.01, -1);} 
+  if (counter == 0) { Set(test1, 10, 0.01, 1);}
+  if (counter == 2) { Set(test1, 10, 0.01, -1);} 
+  if (counter == 4) { Set(test1, 10, 0.01, 1);} 
+  if (counter == 6) { Set(test1, 10, 0.01, -1);} 
 
   
   background(100);
