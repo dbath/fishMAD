@@ -1,13 +1,23 @@
+import processing.io.*;
+
+// HARDWARE VARIABLES
+int progPin = 27;   //indicates the program is running
+boolean PROG = true;
+int stimPin = 22;  //indicates that a stimulus is running
+boolean STIM = false;
 
 
+// PROTOCOL VARIABLES
+int wait = 5*1*1000;
+int fadeTime = 10000;
+
+// SOFTWARE VARIABLES
 int t0;
 int t1;
 int startTime;
 boolean tick = false;
-int wait = 5*60*1000;
 int counter = 0;
 int alpha = 0;
-int fadeTime = 10000;
 
 Bars test1 = new Bars(30, 0.01, 1, 200);
 Bars test2 = new Bars(0, 0.01, -1, 100);
@@ -16,7 +26,15 @@ int w = width/2;
 int h = height/2;
 
 void setup() {
-  size(700,600);//fullScreen();//size(200, 200);
+  fullScreen();//size(700,600);//fullScreen();//size(200, 200);
+  noCursor();
+  
+  GPIO.pinMode(progPin, GPIO.OUTPUT);
+  GPIO.digitalWrite(progPin, PROG);
+  GPIO.pinMode(stimPin, GPIO.OUTPUT);
+  GPIO.digitalWrite(stimPin, STIM);
+  
+  
   w = width/2;
   h = height/2;
   //frameRate(30);
@@ -54,6 +72,8 @@ void draw() {
     tick = !tick;
     startTime = t1;
     counter = counter + 1;
+    STIM = !STIM;
+    GPIO.digitalWrite(stimPin, STIM);
   } 
   int timeLeft = wait - (t1 - startTime);
   if (timeLeft <=fadeTime) {
@@ -67,6 +87,9 @@ void draw() {
   }
   fill(100,0,50, alpha);
   rect(0,0,width,height);
+  fill(0,0,0,100);
+  rect(0,0,0.2*width, height);
+  rect(0.8*width, 0, 0.2*width, height);
   
 }
 void Set(Bars _bars, int _numBars, float _Vel, int _Dir) {
