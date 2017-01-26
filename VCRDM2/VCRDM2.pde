@@ -8,8 +8,8 @@ boolean STIM = false;
 
 
 // PROTOCOL VARIABLES
-int wait = 2*60*1000;
-int fadeTime = 1;
+int wait = 1*5*1000;
+int fadeTime = 2000;
 
 // SOFTWARE VARIABLES
 int t0;
@@ -17,12 +17,12 @@ int t1;
 int startTime;
 int tick;
 int counter = 0;
-int alpha = 0;
-int myDefNum = 900;
+float alpha = 0;
+int myDefNum = 500;
 float myDefSpeed = 0.05;
 
 Bars test1 = new Bars(myDefNum, myDefSpeed, 1, 200);
-Bars test2 = new Bars(100, 0.05, 1, 100);
+Bars test2 = new Bars(500, 0.05, 1, 100);
 int w = width/2;
 int h = height/2;
 
@@ -75,14 +75,15 @@ void draw() {
    
   int timeLeft = wait - (t1 - startTime);
   if (timeLeft <=fadeTime) {
-    alpha = (int)((fadeTime - timeLeft)/(fadeTime/100.0));
+    alpha = (float)((fadeTime - timeLeft)/(fadeTime/100.0));
   }
   else if ((t1 - startTime) <= fadeTime){
-    alpha = (int)((fadeTime-(t1-startTime))/(fadeTime/100.0));
+    alpha = (float)((fadeTime-(t1-startTime))/(fadeTime/100.0));
   }
   else { 
     alpha = 0;
   }
+  println( alpha);
   //fill(100,0,50, alpha);
   //rect(0,0,width,height);
   fill(0,0,0,100);
@@ -90,7 +91,7 @@ void draw() {
   rect(0.8*width, 0, 0.2*width, height);
   
 }
-void Set(Bars _bars, int _numBars, float _Vel, int _Dir) {
+void Set(Bars _bars, int _numBars, float _Vel, float _Dir) {
   _bars.NUMBER_OF_THINGS = _numBars;
   _bars.vel = _Vel;
   _bars.dir = _Dir;
@@ -99,13 +100,13 @@ void Set(Bars _bars, int _numBars, float _Vel, int _Dir) {
 public class Bars {
   int NUMBER_OF_THINGS;
   float vel;  // speed and direction of rotation
-  int dir;  // make 1 to move (positive for clockwise)
+  float dir;  // make 1 to move (positive for clockwise)
   int COLOUR;
   float fade;
   int myFrameCount;
   Bar[] barList;
   
-  public Bars(int numBars, float _vel,  int _dir, int colour) {     
+  public Bars(int numBars, float _vel,  float _dir, int colour) {     
     NUMBER_OF_THINGS = numBars; 
     vel = _vel;
     dir = _dir;
@@ -128,7 +129,7 @@ public class Bars {
   void update() { 
     for (int i=0; i< NUMBER_OF_THINGS; i++){
       if (tick < 0){
-        barList[i].renew(barList[i].ROTATION + barList[i].VEL*dir);
+        barList[i].renew(barList[i].ROTATION + barList[i].VEL*dir*(1.0-(alpha/100.0)));
       }
       
       fill(0,0,0,barList[i].COLOUR);
@@ -143,7 +144,7 @@ class Bar {
   float X1, Y1, ROTATION, RAD, SIZE;
   float COLOUR,  VEL, DIR;
   
-  Bar(float rotation, float vel, int dir) {
+  Bar(float rotation, float vel, float dir) {
     this.SIZE = random(10,50);
     this.COLOUR = random(80,100);  
     this.ROTATION = rotation;
