@@ -3,7 +3,7 @@ int t0;
 int t1;
 int startTime;
 boolean tick = false;
-int wait = 10*60*1000;
+int wait = 1*1*1000;
 int counter = 0;
 int WIDTH;
 int HEIGHT;

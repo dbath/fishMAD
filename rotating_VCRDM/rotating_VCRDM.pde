@@ -6,12 +6,12 @@ int t0;
 int t1;
 int startTime;
 int tick;
-int wait = 10*60*1000;
+int wait = 1*5*1000;
 int counter = 0;
 int rotationCounter = 0;
 int rotation;
-Dots test1 = new Dots(0.5, 1000, -1.0*SPEED); 
-Dots test2 = new Dots(1.0, 200, 1.0*SPEED); 
+Dots test1 = new Dots(0.5, 1200, -1.0*SPEED); 
+Dots test2 = new Dots(1.0, 000, 1.0*SPEED); 
 //Dots rest1 = new Dots(0.5, 100, -1.0*SPEED); 
 //Dots rest2 = new Dots(1.0, 100, 1.0*SPEED); 
 
@@ -43,7 +43,7 @@ void draw() {
     tick = -1*tick;
     startTime = t1;
       
-    if (counter == 0) { set_C(test1, test2, 1000, 200);}
+    if (counter == 0) { set_C(test1, test2, 1200, 200);}
     if (counter == 2) { set_C(test1, test2, 0, 1200);}
     if (counter == 4) { set_C(test1, test2, 600, 600);}
     if (counter == 6) { set_C(test1, test2, 1200, 000);}
@@ -55,12 +55,12 @@ void draw() {
   translate(width/2, height/2);
   
   
-  if(tick < 0){
+  if(tick > 0){
     //test1.update(); 
     //test2.update(); 
     rotation = 1;
   }
-  else if(tick > 0){
+  else if(tick < 0){
     //test1.update(); 
     //test2.update(); 
     rotation = 0;

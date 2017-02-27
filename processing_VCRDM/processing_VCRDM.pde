@@ -4,8 +4,8 @@
 
 int NUMBER_OF_THINGS = 400;
 int THING_SIZE = 50;
-int velX = 10;  // speed and direction in x
-int velY = 2; // speed and direction in y
+int velX = -10;  // speed and direction in x
+int velY = 0; // speed and direction in y
 float varX = 2; // variation in x
 float varY = 2; //variation in y
 
@@ -15,9 +15,9 @@ float[] _varX = new float[NUMBER_OF_THINGS];
 float[] _varY = new float[NUMBER_OF_THINGS];
 
 void setup() {
-  fullScreen();
+  fullScreen(2);
   //size(500,400);
-  colorMode(HSB, 100);
+  colorMode(HSB, 100,100,100,100);
   background(100);
   for (int i=0; i< NUMBER_OF_THINGS; i++){
     x[i] = random(0,width);
@@ -30,9 +30,9 @@ void setup() {
 }
 
 void draw() {
-  background(100);
-  stroke(0,0,0);
-  fill(200,200,0);
+  background(00,00,100,100);
+  stroke(0,41,100,0);
+  fill(0,100,00,100);
   for (int i=0; i< NUMBER_OF_THINGS; i++){
     
     ellipse(x[i], y[i], THING_SIZE, THING_SIZE);

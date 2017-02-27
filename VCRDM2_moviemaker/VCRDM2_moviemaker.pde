@@ -18,16 +18,15 @@ boolean makingVideo = true;
 int t0;
 int t1;
 int startTime;
-int tick;
-int counter = 0;
-float alpha = 0;
-int myDefNum = 360;
-int myDefNum2 = 300;
-float myDefSpeed = 1;
-float TWEAKSPEED = 0.0;
 
-Bars test1 = new Bars(myDefNum, myDefSpeed, 1, 1);
-Bars test2 = new Bars(300, 3, 1, 1);
+
+int myDefNum2 = 550;
+int myDefNum = 1000 - myDefNum2;
+float myDefSpeed = 3;
+int myframeCount = 0;
+
+Bars test1 = new Bars(myDefNum, myDefSpeed, -1, 1);
+Bars test2 = new Bars(myDefNum2, myDefSpeed, 1, 1);
 int w = width/2;
 int h = height/2;
 
@@ -42,69 +41,38 @@ void setup() {
   GPIO.digitalWrite(stimPin, STIM);
   
 
-  randomSeed(10);
+  //randomSeed(10);
   w = width/2;
   h = height/2;
   //frameRate(30);
   colorMode(HSB, 100, 100, 100, 100);
-  background(100,00,100,100);
+  //background(0,100,100,100);
   stroke(0,0,0,0);
-  tick=1;
   t0=millis();
   startTime = millis(); 
   test1.Init();
   test2.Init();
+  
+  
 }
 
 void draw() {
   t1 = millis();
   t0 = t1;
-  if(t1 - startTime >= wait*1000){
-    tick = -1*tick;
-    startTime = t1;
-    STIM = !STIM;
-    GPIO.digitalWrite(stimPin, STIM);
-    //if (counter % 2 == 0) {Set(test1, 330, 4, 1);
-    //                       Set(test2, 330, 4, -1);}
-    wait = 60; //seconds
-    if (counter == 0) { Set(test1, myDefNum, myDefSpeed, 1);
-                        Set(test2, myDefNum2, myDefSpeed, 1);}
-    if (counter == 2) { Set(test1, myDefNum, myDefSpeed, -1);
-                        Set(test2, myDefNum2, myDefSpeed, 1);} 
-    if (counter == 4) { Set(test1, myDefNum, myDefSpeed, -1);
-                        Set(test2, myDefNum2, myDefSpeed, -1);} 
-    if (counter == 6) { Set(test1, myDefNum, myDefSpeed, 1);
-                        Set(test2, myDefNum2, myDefSpeed, -1);} 
-    
-    counter = counter + 1;
-  }
-  
-  background(100,00,100,100);
+
+  background(0,0,100,100);
   stroke(0,0,0,0);
   fill(0);
-  //TWEAKSPEED = 0.05;
   
   test1.update();
   test2.update();
-   
-  int timeLeft = wait - (t1 - startTime);
-  if (timeLeft <=fadeTime) {
-    alpha = (float)((fadeTime - timeLeft)/(fadeTime/100.0));
-  }
-  else if ((t1 - startTime) <= fadeTime){
-    alpha = (float)((fadeTime-(t1-startTime))/(fadeTime/100.0));
-  }
-  else { 
-    alpha = 0;
-  }
-  //fill(100);
-  //rect(0,0,0.0*width, height);
-  //rect(1.1*width, 0, 0.2*width, height);
-  //fill(0,0,100,100);
-  //ellipse(0.5*width,0.5*height,0.2*width, 0.2*width);
   
-  //saveFrame("/Users/bathd/Desktop/processing_vids/frame-######.png");
+  saveFrame();
   
+  if (myframeCount > 1200){ exit();}
+  
+  myframeCount += 1;
+
 }
 void Set(Bars _bars, int _numBars, float _Vel, float _Dir) {
   _bars.NUMBER_OF_THINGS = _numBars;
@@ -144,10 +112,8 @@ public class Bars {
   }
   void update() { 
     for (int i=0; i< NUMBER_OF_THINGS; i++){
-      if (tick < 0){
-        //barList[i].renew(barList[i].ROTATION + barList[i].VEL*dir*(1.0-(alpha/100.0)));
-        barList[i].renew(barList[i].ROTATION + vel*dir*(1.0-(alpha/100.0)));
-      }
+      barList[i].renew(barList[i].ROTATION + vel*dir);
+
       
       fill(0,100,00,barList[i].COLOUR);
       ellipse(barList[i].X1, barList[i].Y1, barList[i].SIZE, barList[i].SIZE);
@@ -160,22 +126,29 @@ public class Bars {
 class Bar {
   float X1, Y1, ROTATION, RAD, SIZE;
   float COLOUR,  VEL, DIR;
+  float DRIFT;
   
   Bar(float rotation, float vel, float dir) {
-    this.SIZE = random(10,80);
-    this.COLOUR = random(80,100);  
+    this.SIZE = random(20,40);
+    this.COLOUR = random(30,80);  
     this.ROTATION = rotation;
     this.VEL = vel;
     this.DIR = dir;
-    this.X1 = randomGaussian()*width/3 + w;
-    this.Y1 = randomGaussian()*height/3 + h;
+    this.X1 = randomGaussian()*width/2 + w;
+    this.Y1 = randomGaussian()*height/2 + h;
     this.RAD = sqrt(sq((this.X1 - w)) + sq((this.Y1-h)));
+    this.DRIFT = random(-0.2,0.2);
   }
   
   void renew(float rotation) {
     this.X1 = (cos(rotation)*this.RAD) - 0.5*this.SIZE + w;
     this.Y1 = (sin(rotation)*this.RAD) - 0.5*this.SIZE + h;
     this.ROTATION = rotation;
+    this.RAD = this.RAD + this.DRIFT;
+    if (this.RAD < 100.0 ){ this.DRIFT = this.DRIFT * -1.0; }
+    if (this.RAD > width/2 ){ this.DRIFT = this.DRIFT * -1.0; }
+    
+    
   }
 }
 }

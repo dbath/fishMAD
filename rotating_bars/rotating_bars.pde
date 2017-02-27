@@ -20,7 +20,7 @@ int counter = 0;
 int alpha = 0;
 
 Bars test1 = new Bars(30, 0.01, 1, 200);
-Bars test2 = new Bars(0, 0.01, -1, 100);
+Bars test2 = new Bars(30, 0.01, -1, 100);
 Bars rest = new Bars(1, 0.00, -1, 50);
 int w = width/2;
 int h = height/2;

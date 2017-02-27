@@ -21,21 +21,21 @@ int startTime;
 int tick;
 int counter = 0;
 float alpha = 0;
-int myDefNum = 360;
-int myDefNum2 = 300;
-float myDefSpeed = 1;
+int myDefNum = 5;
+float myDefSpeed = 5;
 float TWEAKSPEED = 0.0;
+int dim;
 
-Bars test1 = new Bars(myDefNum, myDefSpeed, 1, 1);
-Bars test2 = new Bars(300, 3, 1, 1);
+Bars test1 = new Bars(myDefNum, myDefSpeed, 1, 200);
+Bars test2 = new Bars(myDefNum, myDefSpeed, 1, 100);
 int w = width/2;
 int h = height/2;
 
 void setup() {
   
-  fullScreen(2);//size(1900,900);//fullScreen();//size(200, 200);
+  fullScreen();//size(800,600);//fullScreen();//size(200, 200);
   noCursor();
-  ellipseMode(CENTER);
+  
   GPIO.pinMode(progPin, GPIO.OUTPUT);
   GPIO.digitalWrite(progPin, PROG);
   GPIO.pinMode(stimPin, GPIO.OUTPUT);
@@ -47,7 +47,7 @@ void setup() {
   h = height/2;
   //frameRate(30);
   colorMode(HSB, 100, 100, 100, 100);
-  background(100,00,100,100);
+  background(100);
   stroke(0,0,0,0);
   tick=1;
   t0=millis();
@@ -64,22 +64,18 @@ void draw() {
     startTime = t1;
     STIM = !STIM;
     GPIO.digitalWrite(stimPin, STIM);
-    //if (counter % 2 == 0) {Set(test1, 330, 4, 1);
-    //                       Set(test2, 330, 4, -1);}
-    wait = 60; //seconds
-    if (counter == 0) { Set(test1, myDefNum, myDefSpeed, 1);
-                        Set(test2, myDefNum2, myDefSpeed, 1);}
-    if (counter == 2) { Set(test1, myDefNum, myDefSpeed, -1);
-                        Set(test2, myDefNum2, myDefSpeed, 1);} 
-    if (counter == 4) { Set(test1, myDefNum, myDefSpeed, -1);
-                        Set(test2, myDefNum2, myDefSpeed, -1);} 
-    if (counter == 6) { Set(test1, myDefNum, myDefSpeed, 1);
-                        Set(test2, myDefNum2, myDefSpeed, -1);} 
+    if (counter % 1 == 0) {Set(test1, 3, 1, 1);
+                           Set(test2, 3, 1, -1);}
+    wait = 10; //seconds
+    //if (counter == 0) { Set(test1, myDefNum, myDefSpeed, 1);}
+    //if (counter == 2) { Set(test1, myDefNum, myDefSpeed, -1);} 
+    //if (counter == 4) { Set(test1, myDefNum, myDefSpeed, 1);} 
+    //if (counter == 6) { Set(test1, myDefNum, myDefSpeed, -1);} 
     
     counter = counter + 1;
   }
   
-  background(100,00,100,100);
+  background(100);
   stroke(0,0,0,0);
   fill(0);
   //TWEAKSPEED = 0.05;
@@ -97,15 +93,32 @@ void draw() {
   else { 
     alpha = 0;
   }
-  //fill(100);
-  //rect(0,0,0.0*width, height);
-  //rect(1.1*width, 0, 0.2*width, height);
-  //fill(0,0,100,100);
-  //ellipse(0.5*width,0.5*height,0.2*width, 0.2*width);
+  fill(100);
+  rect(0,0,0.0*width, height);
+  rect(1.1*width, 0, 0.2*width, height);
   
   //saveFrame("/Users/bathd/Desktop/processing_vids/frame-######.png");
   
 }
+
+void drawXGradient(float x, float y, float radius, float colour) {
+  float h = 1;//colour;
+  for (float r = radius; r > 0; --r) {
+    fill(100-h);
+    ellipse(x, y, r, r);
+    h = h + sqrt(h/200);
+  }
+}
+
+void drawGradient(float x, float y, float radius, float colour) {
+  float h = 1;//colour;
+  for (float r = radius; r > 0; --r) {
+    fill(0,0,0,h);
+    ellipse(x, y, r, r);
+    h = h + h/r;//sqrt(h/200);
+  }
+}
+
 void Set(Bars _bars, int _numBars, float _Vel, float _Dir) {
   _bars.NUMBER_OF_THINGS = _numBars;
   _bars.vel = _Vel / 1000.0;
@@ -149,8 +162,8 @@ public class Bars {
         barList[i].renew(barList[i].ROTATION + vel*dir*(1.0-(alpha/100.0)));
       }
       
-      fill(0,100,00,barList[i].COLOUR);
-      ellipse(barList[i].X1, barList[i].Y1, barList[i].SIZE, barList[i].SIZE);
+      
+      drawGradient(barList[i].X1, barList[i].Y1, barList[i].SIZE, barList[i].COLOUR);
       
 
     }
@@ -162,8 +175,8 @@ class Bar {
   float COLOUR,  VEL, DIR;
   
   Bar(float rotation, float vel, float dir) {
-    this.SIZE = random(10,80);
-    this.COLOUR = random(80,100);  
+    this.SIZE = random(300,400);
+    this.COLOUR = random(20,50);  
     this.ROTATION = rotation;
     this.VEL = vel;
     this.DIR = dir;
