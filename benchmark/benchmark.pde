@@ -1,3 +1,11 @@
+import io.inventit.processing.android.serial.*;
+//import processing.serial.*;
+
+// Variables for Serial control:
+Serial myPort;
+boolean Visible = false; // defines stimulus mode as on or off.
+float Coherence = 0; // value of directional coherence
+
 int startTime;
 int t1;
 int t0;
@@ -23,6 +31,9 @@ void setup(){
   textSize(100);
   startTime = millis();
   t0 = millis();
+  
+  // initialize stimulus
+  
   for (int i=0; i< NUMBER_OF_THINGS; i++){
     x[i] = random(0,width);
     y[i] = random(0,height);
@@ -31,7 +42,11 @@ void setup(){
     
   }
 
-
+  //Setup Serial
+  println(Serial.list(this));
+  String portName = Serial.list(this)[0];  // change list index position to change port.
+  myPort = new Serial(this, portName, 9600);
+  myPort.bufferUntil('\n');
 }
 
 void draw() {
@@ -56,4 +71,26 @@ void draw() {
   text((fps), width/2, height/3);
   
 }
-  
+ 
+
+void serialEvent(Serial myPort) {
+  // get the ASCII string:
+  String inString = myPort.readStringUntil('\n');
+
+  if (inString != null) {
+    // trim off any whitespace:
+    inString = trim(inString);
+    // split the string on the commas and convert the
+    // resulting substrings into an integer array:
+    float[] ctrlVals = float(split(inString, ","));
+    // if the array has at least three elements, you know
+    // you got the whole thing.  Put the numbers in the
+    // color variables:
+    if (colors.length >=3) {
+      // map them to the range 0-255:
+      redValue = map(colors[0], 0, 1023, 0, 255);
+      greenValue = map(colors[1], 0, 1023, 0, 255);
+      blueValue = map(colors[2], 0, 1023, 0, 255);
+    }
+  }
+}

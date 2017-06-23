@@ -1,5 +1,7 @@
-import processing.video.*;
-import processing.io.*;
+import processing.serial.*;
+
+//import processing.video.*;
+//import processing.io.*;
 
 
 // HARDWARE VARIABLES
@@ -36,10 +38,10 @@ void setup() {
   fullScreen(2);//size(1900,900);//fullScreen();//size(200, 200);
   noCursor();
   ellipseMode(CENTER);
-  GPIO.pinMode(progPin, GPIO.OUTPUT);
-  GPIO.digitalWrite(progPin, PROG);
-  GPIO.pinMode(stimPin, GPIO.OUTPUT);
-  GPIO.digitalWrite(stimPin, STIM);
+  //GPIO.pinMode(progPin, GPIO.OUTPUT);
+  //GPIO.digitalWrite(progPin, PROG);
+  //GPIO.pinMode(stimPin, GPIO.OUTPUT);
+  //GPIO.digitalWrite(stimPin, STIM);
   
 
   randomSeed(10);
@@ -63,7 +65,7 @@ void draw() {
     tick = -1*tick;
     startTime = t1;
     STIM = !STIM;
-    GPIO.digitalWrite(stimPin, STIM);
+    //GPIO.digitalWrite(stimPin, STIM);
     //if (counter % 2 == 0) {Set(test1, 330, 4, 1);
     //                       Set(test2, 330, 4, -1);}
     wait = 60; //seconds

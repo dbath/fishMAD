@@ -2,10 +2,10 @@
 //float x = random(0,width);
 //float y = random(0,height);
 
-int NUMBER_OF_THINGS = 400;
-int THING_SIZE = 50;
-int velX = 10;  // speed and direction in x
-int velY = 0; // speed and direction in y
+int NUMBER_OF_THINGS = 500;
+int THING_SIZE = 40;
+int velX = 00;  // speed and direction in x
+int velY = -20; // speed and direction in y
 float varX = 2; // variation in x
 float varY = 2; //variation in y
 
@@ -15,7 +15,7 @@ float[] _varX = new float[NUMBER_OF_THINGS];
 float[] _varY = new float[NUMBER_OF_THINGS];
 
 void setup() {
-  fullScreen(2);
+  fullScreen();
   //size(500,400);
   colorMode(HSB, 100,100,100,100);
   background(100);
