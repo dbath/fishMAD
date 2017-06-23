@@ -28,14 +28,15 @@ def giveStatus(ip):
         try:
             server.bind((ip,statusPort))
             binded = True
-        except:
-            print('- Give Status -- binding failed')
+        except Exception,e:
+            traceback.print_exc() 
+            print '- Give Status -- binding failed \n', e
             binded = False
     server.listen(1)
     while running:
-        print('--- waiting for a connection')
+        print '--- waiting for a connection' 
         connection, client_address = server.accept()
-        print('------ Connection coming from ' + str(client_address))
+        print '------ Connection coming from ' + str(client_address)
 
 
 
@@ -46,7 +47,7 @@ def giveStatus(ip):
             try:
                 connection.sendall(data)
             except:
-                print('sending did not work :/ but better not break everything')
+                print 'sending did not work :/ but better not break everything'
 
 
 def requestStatus(ip):
@@ -60,7 +61,7 @@ def requestStatus(ip):
 
     try:
         socketClient.connect((ip, statusPort))
-        print('--- Connected to ' + str(ip))
+        print '--- Connected to ' + str(ip)
         try:
             data = struct.pack('i', requestStatusCode)
             socketClient.sendall(data)
@@ -84,7 +85,7 @@ def sendModif(code,dataSend = []):
     socketClient.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     connect = 0
     
-    print('--- architect Connection  ')
+    print '--- architect Connection  '
 
     
     while connect == 0:
