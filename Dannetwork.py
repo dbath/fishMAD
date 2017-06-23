@@ -29,6 +29,7 @@ def giveStatus(ip):
         try:
             server.bind((ip,statusPort))
             binded = True
+            print "BINDED = TRUE ----------------------------"
         except Exception,e:
             traceback.print_exc() 
             print '- Give Status -- binding failed \n', e
