@@ -6,6 +6,7 @@ import struct
 import numpy as np
 import threading
 import time
+import traceback
 
 requestStatusCode = 1001
 sendStatusCode = 1002
