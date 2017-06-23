@@ -16,7 +16,7 @@ running = True
 
 statusPort = 5007
 
-IP = '10.126.17'
+IP = '10.126.17.5557'
 
 
 def giveStatus(ip):
@@ -143,7 +143,7 @@ def main():
     t0=time.time()
     while running:
         print('status ? ' +str(requestStatus(IP)))
-        if time.time()-t0>30:
+        if time.time()-t0>1:
             running = False
 
 if __name__ == '__main__':
