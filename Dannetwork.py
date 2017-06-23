@@ -16,7 +16,7 @@ running = True
 
 statusPort = 5007
 
-IP = '10.126.17.5557'
+IP = '10.126.17.238'
 
 
 def giveStatus(ip):
