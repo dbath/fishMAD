@@ -6,6 +6,7 @@ import pandas as pd
 import argparse
 import os
 import imgstore
+from bisect import bisect_left
 
 
 
@@ -80,20 +81,61 @@ def imsho(_i):
     plt.show()
     return()
 
-def annotateFrame(ts, events):
+def find_lt(a, x):
+    'Find rightmost value less than x'
+    i = bisect_left(a, x)
+    if i:
+        return a[i-1]
+    raise ValueError
+
+
+def getEvent(ts, events, when='before'):
     """
     pass timestamp and table of event times from visual stimulus
+    returns annotations: usually:  timeOfEvent, nDots, Coherence, Velocity, Direction
+    "when": before - get most recent event preceding timestamp (default)
+            after  - get first event occuring after timestamp
     """
+    try:
+        if when == 'before':
+    
+    
+    except:
+        note = events.ix[0]
+    
     
     return note
 
 if __name__ == "__main__":
-    
-    store = imgstore.new_for_filename('/media/recnodes/recnode_jolle2/36_sunbleaks_x0128_100sstim_20170726_083552/metadata.yaml' )
 
-    stimData = pd.read_table(s, sep='\t', header=None, names=['Timestamp','nDots','C','vel','dir']).dropna()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--v', type=str, required=True,
+                        help='path to video directory')
+    parser.add_argument('--log', type=str, required=True,
+                        help='path to stimlog')
+    parser.add_argument('--startTime', type=int, required=False, default=0,
+                        help='number of seconds since vidstart to start annotation')
+    parser.add_argument('--endTime', type=int, required=False, default=None,
+                        help='number of seconds since vidstart to end annotation')
+    args = parser.parse_args()
 
+    DIRECTORY = args.v
+    if DIRECTORY[-1] != '/':
+        DIRECTORY += '/'
+
+    store = imgstore.new_for_filename(args.v + 'metadata.yaml' )
+    FPS = 30
+    videoSize =store.image_shape
+
+
+    stimData = pd.read_table(args.log, sep='\t', header=None, names=['Timestamp','nDots','C','vel','dir']).dropna()
+    out = cv2.VideoWriter(DIRECTORY + 'annotated.mp4', cv2.cv.FOURCC('a','v','c','1'), FPS, videoSize)
     for n in range(0,store.frame_count):
+        
         img, (frame_number, frame_timestamp) = store.get_next_image()
+
+        if n % 9 == 0:
+            status = getEvent(frame_timestamp, stimData)
+            image = annotate_image(_img)
         
     
