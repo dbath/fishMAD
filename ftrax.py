@@ -6,7 +6,8 @@ import pandas as pd
 import argparse
 import os
 import imgstore
-from bisect import bisect_left
+from bisect import bisect_left, bisect_right
+
 
 
 
@@ -88,6 +89,12 @@ def find_lt(a, x):
         return a[i-1]
     raise ValueError
 
+def find_gt(a, x):
+    'Find leftmost value greater than x'
+    i = bisect_right(a, x)
+    if i != len(a):
+        return a[i]
+    raise ValueError
 
 def getEvent(ts, events, when='before'):
     """
@@ -98,13 +105,24 @@ def getEvent(ts, events, when='before'):
     """
     try:
         if when == 'before':
-    
-    
+            x = (events['Timestamp'] < ts*1000).idxmin() - 1
+            #x = bisect_left(events['Timestamp'].values, ts*1000) -1
+        elif when == 'after':
+            x = (events['Timestamp'] < ts*1000).idxmin()
+            #x = bisect_right(events['Timestamp'].values, ts*1000)
+        
+        note = events.ix[x]
     except:
-        note = events.ix[0]
-    
-    
+        note = events.ix[0] * 0
     return note
+
+def annotateImage(_img, _status):
+    if (_status.vel * _status.dir) > 0:
+        return _img - cw
+    elif (_status.vel * _status.dir) < 0:
+        return _img - ccw
+    else:
+        return _img
 
 if __name__ == "__main__":
 
@@ -113,29 +131,77 @@ if __name__ == "__main__":
                         help='path to video directory')
     parser.add_argument('--log', type=str, required=True,
                         help='path to stimlog')
+    parser.add_argument('--output', type=str, required=True,
+                        help='path to save directory')
+                        
     parser.add_argument('--startTime', type=int, required=False, default=0,
                         help='number of seconds since vidstart to start annotation')
     parser.add_argument('--endTime', type=int, required=False, default=None,
                         help='number of seconds since vidstart to end annotation')
+    parser.add_argument('--centreTime', type=int, required=False, default=None,
+                        help='timestamp (milliseconds) to center annotation')
+    parser.add_argument('--duration', type=int, required=False, default=None,
+                        help='if centreTime, number of seconds movie length')
+            
     args = parser.parse_args()
 
     DIRECTORY = args.v
     if DIRECTORY[-1] != '/':
         DIRECTORY += '/'
 
-    store = imgstore.new_for_filename(args.v + 'metadata.yaml' )
+    stimData = pd.read_table(args.log, sep='\t', header=None, names=['Timestamp','nDots','C','vel','dir']).fillna(0)
+    
+    store = imgstore.new_for_filename(DIRECTORY + 'metadata.yaml' )
     FPS = 30
     videoSize =store.image_shape
-
-
-    stimData = pd.read_table(args.log, sep='\t', header=None, names=['Timestamp','nDots','C','vel','dir']).dropna()
-    out = cv2.VideoWriter(DIRECTORY + 'annotated.mp4', cv2.cv.FOURCC('a','v','c','1'), FPS, videoSize)
-    for n in range(0,store.frame_count):
+    
+    frameDF = pd.DataFrame(store.get_frame_metadata())
+    if args.centreTime == None:
+        if args.startTime == 0:
+            firstLogEntry = getEvent(frameDF.ix[0].frame_time, stimData, 'after')
+            firstFrame = frameDF.ix[frameDF[frameDF.frame_time >= firstLogEntry.Timestamp/1000].idxmin().frame_time].frame_number
+        else:
+            startTS = frameDF.ix[0].frame_time + args.startTime
+            firstFrame = frameDF.ix[frameDF[frameDF.frame_time >= startTS].idxmin().frame_time].frame_number
         
-        img, (frame_number, frame_timestamp) = store.get_next_image()
+            print "firstFrame: ", firstFrame, startTS
+        if args.endTime == None:
+            nFrames = int(store.frame_max - firstFrame - 2)
+        else:
+            endTS = frameDF.ix[0].frame_time + args.endTime
+            lastFrame = frameDF.ix[frameDF[frameDF.frame_time <= endTS].idxmax().frame_time].frame_number
+            nFrames = int(lastFrame - firstFrame)
+    else:
+        centreTS = args.centreTime
+        startTS = (centreTS - args.duration*500)/1000.0
+        endTS = (centreTS + args.duration*500)/1000.0
+        firstFrame = frameDF.ix[frameDF[frameDF.frame_time >= startTS].idxmin().frame_time].frame_number
+        lastFrame = frameDF.ix[frameDF[frameDF.frame_time <= endTS].idxmax().frame_time].frame_number
+        nFrames = int(lastFrame - firstFrame)
 
-        if n % 9 == 0:
-            status = getEvent(frame_timestamp, stimData)
-            image = annotate_image(_img)
+        print "firstFrame: ", firstFrame, startTS
+        print "lastFrame: ", lastFrame, endTS         
+    #out = cv2.VideoWriter(DIRECTORY + 'annotated.mp4', cv2.cv.FOURCC('a','v','c','1'), FPS, videoSize)
+    
+    out = imgstore.new_for_format('mjpeg', mode='w', basedir=args.output,imgshape=store.image_shape, imgdtype=store.get_image(store.frame_min)[0].dtype, chunksize=1000)
+    
+    ccw = cv2.imread('/home/dbath/fishMAD/counterclockwise.png' )[:,:,1]
+    cw = cv2.imread('/home/dbath/fishMAD/clockwise.png' )[:,:,1]
+    
+    img, (frame_number, frame_timestamp) = store.get_image(firstFrame)
+    
+    
+    for n in range(0,nFrames,9):
         
+        img, (frame_number, frame_timestamp) = store.get_image(store.frame_min + n)
+
+        status = getEvent(frame_timestamp, stimData)
+        image = annotateImage(img, status)
+        cv2.putText(image, '3x speed D.Bath 2017.07.27' ,(1400,2000), cv2.FONT_HERSHEY_SIMPLEX, 1.4, 255, 2)
+        out.add_image(image, n, frame_timestamp)
+        
+        if (n % 1000 == 0) & (n != 0):
+            print 'Processed ', str(n), ' frames.', str(frame_timestamp), status.Timestamp, str(status.vel*status.dir)
+            
+    out.close()
     
