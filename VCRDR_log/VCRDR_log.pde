@@ -15,6 +15,8 @@ DecimalFormat formatter = new DecimalFormat("###.#");
 
 
 //Scheduling
+//int[] transitions = { 0,10,20,30 };
+//int[] speeds = {1,2,3};
 int[] transitions = { 0,20,200,400,600,800,1000,1200,1400,1600, 1800 };
 int[] speeds = {15, 45, 30};
 int loopnum = 0;
@@ -47,7 +49,7 @@ void setup(){
   running = true;
   t0 = millis();
   group1.Init();
-  logEntry(RTFN() + '\t' + str(nDots) + '\t' + str(C) + '\t' + str(group1.vel) +'\t' + str(group1.dir) + '\n');
+  logEntry(RTFN() + '\t' + "start" + str(nDots) + '\t' + str(C) + '\t' + str(group1.vel) +'\t' + str(group1.dir) + '\n');
   println(RTFN() + "\t Protocol initiated with " + str(nDots) + " dots spinning at " + str(speed) + ".\n");
 }
 
@@ -64,7 +66,7 @@ void logEntry(String msg) {
     FileWriter fw = new FileWriter(file, true);///true = append
     BufferedWriter bw = new BufferedWriter(fw);
     PrintWriter pw = new PrintWriter(bw);
- 
+
     pw.write(msg);
     pw.close();
   }
