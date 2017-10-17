@@ -148,14 +148,29 @@ if __name__ == "__main__":
     DIRECTORY = args.v
     if DIRECTORY[-1] != '/':
         DIRECTORY += '/'
+    
+    LOG = args.log
 
-    stimData = pd.read_table(args.log, sep='\t', header=None, names=['Timestamp','nDots','C','vel','dir']).fillna(0)
+    stimData = pd.read_table(LOG, sep='\t', header=None, names=['Timestamp','nDots','C','vel','dir']).fillna(0)
+    stimData['frame_time'] = stimData['Timestamp']/1000.0
     
     store = imgstore.new_for_filename(DIRECTORY + 'metadata.yaml' )
     FPS = 30
     videoSize =store.image_shape
     
     frameDF = pd.DataFrame(store.get_frame_metadata())
+    merged = frameDF.merge(stimData, how='outer', on='frame_time')
+    merged = merged.sort('frame_time').reset_index(drop=True)
+
+    merged['frame_number'] = merged['frame_number'].fillna(0)
+    
+    merged[['nDots','C','vel','dir']] = merged[['nDots','C','vel','dir']].fillna(method='ffill', axis=0)
+
+    merged['date_and_time'] = pd.to_datetime(merged['frame_time'], unit='s')
+
+    
+    
+    
     if args.centreTime == None:
         if args.startTime == 0:
             firstLogEntry = getEvent(frameDF.ix[0].frame_time, stimData, 'after')

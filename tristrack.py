@@ -40,6 +40,24 @@ def get_velocities(DIRECTORY):
     df.replace(to_replace=np.inf, value=np.nan, inplace=True)
     return df    
 
+def get_data(DIRECTORY):
+    df = pd.DataFrame()
+    i = 0
+    for fn in glob.glob(DIRECTORY + '/*.csv'):
+        i +=1
+        f = pd.read_csv(fn)
+        tempdf = f[['frame', 'X#centroid (cm)','Y#centroid (cm)', 'VX#centroid (cm/s)',  'VY#centroid (cm/s)']]
+        tempdf['ID'] = fn.split('fish')[-1].split('.')[0]
+        tempdf.columns = ['frame','x','y','vx','vy', 'trackid']
+        df = pd.concat([df, tempdf])
+        if i%500 == 0:
+            print "processed track number :", i
+            df.to_pickle(DIRECTORY_MAIN + '/data.pickle')
+    df['frame'] = df['frame'].astype(int)
+    df.replace(to_replace=np.inf, value=np.nan, inplace=True)
+    df.to_pickle(DIRECTORY_MAIN + '/data.pickle')
+    return df  
+
 def get_centroid(arr):
     length = arr.shape[0]
     sum_x = np.sum(arr[:, 0])
@@ -65,25 +83,35 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--dir', type=str, required=True,
                         help='path to main directory')
+    parser.add_argument('--makevid', type=bool, required=False, default=False,
+                        help='make true to make a video')
     args = parser.parse_args()
-
+    MAKEVID = args.makevid
     DIRECTORY_MAIN = args.dir
     
     if DIRECTORY_MAIN[-1] == '/':
         DIRECTORY_MAIN = DIRECTORY_MAIN[:-1]
-    for vid in glob.glob(DIRECTORY_MAIN + '/00*.mp4'):
-        vidfile = vid
-    if not os.path.exists(DIRECTORY_MAIN + '/annotated_vid'):
-        os.makedirs(DIRECTORY_MAIN + '/annotated_vid')
+    if MAKEVID:
+        for vid in glob.glob(DIRECTORY_MAIN + '/00*.mp4'):
+            vidfile = vid
+        if not os.path.exists(DIRECTORY_MAIN + '/annotated_vid'):
+            os.makedirs(DIRECTORY_MAIN + '/annotated_vid')
         
-    positions = get_positions(DIRECTORY_MAIN + '/fishdata' )
-    velocities = get_velocities(DIRECTORY_MAIN + '/fishdata' )
+    #positions = get_positions(DIRECTORY_MAIN + '/fishdata' )
+    print 'got positions'
+    #velocities = get_velocities(DIRECTORY_MAIN + '/fishdata' )
+    print 'got velocities'
     #colourlist = get_colours(len(set(positions['trackid'])))
     #colourmap = dict(zip(list(set(positions['trackid'])), colourlist))
 
+    if not os.path.exists(DIRECTORY_MAIN + '/data.pickle' ):
+        posVel = get_data(DIRECTORY_MAIN + '/fishdata' )
+    else:
+        posVel = pd.read_pickle(DIRECTORY_MAIN + '/data.pickle' )
     #fpos = positions.groupby(['frame'])
     #fvel = velocities.groupby(['frame'])
-    posVel = positions.merge(velocities, on=['frame','trackid'])
+    #posVel = positions.merge(velocities, on=['frame','trackid'])
+    
     f = posVel.groupby(['frame'])
     """
     #Plot coloured dots on graph:    
@@ -129,14 +157,18 @@ if __name__ == "__main__":
 
         
     frame_stats = pd.DataFrame()
-    vid = cv2.VideoCapture(vidfile)   
-    lastframe = -1
+    if MAKEVID:
+        vid = cv2.VideoCapture(vidfile)   
+        lastframe = -1
     #find the centroid in each frame:
     for i, data in f:
         data = data.dropna()
         points = np.array(zip(data['x'], data['y']))
         centroid = get_centroid(points)
-        data['angleOfMotion'] = [ angle_from_vertical((0,0),np.array(data.loc[k, ['vx','vy']])) for k in data.index]
+        try:
+            data['angleOfMotion'] = [ angle_from_vertical((0,0),np.array(data.loc[k, ['vx','vy']])) for k in data.index]
+        except:
+            print data[0:5]
         data['angleFromCentroid'] = [angle_from_vertical(np.array(data.loc[k, ['x','y']]), centroid) for k in data.index]
         data['angleToCentroid'] = data['angleFromCentroid'] - data['angleOfMotion']
         data.loc[data['angleToCentroid'] >= 180, 'angleToCentroid'] -= 360.0
@@ -149,53 +181,57 @@ if __name__ == "__main__":
         frame_stats.loc[i, 'meanAngle'] = data['angleToCentroid'].mean()
         frame_stats.loc[i, 'stdAngle'] = data['angleToCentroid'].std()
         
+        if i%100 == 0:
+            print "processed frame number :", i
+            frame_stats.to_pickle(DIRECTORY_MAIN + '/frame_stats.pickle')
         
-        if i != (lastframe +1):
-            vid.set(1, int(i))
-        lastframe = i
-        ret, img = vid.read()
+        if MAKEVID:
+            if i != (lastframe +1):
+                vid.set(1, int(i))
+            lastframe = i
+            ret, img = vid.read()
             
-        fig = plt.figure(figsize=(2.048, 2.304), dpi=100)
-        ax1 = plt.subplot2grid((9,8), (0,0), colspan=8, rowspan=8)
-        fig.add_axes(ax1)
-        plt.imshow(img)
-        plt.plot(16.0*centroid[0], 16.0*centroid[1], marker='*', markersize=3, c="#FFFF00", linewidth=0.01)
-        a=plt.gca()
-        ax1.set_frame_on(False)
-        ax1.set_xticks([]); ax1.set_yticks([])
-        plt.axis('off')
-        plt.xlim(0,2048)
-        plt.ylim(0,2048)
-          
-        ax2 = plt.subplot2grid((9,8), (8,0), colspan=8, rowspan=1)
-        fig.add_axes(ax2)
-        
-        plt.hist(data['angleToCentroid'].values, bins=180, normed=True, linewidth=0)
-        ax2.set_xlabel('Degrees', fontsize=2, labelpad=0.2)
-        #ax2.set_ylabel('Frequency', fontsize=2)
-        ax2.set_xlim(-210, 210)
-        ax2.set_xticks([-180, -90, 0, 90, 180])
-        ax2.tick_params(axis='x', which='major', labelsize=2, length=1, width=0.1)
-        ax2.tick_params(axis='y', which='major', labelsize=2, length=0, width=0.0)
-        ax2.set_ylim(0,0.05)  
-        ax2.set_yticks([])
-        for axis in ['top','right', 'left']:   
-            ax2.spines[axis].set_visible(False)
-        for axis in ['top','bottom','left']:
-            ax2.spines[axis].set_linewidth(0.1)
-        for axis in ['right', 'left']:   
-            ax2.spines[axis].set_visible(False)
-        #ax2.yaxis.set_ticks_position('left')
-        ax2.xaxis.set_ticks_position('bottom') 
-        
-        fig.tight_layout()  
-        fig.subplots_adjust(wspace=0.00, top=1.0, bottom=0)
-        fig.subplots_adjust(hspace=0.00)
-        plt.savefig(DIRECTORY_MAIN + '/annotated_vid/%03d.png'%(i) , bbox_inches='tight', pad_inches=0, dpi=1000)
-        plt.close('all')    
+            fig = plt.figure(figsize=(2.048, 2.304), dpi=100)
+            ax1 = plt.subplot2grid((9,8), (0,0), colspan=8, rowspan=8)
+            fig.add_axes(ax1)
+            plt.imshow(img)
+            plt.plot(16.0*centroid[0], 16.0*centroid[1], marker='*', markersize=3, c="#FFFF00", linewidth=0.01)
+            a=plt.gca()
+            ax1.set_frame_on(False)
+            ax1.set_xticks([]); ax1.set_yticks([])
+            plt.axis('off')
+            plt.xlim(0,2048)
+            plt.ylim(0,2048)
+              
+            ax2 = plt.subplot2grid((9,8), (8,0), colspan=8, rowspan=1)
+            fig.add_axes(ax2)
+            
+            plt.hist(data['angleToCentroid'].values, bins=180, normed=True, linewidth=0)
+            ax2.set_xlabel('Degrees', fontsize=2, labelpad=0.2)
+            #ax2.set_ylabel('Frequency', fontsize=2)
+            ax2.set_xlim(-210, 210)
+            ax2.set_xticks([-180, -90, 0, 90, 180])
+            ax2.tick_params(axis='x', which='major', labelsize=2, length=1, width=0.1)
+            ax2.tick_params(axis='y', which='major', labelsize=2, length=0, width=0.0)
+            ax2.set_ylim(0,0.05)  
+            ax2.set_yticks([])
+            for axis in ['top','right', 'left']:   
+                ax2.spines[axis].set_visible(False)
+            for axis in ['top','bottom','left']:
+                ax2.spines[axis].set_linewidth(0.1)
+            for axis in ['right', 'left']:   
+                ax2.spines[axis].set_visible(False)
+            #ax2.yaxis.set_ticks_position('left')
+            ax2.xaxis.set_ticks_position('bottom') 
+            
+            fig.tight_layout()  
+            fig.subplots_adjust(wspace=0.00, top=1.0, bottom=0)
+            fig.subplots_adjust(hspace=0.00)
+            plt.savefig(DIRECTORY_MAIN + '/annotated_vid/%03d.png'%(i) , bbox_inches='tight', pad_inches=0, dpi=1000)
+            plt.close('all')    
 
     frame_stats.to_pickle(DIRECTORY_MAIN + '/frame_stats.pickle')
-
+    
     fig = plt.figure()#figsize=(2, 2), dpi=100)
     ax1 = plt.subplot2grid((2,1), (0,0))
     fig.add_axes(ax1)
