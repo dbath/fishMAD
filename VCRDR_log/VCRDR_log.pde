@@ -15,19 +15,19 @@ DecimalFormat formatter = new DecimalFormat("###.#");
 
 
 //Scheduling
-//int[] transitions = { 0,10,20,30 };
-//int[] speeds = {1,2,3};
-int[] transitions = { 0,20,200,400,600,800,1000,1200,1400,1600, 1800 };
-int[] speeds = {15, 45, 30};
+int[] transitions = { 0,10,20,30,40,50};//,60,70,80,90,100 };
+int[] speeds = {10,20,30};
+//int[] transitions = { 0,20,200,400,600,800,1000,1200,1400,1600, 1800 };
+//int[] speeds = {15, 45, 30};
+int tEnd = transitions[transitions.length - 1];
 int loopnum = 0;
-int tEnd = 1800;
 int currentEpoch = 0; 
 int t0;
 int tLoop;
 float alpha = 100;
 int fadeTime = 1;
 boolean running;
-int speed = 15;
+int speed = speeds[0];
 int nDots = 500;
 float C = 1.0;   //coherence
 boolean single_run = false;
@@ -36,6 +36,8 @@ int sqBar;
 
 Dots group1 = new Dots(nDots,0,1,1);
 //Dots group2 = new Dots(round(nDots*(1-C)),0,1,1);
+
+
 
 void setup(){
   
@@ -50,7 +52,7 @@ void setup(){
   t0 = millis();
   group1.Init();
   logEntry(RTFN() + '\t' + "start" + str(nDots) + '\t' + str(C) + '\t' + str(group1.vel) +'\t' + str(group1.dir) + '\n');
-  println(RTFN() + "\t Protocol initiated with " + str(nDots) + " dots spinning at " + str(speed) + ".\n");
+  println(RTFN() + "\t Protocol init with " + str(nDots) + " dots spinning at " + str(speed) + ".\n");
 }
 
 
