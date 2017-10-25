@@ -21,6 +21,7 @@ DecimalFormat formatter = new DecimalFormat("###.#");
 int sqBar;
 int screenSize = displayHeight;
 int brightVal;
+boolean dispVal;
 
 void setup(){
   colorMode(HSB, 100,100,100,100);
@@ -36,8 +37,8 @@ void setup(){
      .setPosition(120,90)
      .setSize(200,28)
      .setRange(0,100)
-     .setNumberOfTickMarks(101)
-     .setValue(50)
+     .setNumberOfTickMarks(1001)
+     .setValue(0)
      ;
 
 }
@@ -47,10 +48,30 @@ void draw(){
   background(0,0,brightVal,100);
   stroke(0,0,0,100);
   fill(0,0,0,100);
-  
-
-  
   squareFrame();
+  showText();
+}
+
+void keyPressed(){
+  if (key == CODED) {
+    if (keyCode == UP) {
+      brightVal = brightVal +2;
+    } 
+    else if (keyCode == DOWN) {
+      brightVal = brightVal -2;
+    }
+  }
+  if (key == 'b'){   ///BLACK
+    brightVal = 0;
+  }
+  if (key == 'w'){  //WHITE
+    brightVal = 100;
+  }
+  if (key == 'd'){   ///DISPLAY VALUE
+    dispVal = !dispVal;
+  }
+  cP5.getController("brightVal").setValue(brightVal);  
+  
 }
 
 
@@ -82,6 +103,16 @@ void logEntry(String msg, boolean newfile) {
     System.out.println("Exception ");
     ioe.printStackTrace();
   }
+}
+
+void showText(){
+  stroke(0,100,100,100);
+  fill(0,100,100,100);
+  if (dispVal == true){
+    textSize(200);
+    text(str(brightVal), width*.60, height*.75);  
+  }
+ 
 }
 
 public String RTFN(){

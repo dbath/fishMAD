@@ -91,6 +91,25 @@ void setup(){
 
 }
 
+void keyPressed(){
+  /*
+  if (key == CODED) {
+    if (keyCode == UP) {
+      brightVal = brightVal +2;
+    } 
+    else if (keyCode == DOWN) {
+      brightVal = brightVal -2;
+    }
+  }
+  */
+  if (key == 'r'){Reverse();}
+  else if (key == 's'){StopStart();}
+  else if (key == 'g'){Go();}
+  else if (key == 'h'){Hide();}
+  
+}
+
+
 void Reverse(){
   DIRECTION = DIRECTION * -1; 
   String message = (RTFN() + '\t' + str(nDots) + '\t' + str(dotSize) + '\t' + str(speed) +'\t' + str(DIRECTION) + '\t' + "reversed"+'\n');
