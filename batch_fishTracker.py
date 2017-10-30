@@ -2,6 +2,7 @@ import glob
 import run_fishTracker
 import argparse
 import os
+from multiprocessing import Process
 
 
 
@@ -36,12 +37,43 @@ if __name__ == "__main__":
         mkBkg = False
     else:
         mkBkg = True
+    
+    
+    
+    threadcount = 0
+    _filelist = []
     for term in HANDLE:
         for vDir in glob.glob(DIR + '*' + term + '*'):
             if (not os.path.exists(vDir + '/track/converted.results')) or not args.newonly:
-                print "executing run_fishtracker on dir: ", vDir
-                run_fishTracker.doit(vDir, mkBkg, args.newonly)
-                if BKG_RULE == '1':
-                    mkBkg = False
+                _filelist.append(_directory)
+    
+    for directory in np.arange(len(_filelist)): 
+        print 'executing run_fishTracker.py on: ' , _filelist[directory]
+        
+        p = Process(target=run_fishTracker.doit, args=(vDir, mkBkg, args.newonly))
+        p.start()
+        threadcount+=1
+
+        if p.is_alive():
+            if threadcount >=4:
+                threadcount = 0
+                p.join()
+            elif _filelist[directory] == _filelist[-1]:
+                threadcount=0
+                p.join()
+
+
+        if BKG_RULE == '1':
+            mkBkg = False
+
+    
+    
+    
+    
+    
+    
+    
+
+
             
             
