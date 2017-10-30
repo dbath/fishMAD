@@ -12,13 +12,15 @@ if __name__ == "__main__":
     parser.add_argument('--dir', type=str, required=True,
                         help='path to directory')
     parser.add_argument('--handle', type=str, required=True, 
-                        help='provide a short identifier to select a subset of directories.')
+                        help='provide unique identifier (or comma-separated list) to select a subset of directories.')
     parser.add_argument('--background', type=str, required=False, default=1,
-                        help='provide an integer descrbing how to handle backgrounds.\n0:\tuse pre-existing.\n1:\tcreate one, then use it repeatedly.\n>1:\tcreate a new bkg for every video.')
+                        help="provide an path or integer descrbing how to handle backgrounds.  path:'\t'Generate a background image from the given directory and use it repeatedly. '\n'0:'\t'use pre-existing.'\n'1:'\t'create one, then use it repeatedly.'\n'>1:'\t'create a new bkg for every video.")
+    parser.add_argument('--newonly', type=bool, required=False, default=True,
+                        help='make false to retrack and save over old data')
                 
     args = parser.parse_args()
     
-    HANDLE = args.handle
+    HANDLE = args.handle.split(',')
     
     BKG_RULE = args.background
     
@@ -26,18 +28,20 @@ if __name__ == "__main__":
     if DIR[-1] != '/':
         DIR += '/'
     
-    if '.mp4' in BKG_RULE:
+    if os.path.exists(BKG_RULE):
         import utilities
-        utilities.createBackgroundImage(DIR, method='mean') #FIXME when tristan updates
+        utilities.createBackgroundImage(BKG_RULE, method='mean') #FIXME when tristan updates
         mkBkg=False
     elif BKG_RULE == '0':
         mkBkg = False
     else:
         mkBkg = True
-    for vDir in glob.glob(DIR + '*' + HANDLE + '*'):
-        if not os.path.exists(vDir + '/track/converted.results'):
-            run_fishTracker.doit(vDir, mkBkg)
-            if BKG_RULE == '1':
-                mkBkg = False
+    for term in HANDLE:
+        for vDir in glob.glob(DIR + '*' + term + '*'):
+            if (not os.path.exists(vDir + '/track/converted.results')) or not args.newonly:
+                print "executing run_fishtracker on dir: ", vDir
+                run_fishTracker.doit(vDir, mkBkg, args.newonly)
+                if BKG_RULE == '1':
+                    mkBkg = False
             
             
