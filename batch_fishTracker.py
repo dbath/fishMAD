@@ -2,7 +2,7 @@ import glob
 import run_fishTracker
 import argparse
 import os
-from multiprocessing import Process
+#from multiprocessing import Process
 
 
 
@@ -38,8 +38,14 @@ if __name__ == "__main__":
     else:
         mkBkg = True
     
-    
-    
+
+    for term in HANDLE:
+        for vDir in glob.glob(DIR + '*' + term + '*'):
+            print "executing run_fishTracker.py on:" vDir
+            run_fishTracker.doit(vDir, mkBkg, args.newonly)
+
+
+    """
     threadcount = 0
     _filelist = []
     for term in HANDLE:
