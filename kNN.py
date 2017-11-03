@@ -4,6 +4,7 @@ from utilities import *
 import imgstore
 import matplotlib.pyplot as plt
 from matplotlib import collections  as mc
+from multiprocessing import Process
 
 
 
@@ -123,12 +124,107 @@ def plot_annotated_image_with_hist(data, img, maxValue):
     plt.close('all')    
     
     return fig, maxValue
+
+
+class P(Process):
+    def __init__(self, DIR, MAKEVID, REPORT, FROM_SCRATCH):
+        super(P, self).__init__()
     
+        self.MAIN_DIR = slashdir(DIR)
+        self.TRACK_DIR = DIR + 'track/'
+        self.maxValue=30
+        self.REPORT = REPORT
+        self.MAKEVID = MAKEVID
+        
+        if MAKEVID:
+            self.store = imgstore.new_for_filename(self.MAIN_DIR + '/metadata.yaml' )
+            if not os.path.exists(self.TRACK_DIR + 'annotated_vid'):
+                os.makedirs(self.TRACK_DIR + 'annotated_vid')
+                
+        if FROM_SCRATCH or not os.path.exists(self.TRACK_DIR + 'frameByFrame_complete' ):
+            if FROM_SCRATCH:
+                self.fbf = getFrameByFrameData(self.TRACK_DIR, False)
+            else:
+                self.fbf = getFrameByFrameData(self.TRACK_DIR)
+        else:
+            self.fbf = pd.read_pickle(self.TRACK_DIR + 'frameByFrameData.pickle' )
+
+        return
+
+
+    def run(self):
+        
+        f = self.fbf.groupby(['frame'])
+        frame_stats = pd.DataFrame()
+        nn_collection = {}
+        nn_angle = {}
+        #Perform analysis on each frame:
+        for i, data in f:
+            data.replace(to_replace=np.inf, value=np.nan, inplace=True)
+            data = data.dropna()
+            if ('nn' in self.REPORT) or ('neigh' in self.REPORT):
+            
+                data = getNN(data)
+            if self.MAKEVID:
+                if not os.path.exists(TRACK_DIR + 'annotated_vid/NN_%06d.png'%(i)):
+                    img, (vidFrameNum, vidTimestamp) = self.store.get_image(store.frame_min + i)
+                #data = data.dropna().reset_index(drop=True, inplace=True)
+                    fig, maxValue = plot_annotated_image_with_hist(data, img, self.maxValue)
+            
+            data['nnAngle'] = [angle_from_heading(data.loc[k, [XVEL,YVEL]],data.loc[k, [XPOS,YPOS]],data.loc[k, ['neighbourX','neighbourY']]) for k in data.index]
+            
+            nn_collection.update({i: np.array(data['neighbourDist'].values)})
+            nn_angle.update({i: np.array(data['nnAngle'].values)})
+            
+            frame_stats.loc[i, 'nnDist_median'] = data['neighbourDist'].median()
+            frame_stats.loc[i, 'nnDist_mean'] = data['neighbourDist'].mean()
+            frame_stats.loc[i, 'nnDist_std'] = data['neighbourDist'].std()
+            frame_stats.loc[i, 'nnAng_median'] = data['nnAngle'].median()
+            frame_stats.loc[i, 'nnAng_mean'] = data['nnAngle'].mean()
+            frame_stats.loc[i, 'nnAng_std'] = data['nnAngle'].std()
+            frame_stats.loc[i, 'nTracks'] = len(data)
+            
+            if i%500 == 0:
+                print "processed frame number :", i
+            
+        frame_stats.to_pickle(TRACK_DIR + 'frame_stats.pickle') 
+        nnDF = pd.DataFrame.from_dict(nn_collection,  orient='index')
+        nnDF.to_pickle(TRACK_DIR + 'nearest_neighbour_per_frame.csv')
+        
+        nnD = getFramelessValues(nn_collection)
+        #nnD = nnD[(nnD!= np.nan) and (nnD !=0)]
+        np.save(TRACK_DIR + 'nnDistance.npy', nnD)
+        np.savetxt(TRACK_DIR + 'nnDistance.txt', nnD, delimiter=',')
+        nnA = getFramelessValues(nn_angle)
+        #nnA = nnA[(nnA!= np.nan) and (nnA !=0)]
+        np.save(TRACK_DIR + 'nnAngle.npy', nnA)
+        np.savetxt(TRACK_DIR + 'nnAngle.txt', nnA, delimiter=',')
+        
+          
+        fig = plt.figure()
+        ax1 = plt.subplot2grid((2,1), (0,0))
+        #fig.add_axes(ax1)
+        frame_stats[frame_stats['nnDist_median'] == 0] = np.nan
+        plot_hist(fig, ax1, np.array(frame_stats['nnDist_median'].dropna()), 100, 'Median Nearest Neighbour Distance per frame (cm)', (0,150), [0,50,100,150])
+        
+        ax2 = plt.subplot2grid((2,1), (1,0))
+        #fig.add_axes(ax2)
+        plot_hist(fig, ax2, np.array(frame_stats['nnDist_std'].dropna()), 100, 'Std of Nearest Neighbour Distance per frame (cm)', (0,50), [0,25,50])
+        plt.title(MAIN_DIR.split('/')[-2])
+        fig.tight_layout()  
+        plt.savefig(TRACK_DIR + 'statistics.svg' , bbox_inches='tight', pad_inches=0)
+        return
+
+    
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--v', type=str, required=True,
-                        help="path to video's main directory, eg: '/recnode/exp_20170527_162000")
+    parser.add_argument('--dir', type=str, required=True,
+                        help="path to storage directory, eg: '/recordings/recnode_jolle2")
+    parser.add_argument('--handle', type=str, required=True, 
+                        help='provide unique identifier (or comma-separated list) to select a subset of directories.')
     parser.add_argument('--report', type=str, required=False, default='nn',
                         help='list properties to report, eg: "nn, centroid-position"')
     parser.add_argument('--makevid', type=bool, required=False, default=False,
@@ -137,84 +233,33 @@ if __name__ == "__main__":
                         help='make true to discard old info and start from scratch')
     args = parser.parse_args()
     
-    MAIN_DIR = slashdir(args.v)  
-    TRACK_DIR = MAIN_DIR + 'track/'
     
+
+    threadcount = 0
+    _filelist = []
     
-    
-    if args.makevid:
-        store = imgstore.new_for_filename(MAIN_DIR + '/metadata.yaml' )
-        maxValue=30
-        if not os.path.exists(TRACK_DIR + 'annotated_vid'):
-            os.makedirs(TRACK_DIR + 'annotated_vid')
-    if args.fromScratch or not os.path.exists(TRACK_DIR + 'frameByFrame_complete' ):
-        if args.fromScratch:
-            fbf = getFrameByFrameData(TRACK_DIR, False)
-        else:
-            fbf = getFrameByFrameData(TRACK_DIR)   
-    else:
-        fbf = pd.read_pickle(TRACK_DIR + 'frameByFrameData.pickle' )
-    
-    
-    f = fbf.groupby(['frame'])
-    frame_stats = pd.DataFrame()
-    nn_collection = {}
-    nn_angle = {}
-    #Perform analysis on each frame:
-    for i, data in f:
-        data.replace(to_replace=np.inf, value=np.nan, inplace=True)
-        data = data.dropna()
-        if ('nn' in args.report) or ('neigh' in args.report):
+    for term in HANDLE:
+        for vDir in glob.glob(DIR + '*' + term + '*'):
+        _filelist.append(_directory)
+    for directory in np.arange(len(_filelist)): 
+        print _filelist[directory]
+        p = P(_filelist[directory], args.makevid, args.report, args.fromScratch)
+        p.start()
+        threadcount +=1
         
-            data = getNN(data)
-        if args.makevid:
-            if not os.path.exists(TRACK_DIR + 'annotated_vid/NN_%06d.png'%(i)):
-                img, (vidFrameNum, vidTimestamp) = store.get_image(store.frame_min + i)
-            #data = data.dropna().reset_index(drop=True, inplace=True)
-                fig, maxValue = plot_annotated_image_with_hist(data, img, maxValue)   
-        
-        data['nnAngle'] = [angle_from_heading(data.loc[k, [XVEL,YVEL]],data.loc[k, [XPOS,YPOS]],data.loc[k, ['neighbourX','neighbourY']]) for k in data.index]
-        
-        nn_collection.update({i: np.array(data['neighbourDist'].values)})
-        nn_angle.update({i: np.array(data['nnAngle'].values)})
-        
-        frame_stats.loc[i, 'nnDist_median'] = data['neighbourDist'].median()
-        frame_stats.loc[i, 'nnDist_mean'] = data['neighbourDist'].mean()
-        frame_stats.loc[i, 'nnDist_std'] = data['neighbourDist'].std()
-        frame_stats.loc[i, 'nnAng_median'] = data['nnAngle'].median()
-        frame_stats.loc[i, 'nnAng_mean'] = data['nnAngle'].mean()
-        frame_stats.loc[i, 'nnAng_std'] = data['nnAngle'].std()
-        frame_stats.loc[i, 'nTracks'] = len(data)
-        
-        if i%500 == 0:
-            print "processed frame number :", i
-        
-    frame_stats.to_pickle(TRACK_DIR + 'frame_stats.pickle') 
-    nnDF = pd.DataFrame.from_dict(nn_collection,  orient='index')
-    nnDF.to_pickle(TRACK_DIR + 'nearest_neighbour_per_frame.csv')
-    
-    nnD = getFramelessValues(nn_collection)
-    print nnD.shape
-    #nnD = nnD[(nnD!= np.nan) and (nnD !=0)]
-    np.save(TRACK_DIR + 'nnDistance.npy', nnD)
-    np.savetxt(TRACK_DIR + 'nnDistance.txt', nnD, delimiter=',')
-    nnA = getFramelessValues(nn_angle)
-    #nnA = nnA[(nnA!= np.nan) and (nnA !=0)]
-    np.save(TRACK_DIR + 'nnAngle.npy', nnA)
-    np.savetxt(TRACK_DIR + 'nnAngle.txt', nnA, delimiter=',')
-    
-      
-    fig = plt.figure()
-    ax1 = plt.subplot2grid((2,1), (0,0))
-    #fig.add_axes(ax1)
-    frame_stats[frame_stats['nnDist_median'] == 0] = np.nan
-    plot_hist(fig, ax1, np.array(frame_stats['nnDist_median'].dropna()), 100, 'Median Nearest Neighbour Distance per frame (cm)', (0,150), [0,50,100,150])
-    
-    ax2 = plt.subplot2grid((2,1), (1,0))
-    #fig.add_axes(ax2)
-    plot_hist(fig, ax2, np.array(frame_stats['nnDist_std'].dropna()), 100, 'Std of Nearest Neighbour Distance per frame (cm)', (0,50), [0,25,50])
-    plt.title(MAIN_DIR.split('/')[-2])
-    fig.tight_layout()  
-    plt.savefig(TRACK_DIR + 'statistics.svg' , bbox_inches='tight', pad_inches=0)
-    
+        if p.is_alive():
+            if threadcount >=4:
+                threadcount = 0
+                p.join()
+            elif _filelist[directory] == _filelist[-1]:
+                threadcount=0
+                p.join()
+
+
+
+
+
+
+
+
     
