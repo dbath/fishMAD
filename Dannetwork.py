@@ -65,11 +65,14 @@ def requestStatus(ip):
         socketClient.connect((ip, statusPort))
         print '--- Connected to ' + str(ip)
         try:
-            data = struct.pack('i', requestStatusCode)
+            data = struct.pack('>i', requestStatusCode)
             socketClient.sendall(data)
-            code = struct.unpack('i',socketClient.recv(4))[0]
+            code = struct.unpack('>i',socketClient.recv(4))[0]
+            print code
             if code == sendStatusCode:
                 status = True      
+        except Exception,e:
+        	print e
         finally:
             socketClient.shutdown(socket.SHUT_RDWR)
             socketClient.close()
