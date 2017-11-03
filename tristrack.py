@@ -7,6 +7,7 @@ import cv2
 import math
 import os
 import argparse
+import imgstore
 
 def plot_all(DIRECTORY):
     for fn in glob.glob(DIRECTORY + '/*.csv'):
@@ -18,45 +19,70 @@ def plot_all(DIRECTORY):
 
 def get_positions(DIRECTORY):
     df = pd.DataFrame()
+    i=0
     for fn in glob.glob(DIRECTORY + '/*.csv'):
+        i+=1
         f = pd.read_csv(fn)
         tempdf = f[['frame', 'X#centroid (cm)','Y#centroid (cm)']]
         tempdf['ID'] = fn.split('fish')[-1].split('.')[0]
         tempdf.columns = ['frame','x','y', 'trackid']
-        df = pd.concat([df, tempdf])
+        df = pd.concat([df, tempdf])        
+        if i%500 == 0:
+            print "processed track number :", i
+            df.to_pickle(DIRECTORY_MAIN + '/track/positions_data.pickle')
         df['frame'] = df['frame'].astype(int)
     df.replace(to_replace=np.inf, value=np.nan, inplace=True)
+    df.to_pickle(DIRECTORY_MAIN + '/track/positions_data.pickle')
     return df
 
 def get_velocities(DIRECTORY):
     df = pd.DataFrame()
+    i=0
     for fn in glob.glob(DIRECTORY + '/*.csv'):
+        i+=1
         f = pd.read_csv(fn)
         tempdf = f[['frame', 'VX#centroid (cm/s)',  'VY#centroid (cm/s)']]
         tempdf['ID'] = fn.split('fish')[-1].split('.')[0]
         tempdf.columns = ['frame','vx','vy', 'trackid']
         df = pd.concat([df, tempdf])
+        if i%500 == 0:
+            print "processed track number :", i
+            df.to_pickle(DIRECTORY_MAIN + '/track/velocities_data.pickle')
     df['frame'] = df['frame'].astype(int)
     df.replace(to_replace=np.inf, value=np.nan, inplace=True)
+    df.to_pickle(DIRECTORY_MAIN + '/track/velocities_data.pickle')
     return df    
 
+
 def get_data(DIRECTORY):
-    df = pd.DataFrame()
+    #this is silly. but i get a stupid bug if i don't merge them...
+    pdf = pd.DataFrame()
+    vdf = pd.DataFrame()
     i = 0
     for fn in glob.glob(DIRECTORY + '/*.csv'):
         i +=1
         f = pd.read_csv(fn)
-        tempdf = f[['frame', 'X#centroid (cm)','Y#centroid (cm)', 'VX#centroid (cm/s)',  'VY#centroid (cm/s)']]
-        tempdf['ID'] = fn.split('fish')[-1].split('.')[0]
-        tempdf.columns = ['frame','x','y','vx','vy', 'trackid']
-        df = pd.concat([df, tempdf])
+        tpdf = f[['frame','X#centroid (cm)','Y#centroid (cm)']]
+        tpdf.columns = ['frame','x','y']
+        tpdf['trackid'] = fn.split('fish')[-1].split('.')[0]
+        pdf = pd.concat([pdf, tpdf])
+        
+        tvdf = f[['frame',  'VX#centroid (cm/s)',  'VY#centroid (cm/s)']]
+        tvdf.columns = ['frame','vx','vy']
+        tvdf['trackid'] = fn.split('fish')[-1].split('.')[0]
+        vdf = pd.concat([vdf, tvdf])
+        
         if i%500 == 0:
             print "processed track number :", i
-            df.to_pickle(DIRECTORY_MAIN + '/data.pickle')
-    df['frame'] = df['frame'].astype(int)
-    df.replace(to_replace=np.inf, value=np.nan, inplace=True)
-    df.to_pickle(DIRECTORY_MAIN + '/data.pickle')
-    return df  
+            pdf.to_pickle(DIRECTORY_MAIN + '/track/positions_data.pickle')
+            vdf.to_pickle(DIRECTORY_MAIN + '/track/velocities_data.pickle')
+    pdf['frame'] = pdf['frame'].astype(int)
+    vdf['frame'] = vdf['frame'].astype(int)
+    pdf.replace(to_replace=np.inf, value=np.nan, inplace=True)
+    vdf.replace(to_replace=np.inf, value=np.nan, inplace=True)
+    pdf.to_pickle(DIRECTORY_MAIN + '/track/positions_data.pickle')
+    vdf.to_pickle(DIRECTORY_MAIN + '/track/velocities_data.pickle')
+    return pdf, vdf  
 
 def get_centroid(arr):
     length = arr.shape[0]
@@ -92,25 +118,26 @@ if __name__ == "__main__":
     if DIRECTORY_MAIN[-1] == '/':
         DIRECTORY_MAIN = DIRECTORY_MAIN[:-1]
     if MAKEVID:
-        for vid in glob.glob(DIRECTORY_MAIN + '/00*.mp4'):
-            vidfile = vid
+        store = imgstore.new_for_filename(DIRECTORY_MAIN + '/metadata.yaml' )
         if not os.path.exists(DIRECTORY_MAIN + '/annotated_vid'):
             os.makedirs(DIRECTORY_MAIN + '/annotated_vid')
         
-    #positions = get_positions(DIRECTORY_MAIN + '/fishdata' )
-    print 'got positions'
-    #velocities = get_velocities(DIRECTORY_MAIN + '/fishdata' )
-    print 'got velocities'
-    #colourlist = get_colours(len(set(positions['trackid'])))
-    #colourmap = dict(zip(list(set(positions['trackid'])), colourlist))
-
-    if not os.path.exists(DIRECTORY_MAIN + '/data.pickle' ):
-        posVel = get_data(DIRECTORY_MAIN + '/fishdata' )
+    
+    if not os.path.exists(DIRECTORY_MAIN + '/track/velocities_data.pickle' ):
+        positions, velocities = get_data(DIRECTORY_MAIN + '/track/fishdata' )
+        #posVel = get_data(DIRECTORY_MAIN + '/track/fishdata' )
     else:
-        posVel = pd.read_pickle(DIRECTORY_MAIN + '/data.pickle' )
-    #fpos = positions.groupby(['frame'])
-    #fvel = velocities.groupby(['frame'])
-    #posVel = positions.merge(velocities, on=['frame','trackid'])
+        positions = pd.read_pickle(DIRECTORY_MAIN + '/track/positions_data.pickle')
+        velocities = pd.read_pickle(DIRECTORY_MAIN + '/track/velocities_data.pickle' )
+    """
+    velocities = get_velocities(DIRECTORY_MAIN + '/track/fishdata')
+    positions = get_positions(DIRECTORY_MAIN + '/track/fishdata')
+    positions.to_pickle(DIRECTORY_MAIN + '/track/positions_data.pickle')
+    velocities.to_pickle(DIRECTORY_MAIN + '/track/velocities_data.pickle')
+    fpos = positions.groupby(['frame'])
+    fvel = velocities.groupby(['frame'])
+    """
+    posVel = positions.merge(velocities, on=['frame','trackid'])
     
     f = posVel.groupby(['frame'])
     """
@@ -154,48 +181,40 @@ if __name__ == "__main__":
     """
 
             
-
-        
+   
     frame_stats = pd.DataFrame()
-    if MAKEVID:
-        vid = cv2.VideoCapture(vidfile)   
-        lastframe = -1
     #find the centroid in each frame:
     for i, data in f:
         data = data.dropna()
         points = np.array(zip(data['x'], data['y']))
         centroid = get_centroid(points)
-        try:
-            data['angleOfMotion'] = [ angle_from_vertical((0,0),np.array(data.loc[k, ['vx','vy']])) for k in data.index]
-        except:
-            print data[0:5]
-        data['angleFromCentroid'] = [angle_from_vertical(np.array(data.loc[k, ['x','y']]), centroid) for k in data.index]
+        data['angleOfMotion'] = [ angle_from_vertical((0,0),np.array(data.loc[k,['vx','vy']])) for k in data.index]
+        data['angleFromCentroid'] = [angle_from_vertical(np.array(data.loc[k,['vx','vy']]), centroid) for k in data.index]
+        #data['angleOfMotion'] = [ angle_from_vertical((0,0),np.array(k)) for k in points]
+        #data['angleFromCentroid'] = [angle_from_vertical(np.array(k), centroid) for k in points]
         data['angleToCentroid'] = data['angleFromCentroid'] - data['angleOfMotion']
         data.loc[data['angleToCentroid'] >= 180, 'angleToCentroid'] -= 360.0
         data.loc[data['angleToCentroid'] <= -180, 'angleToCentroid'] += 360.0
-        
-        
+    
+    
         frame_stats.loc[i, 'cx'] = centroid[0]
         frame_stats.loc[i, 'cy'] = centroid[1]
         frame_stats.loc[i, 'medianAngle'] = data['angleToCentroid'].median()
         frame_stats.loc[i, 'meanAngle'] = data['angleToCentroid'].mean()
         frame_stats.loc[i, 'stdAngle'] = data['angleToCentroid'].std()
-        
+    
         if i%100 == 0:
             print "processed frame number :", i
             frame_stats.to_pickle(DIRECTORY_MAIN + '/frame_stats.pickle')
-        
+
         if MAKEVID:
-            if i != (lastframe +1):
-                vid.set(1, int(i))
-            lastframe = i
-            ret, img = vid.read()
-            
+            img, (vidFrameNum, vidTimestamp) = store.get_image(store.frame_min + i)
             fig = plt.figure(figsize=(2.048, 2.304), dpi=100)
             ax1 = plt.subplot2grid((9,8), (0,0), colspan=8, rowspan=8)
             fig.add_axes(ax1)
-            plt.imshow(img)
-            plt.plot(16.0*centroid[0], 16.0*centroid[1], marker='*', markersize=3, c="#FFFF00", linewidth=0.01)
+            plt.imshow(img, cmap='gray')
+            plt.plot(16.0*centroid[0], 16.0*centroid[1], marker='*', markersize=3, c="#FFFF00", linewidth=0.01, edgecolor='none')
+            plt.scatter(16.0*data['x'], 16.0*data['y'], s=0.15,color='#30CC40', edgecolor='none')
             a=plt.gca()
             ax1.set_frame_on(False)
             ax1.set_xticks([]); ax1.set_yticks([])
@@ -227,7 +246,7 @@ if __name__ == "__main__":
             fig.tight_layout()  
             fig.subplots_adjust(wspace=0.00, top=1.0, bottom=0)
             fig.subplots_adjust(hspace=0.00)
-            plt.savefig(DIRECTORY_MAIN + '/annotated_vid/%03d.png'%(i) , bbox_inches='tight', pad_inches=0, dpi=1000)
+            plt.savefig(DIRECTORY_MAIN + '/annotated_vid/%06d.png'%(i) , bbox_inches='tight', pad_inches=0, dpi=1000)
             plt.close('all')    
 
     frame_stats.to_pickle(DIRECTORY_MAIN + '/frame_stats.pickle')

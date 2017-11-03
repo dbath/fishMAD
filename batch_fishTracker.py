@@ -1,3 +1,6 @@
+#!/usr/bin/python
+
+
 import glob
 import run_fishTracker
 import argparse
@@ -10,11 +13,11 @@ import os
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--dir', type=str, required=True,
+    parser.add_argument('--dir', type=str, required=False, default = '/media/recnodes/recnode_jolle2',
                         help='path to directory')
-    parser.add_argument('--handle', type=str, required=True, 
+    parser.add_argument('--handle', type=str, required=False, default='_dotbot', 
                         help='provide unique identifier (or comma-separated list) to select a subset of directories.')
-    parser.add_argument('--background', type=str, required=False, default=1,
+    parser.add_argument('--background', type=str, required=False, default='0',
                         help="provide an path or integer descrbing how to handle backgrounds.  path:'\t'Generate a background image from the given directory and use it repeatedly. '\n'0:'\t'use pre-existing.'\n'1:'\t'create one, then use it repeatedly.'\n'>1:'\t'create a new bkg for every video.")
     parser.add_argument('--newonly', type=bool, required=False, default=True,
                         help='make false to retrack and save over old data')
@@ -41,8 +44,9 @@ if __name__ == "__main__":
 
     for term in HANDLE:
         for vDir in glob.glob(DIR + '*' + term + '*'):
-            print "executing run_fishTracker.py on:" vDir
-            run_fishTracker.doit(vDir, mkBkg, args.newonly)
+            if (not os.path.exists(vDir + '/track/converted.results')):
+                print "executing run_fishTracker.py on:", vDir
+                run_fishTracker.doit(vDir, mkBkg, args.newonly)
 
 
     """
@@ -72,7 +76,7 @@ if __name__ == "__main__":
         if BKG_RULE == '1':
             mkBkg = False
 
-    
+        """
     
     
     

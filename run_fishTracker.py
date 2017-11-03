@@ -1,3 +1,6 @@
+#!/usr/bin/python
+
+
 import imgstore
 import os
 import numpy as np
@@ -118,7 +121,7 @@ def doit(_main_dir, _make_bkg, NEW_ONLY):
     # Launch conversion
     vidSet = MAIN_DIR + '%6d.mp4'
     launch_conversion = "~/FishTracker/Application/build/framegrabber -d '" + track_dir + "' -i '" + vidSet + "' -o converted.pv -settings conversion -nowindow"
-    if not os.path.exists(track_dir + 'converted.pv') or not NEW_ONLY:
+    if not (os.path.exists(track_dir + '/converted.pv')):
         os.remove('/home/dbath/FishTracker/Application/build/video_average.png')
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"Running conversion on file: ", track_dir
         try:
@@ -134,7 +137,7 @@ def doit(_main_dir, _make_bkg, NEW_ONLY):
             print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"ERROR converting file: ", track_dir
             return
     # Launch tracker
-    if not os.path.exists(track_dir + 'converted.results') or not NEW_ONLY:
+    if not (os.path.exists(track_dir + '/converted.results')):
         shutil.rmtree(track_dir + '/fishdata')
         os.makedirs(track_dir + '/fishdata')
         pv_file = track_dir + '/converted.pv'

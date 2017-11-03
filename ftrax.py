@@ -161,7 +161,8 @@ if __name__ == "__main__":
     frameDF = pd.DataFrame(store.get_frame_metadata())
     merged = frameDF.merge(stimData, how='outer', on='frame_time')
     merged = merged.sort('frame_time').reset_index(drop=True)
-
+    merged.frame_number.fillna(method='ffill', inplace=True)
+    
     merged['frame_number'] = merged['frame_number'].fillna(0)
     
     merged[['nDots','C','vel','dir']] = merged[['nDots','C','vel','dir']].fillna(method='ffill', axis=0)

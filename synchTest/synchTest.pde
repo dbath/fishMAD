@@ -65,6 +65,8 @@ void squareFrame(){
 }
 
 void logEntry(String msg, boolean newfile) { 
+  // msg: pass the message you want to send,
+  // newfile: make true if you want to append to the existing file. false to overwrite any existing file with that name.
   try {
     File file =new File("/sdcard/dan_Data/synchTest_log.txt");
     if (!file.exists()) {

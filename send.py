@@ -14,9 +14,10 @@ def sendVal(val):
     socketClient = socket.socket()
     socketClient.settimeout(10)
     socketClient.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
+	print('--- Connection to ' + str(ip))
     try:
         socketClient.connect((ip, statusPort))
+        print '--- Connected to ' + str(ip)
         try:
             data = struct.pack('>i', val)
             socketClient.sendall(data)
@@ -30,9 +31,9 @@ def sendVal(val):
             socketClient.shutdown(socket.SHUT_RDWR)
             socketClient.close()
 
-    except:
-        pass
-        #print('--- connection failed')  
+    except Exception,e:
+        #pass
+        print('--- connection failed', e)  
     return status	
 
     
