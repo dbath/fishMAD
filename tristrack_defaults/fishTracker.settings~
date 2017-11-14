@@ -12,5 +12,5 @@ posture_threshold_constant = 30
 theshold_constant = 50
 output_min_frames = 20
 gui_max_path_time = 1
-gui_auto_quit = 1
+gui_auto_quit = true
 output_graphs = [["X",["CENTROID"]],["Y",["CENTROID"]],["VX",["CENTROID"]],["VY",["CENTROID"]],["SPEED",["CENTROID","SMOOTH"]],["ANGLE",["CENTROID"]],["BORDER_DISTANCE",["CENTROID"]]]

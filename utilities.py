@@ -12,6 +12,21 @@ YPOS = 'Y#centroid (cm)'
 XVEL = 'VX#centroid (cm/s)' 
 YVEL = 'VY#centroid (cm/s)'
 
+
+def copyAndroidLog(IP, src, dst):
+    from subprocess import call
+    call(["/opt/android-sdk/platform-tools/adb kill-server"], shell=True)
+    call(["/opt/android-sdk/platform-tools/adb start-server"], shell=True)
+    call(["/opt/android-sdk/platform-tools/adb connect " + IP], shell=True)
+    time.sleep(3)
+    cmd = "/opt/android-sdk/platform-tools/adb pull -a " + src + " " + dst #+ ''.join(IP.split('.')) + '_' + time.strftime("%Y%m%d") +'.txt'
+    try:
+        call([cmd], shell=True)
+    except:
+        return
+    return
+
+
 def createBackgroundImage(DIRECTORY, method='mode'):
     """
     takes directory of mp4s, 
@@ -72,13 +87,11 @@ def getFrameByFrameData(DIRECTORY, RESUME=True):
         else:
             f = pd.read_csv(fn)
             f['trackid'] = ID
-            df = pd.concat([df, f])
-
+            df = f#pd.concat([df, f])
         if i%500 == 0:
-            print "processed track number :", i
+            #print "processed track number :", i
             df.to_pickle(DIRECTORY + 'frameByFrameData.pickle')
         i +=1
-    print df
     df['frame'] = df['frame'].astype(int)
     df.replace(to_replace=np.inf, value=np.nan, inplace=True)
     df.to_pickle(DIRECTORY + 'frameByFrameData.pickle')

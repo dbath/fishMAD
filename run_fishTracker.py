@@ -67,7 +67,7 @@ def doit(_main_dir, _make_bkg, NEW_ONLY):
     elif fishnum <= 100:
         fishnum += 10
     else:
-        fishnum = int(fishnum*1.1)
+        fishnum += 15
 
     #  customize conversion.settings
     openFile = open(track_dir + '/conversion.settings', 'r+b')
@@ -122,7 +122,8 @@ def doit(_main_dir, _make_bkg, NEW_ONLY):
     vidSet = MAIN_DIR + '%6d.mp4'
     launch_conversion = "~/FishTracker/Application/build/framegrabber -d '" + track_dir + "' -i '" + vidSet + "' -o converted.pv -settings conversion -nowindow"
     if not (os.path.exists(track_dir + '/converted.pv')):
-        os.remove('/home/dbath/FishTracker/Application/build/video_average.png')
+        if os.path.exists('/home/dbath/FishTracker/Application/build/video_average.png'):
+            os.remove('/home/dbath/FishTracker/Application/build/video_average.png')
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"Running conversion on file: ", track_dir
         try:
             subprocess.check_call([launch_conversion],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)

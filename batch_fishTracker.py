@@ -5,6 +5,8 @@ import glob
 import run_fishTracker
 import argparse
 import os
+import plot_positions
+from utilities import *
 #from multiprocessing import Process
 
 
@@ -13,8 +15,7 @@ import os
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--dir', type=str, required=False, default = '/media/recnodes/recnode_jolle2',
-                        help='path to directory')
+    parser.add_argument('--dir', type=str, required=False, default = '/media/recnodes/recnode_jolle2',help='path to directory')
     parser.add_argument('--handle', type=str, required=False, default='_dotbot', 
                         help='provide unique identifier (or comma-separated list) to select a subset of directories.')
     parser.add_argument('--background', type=str, required=False, default='0',
@@ -47,6 +48,8 @@ if __name__ == "__main__":
             if (not os.path.exists(vDir + '/track/converted.results')):
                 print "executing run_fishTracker.py on:", vDir
                 run_fishTracker.doit(vDir, mkBkg, args.newonly)
+                getFrameByFrameData(vDir + '/track', RESUME=False)
+                plot_positions.plot_positions(vDir)
 
 
     """

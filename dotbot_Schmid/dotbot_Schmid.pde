@@ -59,30 +59,30 @@ void setup(){
   cP5 = new ControlP5(this);
   
   cP5.addSlider("nDotsSlider")
-     .setPosition(120,90)
+     .setPosition(sqBar-200,90)
      .setSize(200,28)
      .setRange(0,2000)
      .setNumberOfTickMarks(201)
      .setValue(500)
      ;
     cP5.addSlider("dotSize")
-     .setPosition(120,50)
+     .setPosition(sqBar-200,50)
      .setSize(200,28)
      .setRange(0,200)
      .setNumberOfTickMarks(201)
      .setValue(50)
      ;  
     cP5.addSlider("speed")
-     .setPosition(120,130)
+     .setPosition(sqBar-200,130)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(21)
      .setValue(10)
      ;  
-  cP5.addBang("Go",120,180,60,30);
-  cP5.addBang("Hide",120,250,60,30);
-  cP5.addBang("Reverse",120,330,60,30);
-  cP5.addBang("StopStart",120,410,60,30);
+  cP5.addBang("Go",sqBar-120,180,60,30);
+  cP5.addBang("Hide",sqBar-120,250,60,30);
+  cP5.addBang("Reverse",sqBar-120,330,60,30);
+  cP5.addBang("StopStart",sqBar-120,410,60,30);
    
   stroke(0,0,0,0);
   fill(55,80,100,100);; 
@@ -120,7 +120,9 @@ void Reverse(){
 void StopStart(){
   stopgo = stopgo - 1.0;
   stopgo = abs(stopgo);    
-  String message = (RTFN() + '\t' + str(nDots) + '\t' + str(dotSize) + '\t' + str(speed) +'\t' + str(DIRECTION) + '\t' + "stopped"+'\n');
+  String message;
+  if (stopgo == 1.0){message = (RTFN() + '\t' + str(nDots) + '\t' + str(dotSize) + '\t' + str(0) +'\t' + str(DIRECTION) + '\t' + "stopped"+'\n');}
+  else {message = (RTFN() + '\t' + str(nDots) + '\t' + str(dotSize) + '\t' + str(speed) +'\t' + str(DIRECTION) + '\t' + "moving"+'\n');}
   logEntry(message, true);
   println(message);
 
@@ -134,7 +136,9 @@ void Go(){
   nDots = nDotsSlider;
   group1.Init();
   group1.Set(nDots, speed, 1); 
-  String message = (RTFN() + '\t' + str(nDots) + '\t' + str(dotSize) + '\t' + str(speed) +'\t' + str(DIRECTION) + '\t' + "Initiated"+'\n');
+  String message;
+  if (hideMode == 1.0){message = (RTFN() + '\t' + str(nDots) + '\t' + str(dotSize) + '\t' + str(speed) +'\t' + str(DIRECTION) + '\t' + "Initiated (hidden)"+'\n');}
+  else {message = (RTFN() + '\t' + str(nDots) + '\t' + str(dotSize) + '\t' + str(speed) +'\t' + str(DIRECTION) + '\t' + "Initiated"+'\n');}
   logEntry(message, true);
   println(message);
   println(message);
@@ -145,7 +149,7 @@ void Hide(){
   hideMode = hideMode - 1;
   hideMode = abs(hideMode); 
   String message;
-  if (hideMode == 1.0){ message = (RTFN() + '\t' + str(nDots) + '\t' + str(dotSize) + '\t' + str(speed) +'\t' + str(DIRECTION) + '\t' + "hidden"+'\n');}
+  if (hideMode == 1.0){ message = (RTFN() + '\t' + str(0) + '\t' + str(dotSize) + '\t' + str(speed) +'\t' + str(DIRECTION) + '\t' + "hidden"+'\n');}
   else { message = (RTFN() + '\t' + str(nDots) + '\t' + str(dotSize) + '\t' + str(speed) +'\t' + str(DIRECTION) + '\t' + "unhidden"+'\n');}
   logEntry(message, true);
   println(message);
@@ -155,7 +159,7 @@ void Hide(){
 
 void logEntry(String msg, boolean append) { 
   try {
-    File file =new File("/sdcard/dan_Data/dotbot_log.txt");
+    File file =new File("/sdcard/dotbot/dotbot_log.txt");
     if (!file.exists()) {
       file.createNewFile();
     }
