@@ -38,6 +38,8 @@ def loopbio_record(IP, KEY, FN, DUR, META, SN):
     else:
         _codec='nvenc-mq'
     api = Motif(IP, KEY)
+    if not (api.call('camera/'+SN)['camera_info']['status'] == 'ready'):
+        raise Exception('CAMERA IS ALREADY IN USE')
     #camsn = api.call('cameras')['cameras'][0]['serial']
     api.call('camera/' + SN + '/configure', 
             AcquisitionFrameRate=40.0,
