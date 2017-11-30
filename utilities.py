@@ -6,6 +6,9 @@ import os
 import pandas as pd
 import glob
 import math
+import time
+import datetime
+from motifapi import MotifApi as Motif
 
 XPOS = 'X#centroid (cm)'
 YPOS = 'Y#centroid (cm)'
@@ -13,17 +16,52 @@ XVEL = 'VX#centroid (cm/s)'
 YVEL = 'VY#centroid (cm/s)'
 
 
+def getTimeFromTimeString(string=None):
+    if string == None:
+        return datetime.datetime.now()
+    elif '_' in string:
+        return datetime.datetime.strptime(string, "%Y%m%d_%H%M%S")
+    else:
+        return datetime.datetime.strptime(time.strftime("%Y%m%d", time.localtime()) + '_' + string, "%Y%m%d_%H%M%S")
+
+def getTimeStringFromTime(TIME=None):
+    if TIME == None:
+        return datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d_%H%M%S")
+    else:
+        return datetime.datetime.strftime(TIME,"%Y%m%d_%H%M%S")
+
+
+
+def loopbio_record(IP, KEY, FN, DUR, META, SN):
+    if IP == '10.126.18.36':
+        _codec = 'medium_quality'
+    else:
+        _codec='nvenc-mq'
+    api = Motif(IP, KEY)
+    #camsn = api.call('cameras')['cameras'][0]['serial']
+    api.call('camera/' + SN + '/configure', 
+            AcquisitionFrameRate=40.0,
+            ExposureTime=2000.0 )
+    foo = api.call('camera/' + SN + '/recording/start',
+            duration=DUR,
+            filename=FN,
+            codec=_codec,
+            record_to_store=True, 
+            metadata=META)
+    return foo  
+    
 def copyAndroidLog(IP, src, dst):
     from subprocess import call
     call(["/opt/android-sdk/platform-tools/adb kill-server"], shell=True)
     call(["/opt/android-sdk/platform-tools/adb start-server"], shell=True)
     call(["/opt/android-sdk/platform-tools/adb connect " + IP], shell=True)
     time.sleep(3)
-    cmd = "/opt/android-sdk/platform-tools/adb pull -a " + src + " " + dst #+ ''.join(IP.split('.')) + '_' + time.strftime("%Y%m%d") +'.txt'
+    cmd = "/opt/android-sdk/platform-tools/adb pull -a " + src + " " + dst 
     try:
         call([cmd], shell=True)
     except:
         return
+    time.sleep(2)
     return
 
 

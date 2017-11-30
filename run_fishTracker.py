@@ -27,7 +27,7 @@ def replace_background(_main_dir):
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"got new background..."
     return
 
-def doit(_main_dir, _make_bkg, NEW_ONLY):
+def doit(_main_dir, _make_bkg, NEW_ONLY, fishnum):
     MAIN_DIR = _main_dir
     if MAIN_DIR[-1] != '/':
         MAIN_DIR += '/'
@@ -44,9 +44,15 @@ def doit(_main_dir, _make_bkg, NEW_ONLY):
     #copy default settings files and make fishdata dir
 
     if not os.path.exists(track_dir + 'fishTracker.settings'):
-        shutil.copy('/home/dbath/fishMAD/tristrack_defaults/fishTracker.settings', track_dir + '/fishTracker.settings')
+        if '_jwj_' in MAIN_DIR:
+            shutil.copy('/home/dbath/fishMAD/tristrack_defaults/fishTracker_stickleback.settings', track_dir + '/fishTracker.settings')
+        else:
+            shutil.copy('/home/dbath/fishMAD/tristrack_defaults/fishTracker.settings', track_dir + '/fishTracker.settings')
     if not os.path.exists(track_dir + 'conversion.settings'):
-        shutil.copy('/home/dbath/fishMAD/tristrack_defaults/conversion.settings', track_dir + '/conversion.settings')
+        if '_jwj_' in MAIN_DIR:
+            shutil.copy('/home/dbath/fishMAD/tristrack_defaults/conversion_stickleback.settings', track_dir + '/conversion.settings')
+        else:
+            shutil.copy('/home/dbath/fishMAD/tristrack_defaults/conversion.settings', track_dir + '/conversion.settings')
     if not os.path.exists(track_dir + '/fishdata'):
         os.makedirs(track_dir + '/fishdata')
 
@@ -56,8 +62,10 @@ def doit(_main_dir, _make_bkg, NEW_ONLY):
     FPS = store.user_metadata['acquisitionframerate']
     videoSize =store.image_shape
 
-    #Get number of fish from MAIN_DIR filename.
-    fishnum = int(MAIN_DIR.split('/')[-2].split('_')[1])
+
+    if (fishnum == 0) or (fishnum == None):
+        #Get number of fish from MAIN_DIR filename.
+        fishnum = int(MAIN_DIR.split('/')[-2].split('_')[1])
     if fishnum <= 5:
         fishnum += 2
     elif fishnum <= 15:
@@ -66,8 +74,10 @@ def doit(_main_dir, _make_bkg, NEW_ONLY):
         fishnum += 6
     elif fishnum <= 100:
         fishnum += 10
-    else:
+    elif fishnum <= 200:
         fishnum += 15
+    else:
+        fishnum += 25
 
     #  customize conversion.settings
     openFile = open(track_dir + '/conversion.settings', 'r+b')
@@ -143,11 +153,12 @@ def doit(_main_dir, _make_bkg, NEW_ONLY):
         os.makedirs(track_dir + '/fishdata')
         pv_file = track_dir + '/converted.pv'
         launch_tracker = "~/FishTracker/Application/build/tracker -d '" + track_dir + "' -i '" + pv_file + "' -settings fishTracker -nowindow"
+        print launch_tracker
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"Running tracker on file: ", track_dir
         try: 
             subprocess.check_call([launch_tracker],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
         except Exception, e:
-            errorLog = open('/home/dbath/FishTracker/Application/build/batchlog.txt', 'w')
+            errorLog = open('/home/dbath/FishTracker/Application/build/batchlog.txt', 'a')
             errorLog.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t')
             errorLog.write(track_dir + '\t')
             errorLog.write('error during conversion step' + '\n')

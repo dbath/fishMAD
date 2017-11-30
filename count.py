@@ -29,7 +29,7 @@ def countFish(binaryArray):
                 bodyCount +=1
     return bodyCount
 
-def markCentroids(img):
+def markCentroids(img, bkg):
     binaryArray = binarize(img[:,:,0], bkg)
     contourImage = binaryArray.copy()
     contours, hierarchy1 = cv2.findContours(contourImage.astype(np.uint8), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
@@ -56,7 +56,7 @@ def sho(image):
 def getMaxCount(vid, bkg=None):
     """takes cv2 video instance, returns max number of fish"""
     framecount = int(vid.get(7))
-    skipFrames = int(np.round(framecount/85))
+    skipFrames = int(np.round(framecount/25)) #FIXME return to 85
     frameList = range(1,framecount, skipFrames)
     maxCount = 0
     maxFrame = 0
@@ -81,7 +81,7 @@ def getMaxCount(vid, bkg=None):
 def createBackgroundImage(vid):
     """takes cv2 video instance, returns image with modal pixel values"""
     framecount = int(vid.get(7))
-    skipFrames = int(np.round(framecount/50))
+    skipFrames = int(np.round(framecount/10)) #FIXME return to 50
     frameList = range(1,framecount, skipFrames)
     for frame in frameList:
         vid.set(1, frame)
@@ -97,8 +97,23 @@ def createBackgroundImage(vid):
             break  
     mode = stats.mode(img_array, axis=2)[0][:,:,0]
     vid.set(1,1)
-    np.save(args.v.rsplit('/',1)[0] + '/bkg.npy', mode)
     return mode
+
+
+def count_from_vid(videofile):
+
+    savedir, filename = videofile.rsplit('/', 1)
+    if os.path.exists(savedir + '/bkg.npy'):
+        bkg = np.load(savedir + '/bkg.npy')
+    else:
+        bkg = createBackgroundImage(cv2.VideoCapture(videofile))
+        np.save(savedir + '/bkg.npy', bkg)
+    vid = cv2.VideoCapture(videofile)
+    maxFish, maxImage, maxFrameNum =  getMaxCount(vid, bkg)
+    vid.set(1, maxFrameNum)
+    di = markCentroids(vid.read()[1], bkg)
+    cv2.imwrite(savedir + '/count_' + str(maxFish) + '_' + filename.split('.')[0] + '.png', di)    
+    return maxFish
     
     
 if __name__ == "__main__":
@@ -119,8 +134,10 @@ if __name__ == "__main__":
             for x in glob.glob(args.v + '/*.mp4'):
                 filelist.append(x)
             bkg=createBackgroundImage(cv2.VideoCapture(filelist[-1]))
+            np.save(args.v.rsplit('/',1)[0] + '/bkg.npy', bkg)
         else:
             bkg=createBackgroundImage(cv2.VideoCapture(args.v))
+            np.save(args.v.rsplit('/',1)[0] + '/bkg.npy', bkg)
     elif args.bkg=='36':
         bkg = np.load('/home/dbath/fishMAD/bkg_36.npy')
     elif args.bkg.split('.')[-1] == 'npy':

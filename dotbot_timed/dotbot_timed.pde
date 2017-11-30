@@ -92,7 +92,7 @@ void setup(){
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(21)
-     .setValue(10)
+     .setValue(35)
      ;  
   cP5.addBang("Go",sqBar-120,180,60,30);
   cP5.addBang("Hide",sqBar-120,250,60,30);
@@ -112,6 +112,12 @@ void setup(){
   coherences.append(0.40);
   coherences.append(0.45);
   coherences.append(0.50);
+  coherences.append(0.50);
+  coherences.append(0.55);
+  coherences.append(0.60);
+  coherences.append(0.70);
+  coherences.append(0.90);
+  coherences.append(0.95);
   println(coherences.size());
   coherences.shuffle();
   println(coherences);
@@ -123,7 +129,7 @@ void setup(){
   group1.Set(int(nDots*(C)), 0, 1);
   group2.Set(int(nDots*(1-C)), 0, 1);
   String message = ("IP\tTimestamp\tnDots\tdotSize\tspeed\tdir\tcoh\tcomment\n");
-  logEntry(message, true);
+  logEntry(message, false);
   Go();
 
 }
@@ -343,37 +349,40 @@ void draw(){
       if ((minute() == IPVal) ||  (minute() == IPVal+20) || (minute() == IPVal+40)){
         hideMode = 0;
         running = true;    
+        String message = ("IP\tTimestamp\tnDots\tdotSize\tspeed\tdir\tcoh\tcomment\n");
+        logEntry(message, false);
       }
     }
     // stop actions at pre-determined times, setup for next round, then wait
-    if ((running == true) && (currentEpoch >= 8)){// ( (minute() == IPVal + 11) ||  (minute() == IPVal+31) || (minute() == IPVal-9))){
+    if ((running == true) && (currentEpoch >= 3)){// ( (minute() == IPVal + 11) ||  (minute() == IPVal+31) || (minute() == IPVal-9))){
       group1.Set(0, 0, 0);
       group2.Set(0, 0, 0);
       hideMode = 1;
       running = false;
       currentEpoch = 0;
       loopnum += 1;
+      speed = speed*-1;
       C = coherences.get(loopnum);
       
     }        
-    // change experiment conditions every 75 seconds                             ***********************STIM DURATION DEFINED HERE*****************
-    if ((running == true) && ( tLoop - t0 >= 75000)){
-        if (currentEpoch == 0 ){      group1.Set(int(nDots*(C)), 0, 1);
-                                      group2.Set(int(nDots*(1-C)), 0, 1);}
-        else if (currentEpoch == 1 ){ group1.Set(int(nDots*(C)), speed, 1);
+    // change experiment conditions every 180 seconds                             ***********************STIM DURATION DEFINED HERE*****************
+    if ((running == true) && ( tLoop - t0 >= 180000)){
+        if (currentEpoch == 0 ){      group1.Set(int(nDots*(C)), speed, 1);
+                                      group2.Set(int(nDots*(1-C)), speed, 1);}
+        else if (currentEpoch == 1 ){ group1.Set(int(nDots*(C)), speed, -1);
                                       group2.Set(int(nDots*(1-C)), speed, 1); }
-        else if (currentEpoch == 2 ){ group1.Set(int(nDots*(C)), speed, -1);
-                                      group2.Set(int(nDots*(1-C)), speed, -1); }
+        /*
         else if (currentEpoch == 3 ){ group1.Set(int(nDots*(C)), speed, 1);
                                       group2.Set(int(nDots*(1-C)), speed, -1); }
-        else if (currentEpoch == 4 ){ group1.Set(int(nDots*(C)), 0, 1);
+        else if (currentEpoch == 5 ){ group1.Set(int(nDots*(C)), 0, 1);
                                       group2.Set(int(nDots*(1-C)), 0, 1);}
-        else if (currentEpoch == 5 ){ group1.Set(int(nDots*(C)), speed, -1);
+        else if (currentEpoch == 6 ){ group1.Set(int(nDots*(C)), speed, -1);
                                       group2.Set(int(nDots*(1-C)), speed, -1); }
-        else if (currentEpoch == 6 ){ group1.Set(int(nDots*(C)), speed, 1);
-                                      group2.Set(int(nDots*(1-C)), speed, 1); }
         else if (currentEpoch == 7 ){ group1.Set(int(nDots*(C)), speed, 1);
+                                      group2.Set(int(nDots*(1-C)), speed, 1); }
+        else if (currentEpoch == 8 ){ group1.Set(int(nDots*(C)), speed, 1);
                                       group2.Set(int(nDots*(1-C)), speed, -1); }
+        */
         currentEpoch  = currentEpoch +1;
         t0 = tLoop;
     }

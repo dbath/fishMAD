@@ -38,7 +38,7 @@ void setup(){
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(1001)
-     .setValue(0)
+     .setValue(50)
      ;
 
 }
