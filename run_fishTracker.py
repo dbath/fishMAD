@@ -113,9 +113,13 @@ def doit(_main_dir, _make_bkg, NEW_ONLY, fishnum):
             fishNum_loc = SETTINGS.index(item)
         if item.find('output_dir') != -1:
             outDir_loc = SETTINGS.index(item)
+        if item.find('fish_minmax_size') != -1:
+            fishSize_loc = SETTINGS.index(item)
     SETTINGS[framerate_loc] = 'frame_rate = ' + str(FPS) + '\n'
     SETTINGS[fishNum_loc] = 'number_fish = ' + str(fishnum) + '\n'  
     SETTINGS[outDir_loc] = 'output_dir = "' + track_dir + '"\n'
+    if 'juvenile' in MAIN_DIR:
+        SETTINGS[fishSize_loc] = "fish_minmax_size = [0.5,7]"
     # return pointer to top of file so we can re-write the content with replaced string
     openFile.seek(0)
     # clear file content 
@@ -155,14 +159,24 @@ def doit(_main_dir, _make_bkg, NEW_ONLY, fishnum):
         launch_tracker = "~/FishTracker/Application/build/tracker -d '" + track_dir + "' -i '" + pv_file + "' -settings fishTracker -nowindow"
         print launch_tracker
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"Running tracker on file: ", track_dir
-        try: 
-            subprocess.check_call([launch_tracker],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
+        try:
+            task = subprocess.Popen([launch_tracker],stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True )
+            PID = task.pid
+            OUT, ERROR = task.communicate()
+            if task.returncode != 0:
+                if task.returncode == None:
+                    task.kill()
+                    
+                raise Exception('returncode non-zero from tristrack\t' + str(PID) + '\n' + str(task.returncode))
+                
+            #subprocess.check_call([launch_tracker],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
         except Exception, e:
             errorLog = open('/home/dbath/FishTracker/Application/build/batchlog.txt', 'a')
             errorLog.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t')
             errorLog.write(track_dir + '\t')
             errorLog.write('error during conversion step' + '\n')
-            errorLog.write(str(e) + '\n\n\n')
+            errorLog.write(str(ERROR) + '\n\n\n')
+            errorLog.write(str(OUT) + '\n\n\n')
             errorLog.close()
             FNULL.close()
             print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"ERROR tracking file: ", track_dir 
@@ -185,5 +199,5 @@ if __name__ == "__main__":
                         help='make false to save over old data and repeat tracking')
     args = parser.parse_args()
     
-    doit(args.v, args.make_bkg, args.new_only)
+    doit(args.v, args.make_bkg, args.newonly)
 

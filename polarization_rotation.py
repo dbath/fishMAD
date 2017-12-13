@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from utilities import *
 import matplotlib.pyplot as plt
+import stim_handling
+from pykalman import KalmanFilter
 
 
 
@@ -60,6 +62,7 @@ def doit(fbf, TRACK_DIR):
         
         #angular momentum of fish
         points = np.array(zip(data[XPOS], data[YPOS]))
+        print '\t', i, '\n', points
         centroid = get_centroid(points)   
         
         data['CX'] = data[XPOS] - centroid[0] # component vector to centroid, X
@@ -92,21 +95,101 @@ def doit(fbf, TRACK_DIR):
     frame_stds.to_pickle(TRACK_DIR + '/frame_stds_rotation_polarization.pickle')
     return frame_means, frame_stds
 
-def plot_order_vs_time(DIR, df, colA, colB, fn=''):
+def kalman(df):
+    measurements = np.asarray(list(zip(df['cx'], df['cy'])))
+    initial_state_mean = [measurements[0, 0],
+                          0,
+                          measurements[0, 1],
+                          0]
+
+    transition_matrix = [[1, 1, 0, 0],
+                         [0, 1, 0, 0],
+                         [0, 0, 1, 1],
+                         [0, 0, 0, 1]]
+
+    observation_matrix = [[1, 0, 0, 0],
+                          [0, 0, 1, 0]]
+
+    kf1 = KalmanFilter(transition_matrices = transition_matrix,
+                      observation_matrices = observation_matrix,
+                      initial_state_mean = initial_state_mean)
+
+    kf1 = kf1.em(measurements, n_iter=10)
+    (smoothed_state_means, smoothed_state_covariances) = kf1.smooth(measurements)
+    return smoothed_state_means[:,1], smoothed_state_means[:,3]
+
+
+def get_centroid_rotation(_MAIN_DIR, df):
+    #GET UNIT VECTORS OF GROUP CENTROID VELOCITY
+    """
+    df['vx'] = df['cx'] - df.shift()['cx']
+    df['vy'] = df['cy'] - df.shift()['cy']
+    df['speed'] = np.sqrt(df['vx']**2 + df['vy']**2)
+    """
+
+    df['vx'], df['vy'] = kalman(df)
+    df['speed'] = np.sqrt(df['vx']**2 + df['vy']**2)
+    df['uVX'] = df['vx'] / df['speed'] # X component of unit vector
+    df['uVY'] = df['vy'] / df['speed'] # Y component of unit vector
+    
+    #GET WIDTH OF ARENA TO DEFINE CENTRE
+    conv = open(_MAIN_DIR + 'track/conversion.settings')
+    SETTINGS = conv.readlines()
+    for item in SETTINGS:
+        if item.find('real_width') !=-1:
+             ARENA_WIDTH = int(item.split(' = ')[1].split('\n')[0]  )
+    conv.close()
+    
+    #GET UNIT VECTORS OF GROUP CENTROID POSITION
+    df['CX'] = df['cx'] - (ARENA_WIDTH/2.0)
+    df['CY'] = df['cy'] - (ARENA_WIDTH/2.0)
+    df['radius'] = np.sqrt(df['CX']**2 + df['CY']**2)  #radius to centroid
+    df['uCX'] = df['CX'] / df['radius'] # X component of unit vector R
+    df['uCY'] = df['CY'] / df['radius'] # Y component of unit vector R
+
+    #GET ROTATION ORDER:
+    df['centroid_rotation_directed'] = np.cross(df[['uCX','uCY']], df[['uVX','uVY']])
+    df['centroid_rotation'] = abs(df['centroid_rotation_directed'])
+
+
+def plot_order_vs_time(DIR, colA, colB, fn=''):
+    df = stim_handling.synch_coherence_with_rotation(DIR)
     fig  = plt.figure()
-    ax = fig.add_subplot(111)#plt.Axes(fig, [0., 0., 1., 1.])
-    fig.add_axes(ax)
-    plt.plot(df.dropna()[colA].values, color='red', label=colA)
-    plt.plot(df.dropna()[colB].values, color='blue', label=colB)
-    ax.set_xlabel('Frame')
-    ax.set_ylabel('Order')
-    if (colA == 'dRotation') or (colB == 'dRotation'):
-        ax.set_ylim(-1,1)
-        ax.set_yticks([-1,0,1])
-    else:
-        ax.set_ylim(0,1) 
-        ax.set_yticks([0,0.5,1])
-    ax.legend(loc=0)
+    fig.suptitle(DIR.split('/')[-2])
+    subs = ['coherence',colA, colB]
+    colourlist = ['black','red','blue']
+    ylabs = ['% Clockwise','Order','Order']
+    ax1 = fig.add_subplot(311)
+    ax2 = fig.add_subplot(312, sharex=ax1)
+    ax3 = fig.add_subplot(313, sharex=ax1)
+    axes = [ax1, ax2, ax3]
+    for REP in range(len(subs)):
+        ax = axes[REP]
+        fig.add_axes(ax)
+        plt.plot(df.dropna()[subs[REP]].values, color=colourlist[REP])
+        ax.set_title(subs[REP])
+        ax.set_ylabel(ylabs[REP])
+        if REP <2:
+            plt.setp(ax.get_xticklabels(), visible=False)
+        else:
+            ax.set_xlabel('Frame')
+        if subs[REP] == 'dRotation':
+            ax.set_ylim(-1,1)
+            ax.set_yticks([-1,0,1])
+            plt.axhline(y=0.0, color='k', linestyle='-')
+        elif subs[REP] == 'coherence':
+            ax.set_ylim(-0.1,1.1) 
+            ax.set_yticks([0,0.5,1])
+            axR = ax.twinx()
+            plt.plot(df['speed']*1000.0, color='r')
+            axR.set_ylabel('speed', color='r')
+            axR.tick_params('y', colors='r')
+            axR.set_ylim(-10,110)
+            axR.set_yticks([0,50,100])
+        else:
+            ax.set_ylim(0,1) 
+            ax.set_yticks([0,0.5,1])
+    #ax.legend(loc=0)
     #plt.colorbar()
     plt.savefig(DIR + 'track/vsTime_'+fn + colA + '_' + colB + '.svg', bbox_inches='tight',pad_inches = 0)
     plt.savefig(DIR + 'track/vsTime_'+fn + colA + '_' + colB + '.png')#, bbox_inches='tight',pad_inches = 0)
@@ -125,13 +208,16 @@ def run(DIR):
         frame_means, frame_stds = doit(_fbf, TRACK_DIR)
     else:
         frame_means = pd.read_pickle(TRACK_DIR + '/frame_means_rotation_polarization.pickle')
-        frame_stds = pd.read_pickle(TRACK_DIR + '/frame_stds_rotation_polarization.pickle')
+        if not 'dRotation' in frame_means.columns:
+            frame_means, frame_stds = doit(_fbf, TRACK_DIR)
+        else:
+            frame_stds = pd.read_pickle(TRACK_DIR + '/frame_stds_rotation_polarization.pickle')
     
     plot_density(slashdir(DIR), frame_means, 'rotation','polarization', 'mean')
     plot_density(slashdir(DIR), frame_means, 'dRotation','polarization', 'mean')
     plot_density(slashdir(DIR), frame_stds, 'rotation','polarization', 'std') 
-    plot_order_vs_time(slashdir(DIR), frame_means, 'rotation','polarization')  
-    plot_order_vs_time(slashdir(DIR), frame_means, 'dRotation','polarization')  
+    plot_order_vs_time(slashdir(DIR),  'rotation','polarization')  
+    plot_order_vs_time(slashdir(DIR),  'dRotation','polarization')  
     return
 
 if __name__ == "__main__":
@@ -141,8 +227,8 @@ if __name__ == "__main__":
                         help="path to video's main directory, eg: '/recnode/exp_20170527_162000")
                         
     args = parser.parse_args()
+    TRACK_DIR = slashdir(args.v) + 'track/'
     run(slashdir(args.v))
-    TRACK_DIR = slashdir(DIR) + 'track/'
     
     
     

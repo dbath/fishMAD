@@ -25,7 +25,7 @@ def errorLogIt(E):
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--dir', type=str, required=False, default = '/media/recnodes/kn-crec05,/media/recnodes/kn-crec06',help='path to directory')
+    parser.add_argument('--dir', type=str, required=False, default = '/media/recnodes/kn-crec05,/media/recnodes/kn-crec06,/media/recnodes/kn-crec07',help='path to directory')
     parser.add_argument('--handle', type=str, required=False, default='_dotbot_,_jwj_', 
                         help='provide unique identifier (or comma-separated list) to select a subset of directories.')
     parser.add_argument('--background', type=str, required=False, default='0',
@@ -57,7 +57,10 @@ if __name__ == "__main__":
     for term in HANDLE:
         for DIR in DIRECTORIES:
             for vDir in glob.glob(DIR + '*' + term + '*'):
-                if HANDLE == '_dotbot_':
+                vDir = slashdir(vDir)
+                if '_256_' in vDir:
+                    continue
+                if HANDLE != '_jwj_':
                     if (not os.path.exists(vDir + '/track/converted.results')):
                         try:
                             print "counting:", vDir
@@ -74,14 +77,14 @@ if __name__ == "__main__":
                     except Exception, e:
                         errorLogIt(e)
                         pass
-                if HANDLE == '_dotbot_':
+                if HANDLE != '_jwj_':
                     if (not os.path.exists(vDir + '/track/frameByFrame_complete')):
                         try:
-                            getFrameByFrameData(vDir + '/track', RESUME=False)
+                            fbf = getFrameByFrameData(vDir + '/track', RESUME=False)
                             print ".got frame by frame data", vDir
                         except Exception, e:
                             errorLogIt(e)
-                            pass
+                            continue
                     if (not os.path.exists(vDir + '/track/positions.png')):
                         try:
                             plot_positions.plot_positions(vDir)

@@ -123,32 +123,21 @@ def plot_annotated_image_with_hist(data, img, maxValue):
     plt.close('all')    
     
     return fig, maxValue
-    
-if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--v', type=str, required=True,
-                        help="path to video's main directory, eg: '/recnode/exp_20170527_162000")
-    parser.add_argument('--report', type=str, required=False, default='nn',
-                        help='list properties to report, eg: "nn, centroid-position"')
-    parser.add_argument('--makevid', type=bool, required=False, default=False,
-                        help='make true to make a video')
-    parser.add_argument('--fromScratch', type=bool, required=False, default=False,
-                        help='make true to discard old info and start from scratch')
-    args = parser.parse_args()
-    
-    MAIN_DIR = slashdir(args.v)  
+
+def doit(MAIN_DIR, REPORT, MAKEVID, FROMSCRATCH):
+    global MAIN_DIR
+    global TRACK_DIR
+    MAIN_DIR = slashdir(MAIN_DIR)  
     TRACK_DIR = MAIN_DIR + 'track/'
-    
-    
-    
-    if args.makevid:
+
+    if MAKEVID:
         store = imgstore.new_for_filename(MAIN_DIR + '/metadata.yaml' )
         maxValue=30
         if not os.path.exists(TRACK_DIR + 'annotated_vid'):
             os.makedirs(TRACK_DIR + 'annotated_vid')
-    if args.fromScratch or not os.path.exists(TRACK_DIR + 'frameByFrame_complete' ):
-        if args.fromScratch:
+    if FROMSCRATCH or not os.path.exists(TRACK_DIR + 'frameByFrame_complete' ):
+        if FROMSCRATCH:
             fbf = getFrameByFrameData(TRACK_DIR, False)
         else:
             fbf = getFrameByFrameData(TRACK_DIR)   
@@ -164,10 +153,10 @@ if __name__ == "__main__":
     for i, data in f:
         data.replace(to_replace=np.inf, value=np.nan, inplace=True)
         data = data.dropna()
-        if ('nn' in args.report) or ('neigh' in args.report):
+        if ('nn' in REPORT) or ('neigh' in REPORT):
         
             data = getNN(data)
-        if args.makevid:
+        if MAKEVID:
             if not os.path.exists(TRACK_DIR + 'annotated_vid/NN_%06d.png'%(i)):
                 img, (vidFrameNum, vidTimestamp) = store.get_image(store.frame_min + i)
             #data = data.dropna().reset_index(drop=True, inplace=True)
@@ -189,7 +178,7 @@ if __name__ == "__main__":
         if i%500 == 0:
             print "processed frame number :", i
         
-    frame_stats.to_pickle(TRACK_DIR + 'frame_stats.pickle') 
+    frame_stats.to_pickle(TRACK_DIR + 'nnframe_stats.pickle') 
     nnDF = pd.DataFrame.from_dict(nn_collection,  orient='index')
     nnDF.to_pickle(TRACK_DIR + 'nearest_neighbour_per_frame.csv')
     
@@ -217,4 +206,22 @@ if __name__ == "__main__":
     fig.tight_layout()  
     plt.savefig(TRACK_DIR + 'statistics.svg' , bbox_inches='tight', pad_inches=0)
     
+    return    
+
+
     
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--v', type=str, required=True,
+                        help="path to video's main directory, eg: '/recnode/exp_20170527_162000")
+    parser.add_argument('--report', type=str, required=False, default='nn',
+                        help='list properties to report, eg: "nn, centroid-position"')
+    parser.add_argument('--makevid', type=bool, required=False, default=False,
+                        help='make true to make a video')
+    parser.add_argument('--fromScratch', type=bool, required=False, default=False,
+                        help='make true to discard old info and start from scratch')
+    args = parser.parse_args()
+    
+    doit(args.v, args.report, args.makevid, args.fromScratch)
+

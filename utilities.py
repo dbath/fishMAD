@@ -33,11 +33,14 @@ def getTimeStringFromTime(TIME=None):
 
 
 def loopbio_record(IP, KEY, FN, DUR, META, SN):
-    if IP == '10.126.18.36':
-        _codec = 'medium_quality'
-    else:
-        _codec='nvenc-mq'
+    _codec='nvenc-mq'
     api = Motif(IP, KEY)
+    
+    camInfo = pd.DataFrame(api.call('cameras').items()[0][1])
+    camName = camInfo[camInfo.serial == SN]['name'].values[0]
+    if "Ximea" in camName:
+        SN = camName.split('(')[1][0]
+    
     if not (api.call('camera/'+SN)['camera_info']['status'] == 'ready'):
         raise Exception('CAMERA IS ALREADY IN USE')
     #camsn = api.call('cameras')['cameras'][0]['serial']

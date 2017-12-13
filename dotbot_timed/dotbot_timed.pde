@@ -38,12 +38,13 @@ int tLoop;
 int loopnum = 0;
 float alpha = 100;
 int currentEpoch = 0;
-int hideMode = 0;
+int hideMode = 1;
 float stopgo = 1.0;
 int DIRECTION = 1;
-int fadeTime = 1;
+float fadeLength = 3;
 boolean running = false;
-int speed = 10;
+float setSpeed = 50;
+float speed = 50;
 FloatList coherences;
 float C;
 
@@ -87,7 +88,7 @@ void setup(){
      .setValue(50)
      ;  
      
-  cP5.addSlider("speed")
+  cP5.addSlider("setSpeed")
      .setPosition(sqBar-200,130)
      .setSize(200,28)
      .setRange(0,100)
@@ -95,9 +96,6 @@ void setup(){
      .setValue(35)
      ;  
   cP5.addBang("Go",sqBar-120,180,60,30);
-  cP5.addBang("Hide",sqBar-120,250,60,30);
-  cP5.addBang("Reverse",sqBar-120,330,60,30);
-  cP5.addBang("StopStart",sqBar-120,410,60,30);
 
   if (IPVal == 12){ dotSize = 20;
                     nDotsSlider = 1000;    }
@@ -130,73 +128,36 @@ void setup(){
   group2.Set(int(nDots*(1-C)), 0, 1);
   String message = ("IP\tTimestamp\tnDots\tdotSize\tspeed\tdir\tcoh\tcomment\n");
   logEntry(message, false);
-  Go();
+  //Go();
 
 }
 
 void keyPressed(){
-  /*
   if (key == CODED) {
     if (keyCode == UP) {
-      brightVal = brightVal +2;
+      Go();
     } 
     else if (keyCode == DOWN) {
-      brightVal = brightVal -2;
+      Go();;
     }
   }
-  */
-  if (key == 'r'){Reverse();}
-  else if (key == 's'){StopStart();}
-  else if (key == 'g'){Go();}
-  else if (key == 'h'){Hide();}
   
 }
 
 
-void Reverse(){
-  DIRECTION = DIRECTION * -1; 
-  String message = (myIP + '\t' + RTFN() + '\t' + str(nDots) + '\t' + str(dotSize) + '\t' + str(speed) +'\t' + str(DIRECTION) + '\t' + str(C) + '\t' + "reversed"+'\n');
-  logEntry(message, true);
-  println(message);
-}
 
-void StopStart(){
-  stopgo = stopgo - 1.0;
-  stopgo = abs(stopgo);    
-  String message;
-  if (stopgo == 1.0){message = (myIP + '\t' + RTFN() + '\t' + str(nDots) + '\t' + str(dotSize) + '\t' + str(0) +'\t' + str(DIRECTION) + '\t' + str(C) + '\t' + "stopped"+'\n');}
-  else {message = (myIP + '\t' + RTFN() + '\t' + str(nDots) + '\t' + str(dotSize) + '\t' + str(speed) +'\t' + str(DIRECTION) + '\t' + str(C) + '\t' + "moving"+'\n');}
-  logEntry(message, true);
-  println(message);
-
-}
 
 
 
 void Go(){
   goNoGo = true;
-  t0 = millis();
+  t0 = millis()-1000000;
   nDots = nDotsSlider;
+  //group1.Set(int(nDots*(C)), 0, 1);
+  //group2.Set(int(nDots*(1-C)), 0, 1);
   //group1.Init();
   //group2.Init();
   //group1.Set(nDots, speed, 1); 
-  String message;
-  if (hideMode == 1.0){message = (myIP + '\t' + RTFN() + '\t' + str(group1.NUMBER_OF_THINGS) + '\t' + str(dotSize) + '\t' + str(group1.vel) +'\t' + str(group1.dir) + '\t' + str(C) + '\t' + "Group1 Initiated (hidden)"+'\n' + 
-                                  myIP + '\t' + RTFN() + '\t' + str(group2.NUMBER_OF_THINGS) + '\t' + str(dotSize) + '\t' + str(group2.vel) +'\t' + str(group2.dir) + '\t' + str(C) + '\t' + "Group2 Initiated (hidden)"+'\n');}
-  else {message = (myIP + '\t' + RTFN() + '\t' + str(group1.NUMBER_OF_THINGS) + '\t' + str(dotSize) + '\t' + str(group1.vel) +'\t' + str(group1.dir) + '\t' + str(C) + '\t' + "Group1 Initiated"+'\n' + 
-                   myIP + '\t' + RTFN() + '\t' + str(group2.NUMBER_OF_THINGS) + '\t' + str(dotSize) + '\t' + str(group2.vel) +'\t' + str(group2.dir) + '\t' + str(C) + '\t' + "Group2 Initiated"+'\n');}
-  logEntry(message, true);
-  println(message);
-}
-
-void Hide(){
-  hideMode = hideMode - 1;
-  hideMode = abs(hideMode); 
-  String message;
-  if (hideMode == 1.0){ message = (myIP + '\t' + RTFN() + '\t' + str(0) + '\t' + str(dotSize) + '\t' + str(speed) +'\t' + str(DIRECTION) + '\t' + str(C) + '\t' + "hidden"+'\n');}
-  else { message = (myIP + '\t' + RTFN() + '\t' + str(nDots) + '\t' + str(dotSize) + '\t' + str(speed) +'\t' + str(DIRECTION) + '\t' + str(C) + '\t' + "unhidden"+'\n');}
-  logEntry(message, true);
-  println(message);
 }
 
 
@@ -289,7 +250,7 @@ public class Dots {
     vel = _Vel / 1000.0;
     dir = _Dir; 
     for(int i=0; i < _numDots; i++){  //for (Dot dot : DotList){
-      DotList[i].VEL = vel;
+      DotList[i].setVEL = vel*dir;
       DotList[i].DIR = dir;
     }
     String message = (myIP + '\t' + RTFN() + '\t' + str(_numDots) + '\t' + str(dotSize) + '\t' + str(vel) +'\t' + str(dir) + '\t' + str(C) + '\t' + "Set Values"+'\n');
@@ -302,7 +263,7 @@ public class Dots {
   
 class Dot{
   float X1, Y1, ROTATION, RAD, SIZE;
-  float COLOUR,  VEL, DIR, CX, CY, VAR;
+  float COLOUR, setVEL, VEL, DIR, CX, CY, VAR;
   
   Dot(float rotation, float vel, float dir) {
     this.SIZE = random(dotSize,dotSize);
@@ -310,7 +271,8 @@ class Dot{
     this.CX = width/2;
     this.CY = height/2;
     this.ROTATION = rotation;
-    this.VEL = vel*random(0.7,1.3);
+    this.setVEL = vel*random(0.7,1.3);
+    this.VEL = setVEL;
     this.DIR = dir;
     this.X1 = random(0,1.42)*height + sqBar; 
     this.Y1 = random(0,1.42)*height;
@@ -319,7 +281,11 @@ class Dot{
   }
   
   void renew() {
-    this.ROTATION = this.ROTATION + this.VEL*this.DIR*stopgo;
+    if (this.setVEL == 0){ this.VEL=0;}
+    else {
+    this.VEL = this.VEL + (this.setVEL - this.VEL)/(fadeLength*100);
+    }
+    this.ROTATION = this.ROTATION + this.VEL;
     this.X1 = (cos(this.ROTATION)*this.RAD + cos(this.VAR*this.ROTATION)) + this.CX ;
     this.Y1 = (sin(this.ROTATION)*this.RAD + sin(this.VAR*this.ROTATION)) + this.CY ;
   }
@@ -335,13 +301,16 @@ void draw(){
     String message = (myIP + '\t' + RTFN() + "\t--\t--\t--\t--\t--\tProtocol completed"+'\n');
     logEntry(message, true);
     noLoop();}
-  else{
+  else if (goNoGo == true){
       
     tLoop = millis();
     if (loopnum >= coherences.size()){ finished = true;
                                             hideMode=1;
                                             running = false;
     }
+    
+  
+    
     if (running == false){ hideMode = 1;}
     
     // start actions at pre-determined times, but stagger them to avoid simulateously starting experiments
@@ -354,26 +323,27 @@ void draw(){
       }
     }
     // stop actions at pre-determined times, setup for next round, then wait
-    if ((running == true) && (currentEpoch >= 3)){// ( (minute() == IPVal + 11) ||  (minute() == IPVal+31) || (minute() == IPVal-9))){
+    if ((running == true) && (currentEpoch >= 4)){// ( (minute() == IPVal + 11) ||  (minute() == IPVal+31) || (minute() == IPVal-9))){
       group1.Set(0, 0, 0);
       group2.Set(0, 0, 0);
       hideMode = 1;
       running = false;
       currentEpoch = 0;
       loopnum += 1;
-      speed = speed*-1;
+      speed = speed*-1.0;
       C = coherences.get(loopnum);
       
     }        
     // change experiment conditions every 180 seconds                             ***********************STIM DURATION DEFINED HERE*****************
     if ((running == true) && ( tLoop - t0 >= 180000)){
         if (currentEpoch == 0 ){      group1.Set(int(nDots*(C)), speed, 1);
-                                      group2.Set(int(nDots*(1-C)), speed, 1);}
-        else if (currentEpoch == 1 ){ group1.Set(int(nDots*(C)), speed, -1);
-                                      group2.Set(int(nDots*(1-C)), speed, 1); }
+                                      group2.Set(int(nDots*(1-C)), speed, -1);}
+        else if (currentEpoch == 1 ){ group1.Set(int(nDots*(C)), 0, 1);
+                                      group2.Set(int(nDots*(1-C)), 0, 1);  
+                                      hideMode=1;}
         /*
-        else if (currentEpoch == 3 ){ group1.Set(int(nDots*(C)), speed, 1);
-                                      group2.Set(int(nDots*(1-C)), speed, -1); }
+        else if (currentEpoch == 3 ){ group1.Set(int(nDots*(C)), 0, 0);
+                                      group2.Set(int(nDots*(1-C)), 0, 0);}
         else if (currentEpoch == 5 ){ group1.Set(int(nDots*(C)), 0, 1);
                                       group2.Set(int(nDots*(1-C)), 0, 1);}
         else if (currentEpoch == 6 ){ group1.Set(int(nDots*(C)), speed, -1);
@@ -387,10 +357,11 @@ void draw(){
         t0 = tLoop;
     }
   
-    background(55,0,100,100);
-    group1.update();
-    group2.update();
+
   }
+  background(55,0,100,100);
+  group1.update();
+  group2.update();
   hideFrame(alpha*hideMode);
   squareFrame();
 }

@@ -7,7 +7,7 @@ import scipy.stats as stats
 import os
 import matplotlib.pyplot as plt
 
-def binarize(i, bkg=None, thresh=35):
+def binarize(i, bkg=None, thresh=35, JUVENILE=False ):
     if bkg!= None:
         diff = bkg - i
         diff[diff <=0] = 0
@@ -15,7 +15,10 @@ def binarize(i, bkg=None, thresh=35):
     else:
         diff = i
     r, binary = cv2.threshold(diff.astype(np.uint8), thresh, 255, cv2.THRESH_BINARY)
-    kernel = np.ones((3,3),np.uint8)
+    if JUVENILE:
+        kernel = np.ones((1,1),np.uint8)
+    else:
+        kernel = np.ones((3,3),np.uint8)
     binary = cv2.erode(binary, kernel, iterations=1)
     return binary
     
@@ -29,8 +32,8 @@ def countFish(binaryArray):
                 bodyCount +=1
     return bodyCount
 
-def markCentroids(img, bkg):
-    binaryArray = binarize(img[:,:,0], bkg)
+def markCentroids(img, bkg, JUVENILE=False):
+    binaryArray = binarize(img[:,:,0], bkg, 35, JUVENILE)
     contourImage = binaryArray.copy()
     contours, hierarchy1 = cv2.findContours(contourImage.astype(np.uint8), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
     bodyCount = []
@@ -53,7 +56,7 @@ def sho(image):
     plt.show()
     return
 
-def getMaxCount(vid, bkg=None):
+def getMaxCount(vid, bkg=None, JUVENILE=False):
     """takes cv2 video instance, returns max number of fish"""
     framecount = int(vid.get(7))
     skipFrames = int(np.round(framecount/25)) #FIXME return to 85
@@ -65,7 +68,7 @@ def getMaxCount(vid, bkg=None):
         ret, _img = vid.read()    
         if ret == True:
             i = _img[:,:,0]
-            count = countFish(binarize(i, bkg, 35))
+            count = countFish(binarize(i, bkg, 35, JUVENILE))
             if count > maxCount:
                 maxCount = count
                 maxFrame = frame
@@ -81,7 +84,7 @@ def getMaxCount(vid, bkg=None):
 def createBackgroundImage(vid):
     """takes cv2 video instance, returns image with modal pixel values"""
     framecount = int(vid.get(7))
-    skipFrames = int(np.round(framecount/10)) #FIXME return to 50
+    skipFrames = int(np.round(framecount/50)) 
     frameList = range(1,framecount, skipFrames)
     for frame in frameList:
         vid.set(1, frame)
@@ -100,7 +103,7 @@ def createBackgroundImage(vid):
     return mode
 
 
-def count_from_vid(videofile):
+def count_from_vid(videofile, JUVENILE=False):
 
     savedir, filename = videofile.rsplit('/', 1)
     if os.path.exists(savedir + '/bkg.npy'):
@@ -109,9 +112,9 @@ def count_from_vid(videofile):
         bkg = createBackgroundImage(cv2.VideoCapture(videofile))
         np.save(savedir + '/bkg.npy', bkg)
     vid = cv2.VideoCapture(videofile)
-    maxFish, maxImage, maxFrameNum =  getMaxCount(vid, bkg)
+    maxFish, maxImage, maxFrameNum =  getMaxCount(vid, bkg, JUVENILE)
     vid.set(1, maxFrameNum)
-    di = markCentroids(vid.read()[1], bkg)
+    di = markCentroids(vid.read()[1], bkg, JUVENILE)
     cv2.imwrite(savedir + '/count_' + str(maxFish) + '_' + filename.split('.')[0] + '.png', di)    
     return maxFish
     
@@ -145,18 +148,23 @@ if __name__ == "__main__":
     else:
         bkg = cv2.imread(args.bkg)[:,:,0]
     
+    if 'juvenile' in args.v:
+        JUVENILE = True
+    else:
+        JUVENILE = False
+    
     if args.v.split('.')[-1] != 'mp4':
         maxList = []
         for f in glob.glob(args.v + '/*.mp4'):
-            maxList.append(getMaxCount(cv2.VideoCapture(f), bkg)[0])
+            maxList.append(getMaxCount(cv2.VideoCapture(f), bkg, JUVENILE)[0])
         maxFish = max(maxList)
-        _, maxImage, maxFrameNum = getMaxCount(cv2.VideoCapture(f), bkg)
+        _, maxImage, maxFrameNum = getMaxCount(cv2.VideoCapture(f), bkg, JUVENILE)
     else:
         savedir, filename = args.v.rsplit('/', 1)
         vid = cv2.VideoCapture(args.v)
-        maxFish, maxImage, maxFrameNum =  getMaxCount(vid, bkg)
+        maxFish, maxImage, maxFrameNum =  getMaxCount(vid, bkg, JUVENILE)
         vid.set(1, maxFrameNum)
-        di = markCentroids(vid.read()[1])
+        di = markCentroids(vid.read()[1], bkg, JUVENILE)
         
         cv2.imwrite(savedir + '/count_' + str(maxFish) + '_' + filename.split('.')[0] + '.png', di)
         
