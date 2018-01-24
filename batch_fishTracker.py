@@ -13,7 +13,7 @@ import count
 #from multiprocessing import Process
 
 def errorLogIt(E):
-    errorLog = open('/home/dbath/FishTracker/Application/build/batchlog_batch.txt', 'a')
+    errorLog = open(os.path.expanduser('~/FishTracker/Application/build/batchlog_batch.txt'), 'a')
     errorLog.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t')
     errorLog.write(vDir + '\t')
     errorLog.write('ERROR from batch_fishTracker' + '\n')
@@ -92,7 +92,7 @@ if __name__ == "__main__":
                         except Exception, e:
                             errorLogIt(e)
                             pass
-                    if (not os.path.exists(vDir + '/track/density_meandRotation-x_polarization.png')):
+                    if (not os.path.exists(vDir + '/track/density_meandRotation-x_polarization-y.png')):
                         try:
                             polarization_rotation.run(vDir)
                             print "...got rotation & polarization data", vDir

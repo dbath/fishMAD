@@ -62,7 +62,6 @@ def doit(fbf, TRACK_DIR):
         
         #angular momentum of fish
         points = np.array(zip(data[XPOS], data[YPOS]))
-        print '\t', i, '\n', points
         centroid = get_centroid(points)   
         
         data['CX'] = data[XPOS] - centroid[0] # component vector to centroid, X
@@ -150,6 +149,11 @@ def get_centroid_rotation(_MAIN_DIR, df):
     #GET ROTATION ORDER:
     df['centroid_rotation_directed'] = np.cross(df[['uCX','uCY']], df[['uVX','uVY']])
     df['centroid_rotation'] = abs(df['centroid_rotation_directed'])
+    
+    
+    #FIXME incomplete function
+    
+    return
 
 
 def plot_order_vs_time(DIR, colA, colB, fn=''):
