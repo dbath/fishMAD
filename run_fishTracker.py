@@ -27,7 +27,7 @@ def replace_background(_main_dir):
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"got new background..."
     return
 
-def doit(_main_dir, _make_bkg, NEW_ONLY, fishnum):
+def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum):
     MAIN_DIR = _main_dir
     if MAIN_DIR[-1] != '/':
         MAIN_DIR += '/'
@@ -151,13 +151,22 @@ def doit(_main_dir, _make_bkg, NEW_ONLY, fishnum):
             FNULL.close()
             print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"ERROR converting file: ", track_dir
             return
+    FNULL.close()
+
+    return
+
+def track(_main_dir, _make_bkg, NEW_ONLY, fishnum):
+    MAIN_DIR = _main_dir
+    if MAIN_DIR[-1] != '/':
+        MAIN_DIR += '/'
+    track_dir = MAIN_DIR + 'track'
     # Launch tracker
+    FNULL = open(os.devnull, 'w')    
     if not (os.path.exists(track_dir + '/converted.results')):
         shutil.rmtree(track_dir + '/fishdata')
         os.makedirs(track_dir + '/fishdata')
         pv_file = track_dir + '/converted.pv'
         launch_tracker = "~/FishTracker/Application/build/tracker -d '" + track_dir + "' -i '" + pv_file + "' -settings fishTracker -nowindow"
-        print launch_tracker
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"Running tracker on file: ", track_dir
         try:
             task = subprocess.Popen([launch_tracker],stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True )
@@ -199,5 +208,6 @@ if __name__ == "__main__":
                         help='make false to save over old data and repeat tracking')
     args = parser.parse_args()
     
-    doit(args.v, args.make_bkg, args.newonly)
+    convert(args.v, args.make_bkg, args.newonly)
+    track(args.v, args.make_bkg, args.newonly)
 

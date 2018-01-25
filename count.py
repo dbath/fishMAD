@@ -142,7 +142,7 @@ if __name__ == "__main__":
             bkg=createBackgroundImage(cv2.VideoCapture(args.v))
             np.save(args.v.rsplit('/',1)[0] + '/bkg.npy', bkg)
     elif args.bkg=='36':
-        bkg = np.load('/home/dbath/fishMAD/bkg_36.npy')
+        bkg = np.load(os.path.expanduser('~/fishMAD/bkg_36.npy'))
     elif args.bkg.split('.')[-1] == 'npy':
         bkg = np.load(args.bkg)
     else:

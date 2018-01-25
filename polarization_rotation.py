@@ -48,27 +48,27 @@ def doit(fbf, TRACK_DIR):
     frame_stds = pd.DataFrame()
 
     for i, data in f:
-        data = data.dropna()
+        data = data.dropna().copy()
 
         #polarity
         
-        data['speed'] = np.sqrt(data[XVEL]**2 + data[YVEL]**2)
-        data['uVX'] = data[XVEL] / data['speed'] # X component of unit vector
-        data['uVY'] = data[YVEL] / data['speed'] # Y component of unit vector
+        data.loc[:,'speed'] = np.sqrt(data.loc[:,XVEL]**2 + data.loc[:,YVEL]**2)
+        data.loc[:,'uVX'] = data.loc[:,XVEL] / data.loc[:,'speed'] # X component of unit vector
+        data.loc[:,'uVY'] = data.loc[:,YVEL] / data.loc[:,'speed'] # Y component of unit vector
         
         #polarization is the length of the average of all unit vectors
-        polarization = abs(np.sqrt((data['uVX'].mean())**2 + (data['uVY'].mean())**2))
+        polarization = abs(np.sqrt((data.loc[:,'uVX'].mean())**2 + (data.loc[:,'uVY'].mean())**2))
         
         
         #angular momentum of fish
-        points = np.array(zip(data[XPOS], data[YPOS]))
+        points = np.array(zip(data.loc[:,XPOS], data.loc[:,YPOS]))
         centroid = get_centroid(points)   
         
-        data['CX'] = data[XPOS] - centroid[0] # component vector to centroid, X
-        data['CY'] = data[YPOS] - centroid[1] # component vector to centroid, Y
-        data['radius'] = np.sqrt(data['CX']**2 + data['CY']**2)  #radius to centroid
-        data['uCX'] = data['CX'] / data['radius'] # X component of unit vector R
-        data['uCY'] = data['CY'] / data['radius'] # Y component of unit vector R
+        data.loc[:,'CX'] = data.loc[:,XPOS] - centroid[0] # component vector to centroid, X
+        data.loc[:,'CY'] = data.loc[:,YPOS] - centroid[1] # component vector to centroid, Y
+        data.loc[:,'radius'] = np.sqrt(data.loc[:,'CX']**2 + data.loc[:,'CY']**2)  #radius to centroid
+        data.loc[:,'uCX'] = data.loc[:,'CX'] / data.loc[:,'radius'] # X component of unit vector R
+        data.loc[:,'uCY'] = data.loc[:,'CY'] / data.loc[:,'radius'] # Y component of unit vector R
         data = data.dropna()
         
         rotation_directed = np.cross(data[['uCX','uCY']], data[['uVX','uVY']])
@@ -89,8 +89,9 @@ def doit(fbf, TRACK_DIR):
         frame_stds.loc[i, 'dRotation'] = rotation_directed.std()
         
         
-
     frame_means.to_pickle(TRACK_DIR + '/frame_means_rotation_polarization.pickle')
+    frame_means = stim_handling.synch_coherence_with_rotation(TRACK_DIR[:-6]) #lazy
+    frame_means.to_pickle(TRACK_DIR + '/frame_means_rotation_polarization.pickle') # hack 
     frame_stds.to_pickle(TRACK_DIR + '/frame_stds_rotation_polarization.pickle')
     return frame_means, frame_stds
 
@@ -157,7 +158,10 @@ def get_centroid_rotation(_MAIN_DIR, df):
 
 
 def plot_order_vs_time(DIR, colA, colB, fn=''):
-    df = stim_handling.synch_coherence_with_rotation(DIR)
+    df = pd.read_pickle(DIR + 'track/frame_means_rotation_polarization.pickle')
+    if not 'coherence' in df.columns:
+        df = stim_handling.synch_coherence_with_rotation(DIR)
+    df = df[df['FrameNumber'].notnull()]
     fig  = plt.figure()
     fig.suptitle(DIR.split('/')[-2])
     subs = ['coherence',colA, colB]
@@ -170,13 +174,13 @@ def plot_order_vs_time(DIR, colA, colB, fn=''):
     for REP in range(len(subs)):
         ax = axes[REP]
         fig.add_axes(ax)
-        plt.plot(df.dropna()[subs[REP]].values, color=colourlist[REP])
+        plt.plot(df.Time, df[subs[REP]].values, color=colourlist[REP])
         ax.set_title(subs[REP])
         ax.set_ylabel(ylabs[REP])
         if REP <2:
             plt.setp(ax.get_xticklabels(), visible=False)
         else:
-            ax.set_xlabel('Frame')
+            ax.set_xlabel('Time (s)')
         if subs[REP] == 'dRotation':
             ax.set_ylim(-1,1)
             ax.set_yticks([-1,0,1])
@@ -185,11 +189,11 @@ def plot_order_vs_time(DIR, colA, colB, fn=''):
             ax.set_ylim(-0.1,1.1) 
             ax.set_yticks([0,0.5,1])
             axR = ax.twinx()
-            plt.plot(df['speed']*1000.0, color='r')
+            plt.plot(df['Time'], df['speed']*1000.0, color='r')
             axR.set_ylabel('speed', color='r')
             axR.tick_params('y', colors='r')
-            axR.set_ylim(-10,110)
-            axR.set_yticks([0,50,100])
+            axR.set_ylim(-110,110)
+            axR.set_yticks([-100,0,100])
         else:
             ax.set_ylim(0,1) 
             ax.set_yticks([0,0.5,1])
@@ -207,15 +211,15 @@ def run(DIR):
     else:
         _fbf = pd.read_pickle(TRACK_DIR + 'frameByFrameData.pickle')
                 
-    if not os.path.exists(TRACK_DIR + '/frame_means_rotation_polarization.pickle'):
+    if not os.path.exists(TRACK_DIR + 'frame_means_rotation_polarization.pickle'):
         print "calculating rotation and polarization"
         frame_means, frame_stds = doit(_fbf, TRACK_DIR)
     else:
-        frame_means = pd.read_pickle(TRACK_DIR + '/frame_means_rotation_polarization.pickle')
-        if not 'dRotation' in frame_means.columns:
+        frame_means = pd.read_pickle(TRACK_DIR + 'frame_means_rotation_polarization.pickle')
+        if not 'dir' in frame_means.columns:
             frame_means, frame_stds = doit(_fbf, TRACK_DIR)
         else:
-            frame_stds = pd.read_pickle(TRACK_DIR + '/frame_stds_rotation_polarization.pickle')
+            frame_stds = pd.read_pickle(TRACK_DIR + 'frame_stds_rotation_polarization.pickle')
     
     plot_density(slashdir(DIR), frame_means, 'rotation','polarization', 'mean')
     plot_density(slashdir(DIR), frame_means, 'dRotation','polarization', 'mean')

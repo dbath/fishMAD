@@ -10,7 +10,7 @@ def process_logfile(filename):
     log['Timestamp'] = log['Timestamp'] / 1000.0
     log['diff'] = (log['Timestamp'] - log['Timestamp'].shift()).fillna(1000)
     log.loc[log['diff'] < 5, 'Timestamp'] = log['Timestamp'].shift()
-    return log
+    return log.groupby('Timestamp').first().reset_index()
     
 def get_coherence(log):    
     log['dotVel'] = log['nDots'] * log['speed']/abs(log['speed']) * log['dir']
@@ -21,6 +21,10 @@ def get_coherence(log):
 def get_speed(log):    
     s = log.groupby('Timestamp').mean()
     return s['speed'].reset_index()
+
+def get_direction(log):    
+    s = log.groupby('Timestamp').mean()
+    return s['dir'].reset_index()
     
 def synch_coherence_with_rotation(MAIN_DIR):
     #MAIN_DIR = slashdir('/media/recnodes/kn-crec06/juvenilesfwdmix_3264_dotbot_20171205_101600')
@@ -34,17 +38,17 @@ def synch_coherence_with_rotation(MAIN_DIR):
 
     log = process_logfile(LOG_FN)
     coherence = get_coherence(log)
-    coherence['speed'] = get_speed(log)['speed']
-
+    coherence['speed'] = get_speed(log)['speed']   
     framelist = pd.DataFrame(store.get_frame_metadata())
     framelist.columns=['FrameNumber','Timestamp'] 
 
     foo = r.merge(framelist, left_index=True, right_index=True)
 
     bar = foo.merge(coherence, how='outer')
-    bar = bar.sort('Timestamp')
+    bar = bar.sort_values('Timestamp')
     bar['coherence'] = bar['coherence'].fillna(method='ffill')
-    bar['speed'] = bar['speed'].fillna(method='ffill')
+    bar['speed'] = bar['speed'].fillna(method='ffill').fillna(0)
+    bar.loc[:,'Time'] = (bar.loc[:,'Timestamp'] - bar.loc[0,'Timestamp'])
 
-    return bar.fillna(np.inf)
+    return bar#.fillna(np.inf)
 
