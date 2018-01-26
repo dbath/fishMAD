@@ -12,7 +12,7 @@ from utilities import *
 
 def replace_background(_main_dir):
     if os.path.exists(_main_dir + 'track/video_average.png'):
-        shutil.copy(_main_dir + 'track/video_average.png',
+        shutil.copyfile(_main_dir + 'track/video_average.png',
                     os.path.expanduser('~/FishTracker/Application/build/video_average.png'))
         print "retrieved previous background image"
     else:
@@ -42,17 +42,18 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum):
         replace_background(MAIN_DIR)
 
     #copy default settings files and make fishdata dir
+      
 
     if not os.path.exists(track_dir + 'fishTracker.settings'):
         if '_jwj_' in MAIN_DIR:
-            shutil.copy(os.path.expanduser('~/fishMAD/tristrack_defaults/fishTracker_stickleback.settings'), track_dir + '/fishTracker.settings')
+            shutil.copyfile(os.path.expanduser('~/fishMAD/tristrack_defaults/fishTracker_stickleback.settings'), track_dir + '/fishTracker.settings')
         else:
-            shutil.copy(os.path.expanduser('~/fishMAD/tristrack_defaults/fishTracker.settings'), track_dir + '/fishTracker.settings')
+            shutil.copyfile(os.path.expanduser('~/fishMAD/tristrack_defaults/fishTracker.settings'), track_dir + '/fishTracker.settings')
     if not os.path.exists(track_dir + 'conversion.settings'):
         if '_jwj_' in MAIN_DIR:
-            shutil.copy(os.path.expanduser('~/fishMAD/tristrack_defaults/conversion_stickleback.settings'), track_dir + '/conversion.settings')
+            shutil.copyfile(os.path.expanduser('~/fishMAD/tristrack_defaults/conversion_stickleback.settings'), track_dir + '/conversion.settings')
         else:
-            shutil.copy(os.path.expanduser('~/fishMAD/tristrack_defaults/conversion.settings'), track_dir + '/conversion.settings')
+            shutil.copyfile(os.path.expanduser('~/fishMAD/tristrack_defaults/conversion.settings'), track_dir + '/conversion.settings')
     if not os.path.exists(track_dir + '/fishdata'):
         os.makedirs(track_dir + '/fishdata')
 
@@ -195,10 +196,13 @@ if __name__ == "__main__":
         for DIR in DIRECTORIES:
             for vDir in glob.glob(DIR + '*' + term + '*'):
                 if (not os.path.exists(vDir + '/track/converted.results')):
+                    """
                     try:
                         fishnum = count.count_from_vid(vDir + '000000.mp4')
                     except:
-                        fishnum = int(vDir.split('/')[-1].split('_')[1])
+                    """
+                    fishnum = int(vDir.split('/')[-1].split('_')[1])
+                    print "processing", vDir, str(fishnum)                    
                     convert(vDir, mkBkg, args.newonly, fishnum)
 
 
