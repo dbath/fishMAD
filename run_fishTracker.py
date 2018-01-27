@@ -156,9 +156,7 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum):
     return
 
 def track(_main_dir, _make_bkg, NEW_ONLY, fishnum):
-    MAIN_DIR = _main_dir
-    if MAIN_DIR[-1] != '/':
-        MAIN_DIR += '/'
+    MAIN_DIR = slashdir(_main_dir)
     track_dir = MAIN_DIR + 'track'
     # Launch tracker
     FNULL = open(os.devnull, 'w')    

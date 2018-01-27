@@ -81,7 +81,7 @@ if __name__ == "__main__":
         mkBkg = True
     
     numFish=0
-    
+    """
     # GET ALL FILES THAT ARE NOT CONVERTED
     fileList = []
     for term in HANDLE:
@@ -95,13 +95,13 @@ if __name__ == "__main__":
     for filenum in np.arange(len(fileList)):
         vDir = fileList[filenum]
         try:
-            """
+            
             try:
                 numFish = count.count_from_vid(vDir + '/000000.mp4')
             except:
                 numFish = 0
             print 'processing', vDir, 'fishcount: ', numFish
-            """
+            
             p = Process(target=run_fishTracker.convert, args=(vDir,mkBkg, args.newonly, numFish))
             print "processing: ", vDir
             p.start()
@@ -114,17 +114,16 @@ if __name__ == "__main__":
         except Exception, e:
             errorLogIt(e)
             pass 
-    
+    """
     # TRACK, THEN RUN BASIC ANALYSIS
     for term in HANDLE:
         for DIR in DIRECTORIES:
             for vDir in glob.glob(DIR + '*' + term + '*'):
                 vDir = slashdir(vDir)
-                if not os.path.exists(vDir + '/track/converted.results'):
-                    _fishnum = None                    
-                    for x in glob.glob(vDir + '*.png'):
-                        _fishnum = x.split('/')[-1].split('_')[1]
-                    run_fishTracker.doit(vDir, mkBkg, args.newonly, _fishnum)
+                if (not os.path.exists(vDir + '/track/converted.results')) and (os.path.exists(vDir + '/track/converted.pv')):
+                   
+                    _fishnum = vDir.split('/')[-2].split('_')[1]
+                    run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum)
                 if (not os.path.exists(vDir + '/track/frameByFrame_complete')):
                     try:
                         fbf = getFrameByFrameData(vDir + '/track', RESUME=False)
