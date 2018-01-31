@@ -44,7 +44,7 @@ if __name__ == "__main__":
     threadcount = 0
     for filenum in np.arange(len(fileList)):
         vDir = fileList[filenum]
-        if not os.path.exists(vDir + '/track/density_meandRotation-x_polarization-yX.png'):#FIXME remove X
+        if not os.path.exists(vDir + '/track/density_meandRotation-x_polarization-y.png'):
             if os.path.exists(vDir + '/track/frameByFrame_complete'):
                 try:
                     p = Process(target=polarization_rotation.run, args=(vDir,))

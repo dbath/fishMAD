@@ -9,6 +9,7 @@ import subprocess
 import argparse
 import scipy.misc
 import datetime
+from utilities import *
 
 
 def replace_background(_main_dir):

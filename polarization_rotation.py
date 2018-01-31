@@ -90,8 +90,6 @@ def doit(fbf, TRACK_DIR):
         
         
     frame_means.to_pickle(TRACK_DIR + '/frame_means_rotation_polarization.pickle')
-    frame_means = stim_handling.synch_coherence_with_rotation(TRACK_DIR[:-6]) #lazy
-    frame_means.to_pickle(TRACK_DIR + '/frame_means_rotation_polarization.pickle') # hack 
     frame_stds.to_pickle(TRACK_DIR + '/frame_stds_rotation_polarization.pickle')
     return frame_means, frame_stds
 
@@ -189,7 +187,7 @@ def plot_order_vs_time(DIR, colA, colB, fn=''):
             ax.set_ylim(-0.1,1.1) 
             ax.set_yticks([0,0.5,1])
             axR = ax.twinx()
-            plt.plot(df['Time'], df['speed']*1000.0, color='r')
+            plt.plot(df['Time'], df['speed']*df['dir']*1000.0, color='r')
             axR.set_ylabel('speed', color='r')
             axR.tick_params('y', colors='r')
             axR.set_ylim(-110,110)

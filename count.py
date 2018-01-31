@@ -7,11 +7,11 @@ import scipy.stats as stats
 import os
 import matplotlib.pyplot as plt
 
-def binarize(i, bkg=None, thresh=35, JUVENILE=False ):
-    if bkg!= None:
-        diff = bkg - i
+def binarize(i, _bkg, thresh=35, JUVENILE=False ):
+    if _bkg.mean() != 0.0:
+        diff = _bkg - i
         diff[diff <=0] = 0
-        diff = (diff**2)/bkg
+        diff = (diff**2)/_bkg
     else:
         diff = i
     r, binary = cv2.threshold(diff.astype(np.uint8), thresh, 255, cv2.THRESH_BINARY)
@@ -24,7 +24,7 @@ def binarize(i, bkg=None, thresh=35, JUVENILE=False ):
     
 def countFish(binaryArray):
     contourImage = binaryArray.copy()
-    contours, hierarchy1 = cv2.findContours(contourImage.astype(np.uint8), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    _,contours, hierarchy1 = cv2.findContours(contourImage.astype(np.uint8), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
     bodyCount = 0
     for cnt in contours:
         if cv2.contourArea(cnt) <=1000:
@@ -32,10 +32,10 @@ def countFish(binaryArray):
                 bodyCount +=1
     return bodyCount
 
-def markCentroids(img, bkg, JUVENILE=False):
-    binaryArray = binarize(img[:,:,0], bkg, 35, JUVENILE)
+def markCentroids(img, _bkg, JUVENILE=False):
+    binaryArray = binarize(img[:,:,0], _bkg, 35, JUVENILE)
     contourImage = binaryArray.copy()
-    contours, hierarchy1 = cv2.findContours(contourImage.astype(np.uint8), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    _ , contours, hierarchy1 = cv2.findContours(contourImage.astype(np.uint8), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
     bodyCount = []
     for cnt in contours:
         if cv2.contourArea(cnt) <=1000:
@@ -56,7 +56,7 @@ def sho(image):
     plt.show()
     return
 
-def getMaxCount(vid, bkg=None, JUVENILE=False):
+def getMaxCount(vid, _bkg, JUVENILE=False):
     """takes cv2 video instance, returns max number of fish"""
     framecount = int(vid.get(7))
     skipFrames = int(np.round(framecount/25)) #FIXME return to 85
@@ -68,7 +68,7 @@ def getMaxCount(vid, bkg=None, JUVENILE=False):
         ret, _img = vid.read()    
         if ret == True:
             i = _img[:,:,0]
-            count = countFish(binarize(i, bkg, 35, JUVENILE))
+            count = countFish(binarize(i, _bkg, 35, JUVENILE))
             if count > maxCount:
                 maxCount = count
                 maxFrame = frame
@@ -79,7 +79,7 @@ def getMaxCount(vid, bkg=None, JUVENILE=False):
     vid.set(1, maxFrame)
     ret, _img = vid.read()
     vid.set(1,1)
-    return maxCount ,   binarize(_img[:,:,0], bkg, 35), maxFrame
+    return maxCount ,   binarize(_img[:,:,0], _bkg, 35), maxFrame
 
 def createBackgroundImage(vid):
     """takes cv2 video instance, returns image with modal pixel values"""
@@ -107,14 +107,14 @@ def count_from_vid(videofile, JUVENILE=False):
 
     savedir, filename = videofile.rsplit('/', 1)
     if os.path.exists(savedir + '/bkg.npy'):
-        bkg = np.load(savedir + '/bkg.npy')
+        _bkg = np.load(savedir + '/bkg.npy')
     else:
-        bkg = createBackgroundImage(cv2.VideoCapture(videofile))
-        np.save(savedir + '/bkg.npy', bkg)
+        _bkg = createBackgroundImage(cv2.VideoCapture(videofile))
+        np.save(savedir + '/bkg.npy', _bkg)
     vid = cv2.VideoCapture(videofile)
-    maxFish, maxImage, maxFrameNum =  getMaxCount(vid, bkg, JUVENILE)
+    maxFish, maxImage, maxFrameNum =  getMaxCount(vid, _bkg, JUVENILE)
     vid.set(1, maxFrameNum)
-    di = markCentroids(vid.read()[1], bkg, JUVENILE)
+    di = markCentroids(vid.read()[1], _bkg, JUVENILE)
     cv2.imwrite(savedir + '/count_' + str(maxFish) + '_' + filename.split('.')[0] + '.png', di)    
     return maxFish
     
@@ -128,7 +128,7 @@ if __name__ == "__main__":
                         help='path to background')
     args = parser.parse_args()
     
-    
+
     if args.bkg == None:
         if os.path.exists(args.v.rsplit('/',1)[0] + '/bkg.npy'):
             bkg = np.load(args.v.rsplit('/',1)[0] + '/bkg.npy')
@@ -153,6 +153,7 @@ if __name__ == "__main__":
     else:
         JUVENILE = False
     
+
     if args.v.split('.')[-1] != 'mp4':
         maxList = []
         for f in glob.glob(args.v + '/*.mp4'):

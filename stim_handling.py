@@ -38,7 +38,8 @@ def synch_coherence_with_rotation(MAIN_DIR):
 
     log = process_logfile(LOG_FN)
     coherence = get_coherence(log)
-    coherence['speed'] = get_speed(log)['speed']   
+    coherence['speed'] = get_speed(log)['speed']  
+    coherence['dir'] = get_direction(log)['dir'] 
     framelist = pd.DataFrame(store.get_frame_metadata())
     framelist.columns=['FrameNumber','Timestamp'] 
 
@@ -46,8 +47,9 @@ def synch_coherence_with_rotation(MAIN_DIR):
 
     bar = foo.merge(coherence, how='outer')
     bar = bar.sort_values('Timestamp')
-    bar['coherence'] = bar['coherence'].fillna(method='ffill')
+    bar['coherence'] = log['coh'].mean()#bar['coherence'].fillna(method='ffill')
     bar['speed'] = bar['speed'].fillna(method='ffill').fillna(0)
+    bar['dir'] = bar['dir'].fillna(method='ffill').fillna(0)
     bar.loc[:,'Time'] = (bar.loc[:,'Timestamp'] - bar.loc[0,'Timestamp'])
 
     return bar#.fillna(np.inf)
