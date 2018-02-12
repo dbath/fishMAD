@@ -38,13 +38,12 @@ def plot_states(g, column):
         print label
         d = _data.groupby(_data.index)
         xs = d.mean()['synctime'].values
-        for plot in plots:
+        for plot in plots: 
+            ys = d.mean()[column].values
+            error = d.sem()[column].values
+            plt.fill_between(xs, ys-error, ys+error, alpha=0.2)
+            plt.plot(d.mean()['synctime'], d.mean()[column], label=label)
             
-        ys = d.mean()[column].values
-        error = d.sem()[column].values
-        plt.fill_between(xs, ys-error, ys+error, alpha=0.2)
-        plt.plot(d.mean()['synctime'], d.mean()[column], label=label)
-        
     plt.xlabel('Time (seconds)')
     plt.ylabel(column + ' order')
     plt.legend()

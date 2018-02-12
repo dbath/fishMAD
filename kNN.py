@@ -4,49 +4,29 @@ from utilities import *
 import imgstore
 import matplotlib.pyplot as plt
 from matplotlib import collections  as mc
-
+from sklearn.neighbors import NearestNeighbors
+import glob
 
 
     
 def distance(A, B):
     return np.sqrt((A[0]-B[0])**2 + (A[1]-B[1])**2)
     
-    
-def nearestNeighbour(index_of_point, df):
-    
-    point = tuple(df.loc[index_of_point, [XPOS,YPOS]])
-    pointdf = df[df.index != index_of_point]
-    pointdf.reset_index(drop=True, inplace=True)
-    pointsets = zip(pointdf[XPOS], pointdf[YPOS])
-    try:
-        pointdf['distance'] = [ distance(point, k) for k in pointsets]
-    except:
-        print index_of_point, point 
-        return np.nan, (np.nan, np.nan), np.nan
-    ID = pointdf.loc[pointdf.distance.argmin(), 'trackid']
-    loc = tuple(pointdf.loc[pointdf.distance.argmin(), [XPOS,YPOS]])
-    dist = distance(point, loc)   
-    return ID, loc, dist
+
     
 def getNN(df):
-    df.reset_index(drop=True, inplace=True)
-    nIDs = []
-    nX = []
-    nY = []
-    nDist = []
-    for i in df.index:
-        if len(df) > 1:
-            a, (b,c),d = nearestNeighbour(i, df)
-        else:
-            a, (b,c),d = np.nan, (np.nan, np.nan), np.nan
-        nIDs.append(a)
-        nX.append(b)
-        nY.append(c)
-        nDist.append(d)
-    df['neighbourID'] = nIDs
-    df['neighbourX'] = nX
-    df['neighbourY'] = nY
-    df['neighbourDist'] = nDist
+    df = df.dropna()
+    df = df.reset_index(drop=True)
+    positions = df[[XPOS,YPOS]]
+    nbrs = NearestNeighbors(n_neighbors=2, algorithm='kd_tree').fit(positions)
+    
+    distances, indices = nbrs.kneighbors(positions)
+    
+    df.loc[:,'neighbourID'] = df.loc[indices[:,1], 'trackid'].reset_index(drop=True)
+    df.loc[:,'neighbourX'] = df.loc[indices[:,1], XPOS].reset_index(drop=True)
+    df.loc[:,'neighbourY'] = df.loc[indices[:,1], YPOS].reset_index(drop=True)
+    df.loc[:,'neighbourDist'] = distances[:,1]
+
     return df
 
 def plot_NN(ax, data):
@@ -125,10 +105,10 @@ def plot_annotated_image_with_hist(data, img, maxValue):
     return fig, maxValue
 
 
-def doit(MAIN_DIR, REPORT, MAKEVID, FROMSCRATCH):
+def doit(_MAIN_DIR, REPORT, MAKEVID, FROMSCRATCH):
     global MAIN_DIR
     global TRACK_DIR
-    MAIN_DIR = slashdir(MAIN_DIR)  
+    MAIN_DIR = slashdir(_MAIN_DIR)  
     TRACK_DIR = MAIN_DIR + 'track/'
 
     if MAKEVID:
@@ -148,31 +128,31 @@ def doit(MAIN_DIR, REPORT, MAKEVID, FROMSCRATCH):
     f = fbf.groupby(['frame'])
     frame_stats = pd.DataFrame()
     nn_collection = {}
-    nn_angle = {}
+    #nn_angle = {}
     #Perform analysis on each frame:
     for i, data in f:
-        data.replace(to_replace=np.inf, value=np.nan, inplace=True)
-        data = data.dropna()
-        if ('nn' in REPORT) or ('neigh' in REPORT):
-        
-            data = getNN(data)
+        data = data.replace(to_replace=np.inf, value=np.nan)
+        data = data.loc[:,['trackid',XPOS,YPOS]]
+        data = getNN(data.dropna())
         if MAKEVID:
             if not os.path.exists(TRACK_DIR + 'annotated_vid/NN_%06d.png'%(i)):
                 img, (vidFrameNum, vidTimestamp) = store.get_image(store.frame_min + i)
             #data = data.dropna().reset_index(drop=True, inplace=True)
                 fig, maxValue = plot_annotated_image_with_hist(data, img, maxValue)   
         
-        data['nnAngle'] = [angle_from_heading(data.loc[k, [XVEL,YVEL]],data.loc[k, [XPOS,YPOS]],data.loc[k, ['neighbourX','neighbourY']]) for k in data.index]
         
         nn_collection.update({i: np.array(data['neighbourDist'].values)})
-        nn_angle.update({i: np.array(data['nnAngle'].values)})
+        #nn_angle.update({i: np.array(data['nnAngle'].values)})
         
         frame_stats.loc[i, 'nnDist_median'] = data['neighbourDist'].median()
         frame_stats.loc[i, 'nnDist_mean'] = data['neighbourDist'].mean()
         frame_stats.loc[i, 'nnDist_std'] = data['neighbourDist'].std()
-        frame_stats.loc[i, 'nnAng_median'] = data['nnAngle'].median()
-        frame_stats.loc[i, 'nnAng_mean'] = data['nnAngle'].mean()
-        frame_stats.loc[i, 'nnAng_std'] = data['nnAngle'].std()
+        
+        #data['nnAngle'] = [angle_from_heading(data.loc[k, [XVEL,YVEL]],data.loc[k, [XPOS,YPOS]],data.loc[k, ['neighbourX','neighbourY']]) for k in data.index]
+        #frame_stats.loc[i, 'nnAng_median'] = data['nnAngle'].median()
+        #frame_stats.loc[i, 'nnAng_mean'] = data['nnAngle'].mean()
+        #frame_stats.loc[i, 'nnAng_std'] = data['nnAngle'].std()
+        
         frame_stats.loc[i, 'nTracks'] = len(data)
         
         if i%500 == 0:
@@ -180,31 +160,31 @@ def doit(MAIN_DIR, REPORT, MAKEVID, FROMSCRATCH):
         
     frame_stats.to_pickle(TRACK_DIR + 'nnframe_stats.pickle') 
     nnDF = pd.DataFrame.from_dict(nn_collection,  orient='index')
-    nnDF.to_pickle(TRACK_DIR + 'nearest_neighbour_per_frame.csv')
+    nnDF.to_pickle(TRACK_DIR + 'nearest_neighbour_per_frame.pickle')
     
     nnD = getFramelessValues(nn_collection)
     print nnD.shape
     #nnD = nnD[(nnD!= np.nan) and (nnD !=0)]
     np.save(TRACK_DIR + 'nnDistance.npy', nnD)
     np.savetxt(TRACK_DIR + 'nnDistance.txt', nnD, delimiter=',')
-    nnA = getFramelessValues(nn_angle)
+    #nnA = getFramelessValues(nn_angle)
     #nnA = nnA[(nnA!= np.nan) and (nnA !=0)]
-    np.save(TRACK_DIR + 'nnAngle.npy', nnA)
-    np.savetxt(TRACK_DIR + 'nnAngle.txt', nnA, delimiter=',')
+    #np.save(TRACK_DIR + 'nnAngle.npy', nnA)
+    #np.savetxt(TRACK_DIR + 'nnAngle.txt', nnA, delimiter=',')
     
       
     fig = plt.figure()
     ax1 = plt.subplot2grid((2,1), (0,0))
     #fig.add_axes(ax1)
     frame_stats[frame_stats['nnDist_median'] == 0] = np.nan
-    plot_hist(fig, ax1, np.array(frame_stats['nnDist_median'].dropna()), 100, 'Median Nearest Neighbour Distance per frame (cm)', (0,150), [0,50,100,150])
+    plot_hist(fig, ax1, np.array(frame_stats['nnDist_median'].dropna()), 100, 'Median Nearest Neighbour Distance per frame (cm)', (0,150))
     
     ax2 = plt.subplot2grid((2,1), (1,0))
     #fig.add_axes(ax2)
-    plot_hist(fig, ax2, np.array(frame_stats['nnDist_std'].dropna()), 100, 'Std of Nearest Neighbour Distance per frame (cm)', (0,50), [0,25,50])
+    plot_hist(fig, ax2, np.array(frame_stats['nnDist_std'].dropna()), 100, 'Std of Nearest Neighbour Distance per frame (cm)', (0,50))
     plt.title(MAIN_DIR.split('/')[-2])
     fig.tight_layout()  
-    plt.savefig(TRACK_DIR + 'statistics.svg' , bbox_inches='tight', pad_inches=0)
+    plt.savefig(TRACK_DIR + 'NNstatistics.svg' , bbox_inches='tight', pad_inches=0)
     
     return    
 
@@ -223,5 +203,12 @@ if __name__ == "__main__":
                         help='make true to discard old info and start from scratch')
     args = parser.parse_args()
     
-    doit(args.v, args.report, args.makevid, args.fromScratch)
+    for vidfile in glob.glob(args.v):
+        try:
+            if not os.path.exists(vidfile + '/track/NNstatistics.svg'):
+                print 'starting: ', vidfile
+                doit(vidfile, args.report, args.makevid, args.fromScratch)
+                print '...complete.'
+        except:
+            print "********ERROR processing", vidfile
 

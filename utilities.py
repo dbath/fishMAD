@@ -57,11 +57,11 @@ def loopbio_record(IP, KEY, FN, DUR, META, SN):
     
 def copyAndroidLog(IP, src, dst):
     from subprocess import call
-    call(["/opt/android-sdk/platform-tools/adb kill-server"], shell=True)
-    call(["/opt/android-sdk/platform-tools/adb start-server"], shell=True)
-    call(["/opt/android-sdk/platform-tools/adb connect " + IP], shell=True)
+    call(["adb kill-server"], shell=True) #/opt/android-sdk/platform-tools/
+    call(["adb start-server"], shell=True)#/opt/android-sdk/platform-tools/
+    call(["adb connect " + IP], shell=True)#/opt/android-sdk/platform-tools/
     time.sleep(3)
-    cmd = "/opt/android-sdk/platform-tools/adb pull -a " + src + " " + dst 
+    cmd = "adb pull -a " + src + " " + dst #/opt/android-sdk/platform-tools/
     try:
         call([cmd], shell=True)
     except:
