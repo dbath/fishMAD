@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import utilities
 from motifapi import MotifApi as Motif
 import time
@@ -64,7 +65,7 @@ class Experiment(object):
         self.api = self.setupAPI()
     
     def setupAPI(self):
-        self._codec='nvenc-mq'
+        self._codec='mq'
         api = Motif(self.CAMERA_IP, self.CAMERA_KEY)
         
         camInfo = pd.DataFrame(api.call('cameras').items()[0][1])
@@ -127,8 +128,8 @@ if __name__ == "__main__":
                         help='length of video in seconds')
     parser.add_argument('--starttime', type=str, required=False, default=None,
                         help='start time, in format "HHMMSS" or "YYYYMMDD_HHMMSS" default=Now.')
-    parser.add_argument('--session_duration', type=int, required=False, default=3,
-                        help='length of video in hours')
+    parser.add_argument('--number_of_sessions', type=int, required=False, default=12,
+                        help='number of repeats, 20min each')
     args = parser.parse_args()
 
     logging.basicConfig()
@@ -148,7 +149,7 @@ if __name__ == "__main__":
         
     
     print expIDs
-
+    experimentlist = []
     for item in range(len(RIG_IDs)):
         meta={'expID':args.expID, 'Rig': RIG_IDs[item]}
         SCHEDULE_OFFSET = int(RIG_IDs[item][-2:])    #returns a unique number between 11 and 18 based on IP
@@ -162,7 +163,7 @@ if __name__ == "__main__":
         job_def["minute"] = recstarts
         job_def["second"] = 0
         job_def["start_date"] = utilities.getTimeFromTimeString(args.starttime)
-        job_def["end_date"] = datetime.datetime.now() + datetime.timedelta(hours=args.session_duration)
+        job_def["end_date"] = datetime.datetime.now() + datetime.timedelta(minutes=(args.number_of_sessions + 1)*20)
         
         _ = recordings.add_job(**job_def)
         job_def = {}
@@ -171,13 +172,13 @@ if __name__ == "__main__":
         job_def["minute"] = logmovetimes
         job_def["second"] = 20
         job_def["start_date"] = utilities.getTimeFromTimeString(args.starttime)
-        job_def["end_date"] = datetime.datetime.now() + datetime.timedelta(hours=args.session_duration)
+        job_def["end_date"] = datetime.datetime.now() + datetime.timedelta(minutes=(args.number_of_sessions +2)*20)
 
         _ = logfilecopies.add_job(**job_def)  
 
 
         E.movelog()
-
+        experimentlist.append(E)
         
         print "Scheduling completed: ", RIG_IDs[item]   
 
@@ -190,5 +191,8 @@ if __name__ == "__main__":
         print x
 
         
-    time.sleep((args.session_duration + 0.3)*3600.0)
+    time.sleep((args.number_of_sessions + 2.2)*1200.0)
     
+    for exp in experimentlist:
+        exp.movelog()    #make sure the last logs are copied.
+    print "Done."

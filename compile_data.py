@@ -18,43 +18,39 @@ def bin_data(df, _binsize):
 def set_states(ang):
     for state in ['fwdmilling','bwdmilling','swarm','polarized']:
         ang[state] = 0
-    ang.loc[(ang.polarization < 0.5) & (ang.dRotation > 0.5), 'fwdmilling'] = 1
-    ang.loc[(ang.polarization < 0.5) & (ang.dRotation < -0.5), 'bwdmilling'] = 1
-    ang.loc[(ang.polarization < 0.5) & (abs(ang.dRotation) < 0.5), 'swarm'] = 1
-    ang.loc[(ang.polarization >= 0.5) & (abs(ang.dRotation) < 0.5), 'polarized'] = 1
+    ang.loc[(ang.polarization < 0.3) & (ang.dRotation > 0.65), 'fwdmilling'] = 1
+    ang.loc[(ang.polarization < 0.3) & (ang.dRotation < -0.65), 'bwdmilling'] = 1
+    ang.loc[(ang.polarization < 0.3) & (abs(ang.dRotation) < 0.65), 'swarm'] = 1
+    ang.loc[(ang.polarization >= 0.3) & (abs(ang.dRotation) < 0.65), 'polarized'] = 1
     
     return ang
     
  
-def plot_states(g, column):
-    fig = plt.figure()
-    ax1 = fig.add_subplot(141)
-    ax2 = fig.add_subplot(142)
-    ax3 = fig.add_subplot(143)
-    ax4 = fig.add_subplot(144)
-    plots = [ax1,ax2,ax3,ax4]
+def plot_states(g):
+    states = ['fwdmilling','bwdmilling','swarm','polarized']
+    fig, axs = plt.subplots(4,1)
     for group, _data in g:
-        label =  group + ' n=' + str(len(set(_data.trialID)))
+        label =  str(group) + ' n=' + str(len(set(_data.trialID)))
         print label
         d = _data.groupby(_data.index)
         xs = d.mean()['synctime'].values
-        for plot in plots: 
+        for x in range(0,len(states)): 
+            plt.axes(axs[x])
+            column = states[x]
             ys = d.mean()[column].values
             error = d.sem()[column].values
             plt.fill_between(xs, ys-error, ys+error, alpha=0.2)
             plt.plot(d.mean()['synctime'], d.mean()[column], label=label)
-            
+            plt.ylabel(column)
     plt.xlabel('Time (seconds)')
-    plt.ylabel(column + ' order')
     plt.legend()
-    
     plt.show()
     return 
  
     
 def plot(g, column):
     for group, _data in g:
-        label =  group + ' n=' + str(len(set(_data.trialID)))
+        label =  str(group) + ' n=' + str(len(set(_data.trialID)))
         print label
         d = _data.groupby(_data.index)
         xs = d.mean()['synctime'].values
