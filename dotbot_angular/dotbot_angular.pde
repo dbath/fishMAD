@@ -30,8 +30,8 @@ int dotSize = 1;  // size of dots
 int nDots = 2000;  //number of dots
 int nDotsSlider;
 
-Dots group1 = new Dots(2000,0,1,100, false);
-Dots group2 = new Dots(2000,0,1,100, true);
+Dots group1 = new Dots(2000,0,1,100, false); // nDots, speed, direction, opacity, randomMotion
+Dots group2 = new Dots(2000,0,1,100, true); // nDots, speed, direction, opacity, randomMotion
 
 int t0;
 int tLoop;
@@ -40,7 +40,7 @@ float alpha = 100;
 int currentEpoch = 0;
 int hideMode = 1;
 float stopgo = 1.0;
-int DIRECTION = 1;
+float DIRECTION = 1;
 float fadeLength = 3;
 boolean running = false;
 float setSpeed = 50;
@@ -74,14 +74,14 @@ void setup(){
   cP5 = new ControlP5(this);
   
   cP5.addSlider("nDotsSlider")
-     .setPosition(sqBar-200,90)
+     .setPosition(sqBar-250,90)
      .setSize(200,28)
      .setRange(0,2000)
      .setNumberOfTickMarks(201)
      .setValue(500)
      ;
   cP5.addSlider("dotSize")
-     .setPosition(sqBar-200,50)
+     .setPosition(sqBar-250,50)
      .setSize(200,28)
      .setRange(0,200)
      .setNumberOfTickMarks(201)
@@ -89,13 +89,13 @@ void setup(){
      ;  
      
   cP5.addSlider("setSpeed")
-     .setPosition(sqBar-200,130)
+     .setPosition(sqBar-250,130)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(21)
      .setValue(35)
      ;  
-  cP5.addBang("Go",sqBar-120,180,60,30);
+  cP5.addBang("Go",sqBar-180,180,60,30);
 
   if (IPVal == 12){ dotSize = 20;
                     nDotsSlider = 1000;    }
@@ -104,18 +104,17 @@ void setup(){
   fill(55,00,100,100);; 
 
   coherences = new FloatList();
-  coherences.append(0.05);
+  coherences.append(0.00);
   coherences.append(0.10);
-  coherences.append(0.25);
+  coherences.append(0.20);
+  coherences.append(0.30);
   coherences.append(0.40);
-  coherences.append(0.45);
   coherences.append(0.50);
-  coherences.append(0.50);
-  coherences.append(0.55);
   coherences.append(0.60);
   coherences.append(0.70);
+  coherences.append(0.80);
   coherences.append(0.90);
-  coherences.append(0.95);
+  coherences.append(1.00);
   println(coherences.size());
   coherences.shuffle();
   println(coherences);
@@ -335,7 +334,7 @@ void draw(){
     
     // start actions at pre-determined times, but stagger them to avoid simulateously starting experiments
     if ((second() == 40) && (running == false)){
-      if (true){//((minute() == IPVal) ||  (minute() == IPVal+20) || (minute() == IPVal+40)){
+      if ((minute() == IPVal) ||  (minute() == IPVal+20) || (minute() == IPVal+40)){
         hideMode = 0;
         running = true;    
         String message = ("IP\tTimestamp\tnDots\tdotSize\tspeed\tdir\tcoh\tcomment\n");
@@ -350,14 +349,15 @@ void draw(){
       running = false;
       currentEpoch = 0;
       loopnum += 1;
-      speed = speed*-1.0;
       C = coherences.get(loopnum);
+      DIRECTION = pow(-1, int(random(0,100))); // random 1 or -1
       
     }        
     // change experiment conditions every 180 seconds                             ***********************STIM DURATION DEFINED HERE*****************
     if ((running == true) && ( tLoop - t0 >= 180000)){
-        if (currentEpoch == 0 ){      group1.Set(int(nDots*(C)), speed, 1);
-                                      group2.Set(int(nDots*(1-C)), speed, -1);}
+        
+        if (currentEpoch == 0 ){      group1.Set(int(nDots*(C)), speed, DIRECTION);
+                                      group2.Set(int(nDots*(1-C)), speed, -1*DIRECTION);}
         else if (currentEpoch == 1 ){ group1.Set(int(nDots*(C)), 0, 1);
                                       group2.Set(int(nDots*(1-C)), 0, 1);  
                                       hideMode=1;}
