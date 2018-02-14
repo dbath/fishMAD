@@ -104,18 +104,17 @@ void setup(){
   fill(55,00,100,100);; 
 
   coherences = new FloatList();
-  coherences.append(0.05);
+  coherences.append(0.00);
   coherences.append(0.10);
-  coherences.append(0.25);
+  coherences.append(0.20);
+  coherences.append(0.30);
   coherences.append(0.40);
-  coherences.append(0.45);
   coherences.append(0.50);
-  coherences.append(0.50);
-  coherences.append(0.55);
   coherences.append(0.60);
   coherences.append(0.70);
+  coherences.append(0.80);
   coherences.append(0.90);
-  coherences.append(0.95);
+  coherences.append(1.00);
   println(coherences.size());
   coherences.shuffle();
   println(coherences);
