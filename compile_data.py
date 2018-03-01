@@ -3,6 +3,10 @@ import glob
 import shutil
 import argparse
 import numpy as np
+import stim_handling
+import centroid_rotation
+import matplotlib.pyplot as plt
+
 
 
 def bin_data(df, _binsize):
@@ -12,8 +16,7 @@ def bin_data(df, _binsize):
     df['synctime'] = df['Time'] - df.loc[df['stim_on'].argmax(), 'Time']
     df['timedelta'] = pd.to_timedelta(df['synctime'], unit='s')
     df.index = df['timedelta']
-    
-    return df.resample(_binsize).median()
+    return df.resample(_binsize).mean()
 
 def set_states(ang):
     for state in ['fwdmilling','bwdmilling','swarm','polarized']:
@@ -96,7 +99,7 @@ if __name__ == "__main__":
     BINSIZE = args.binsize
 
 
-    DURATION = 400 # maximum time value for the experiment
+    DURATION = 700 # maximum time value for the experiment
 
 
     DATA = pd.DataFrame()
@@ -111,23 +114,27 @@ if __name__ == "__main__":
                 if gonogo:        
                     print 'processing: ', fn
                     try:
-                        df = pd.read_pickle(fn)
+                        df = stim_handling.synch_coherence_with_rotation(fn.rsplit('/',2)[0])
+                        #df = pd.read_pickle(fn)
                         expid, groupsize, _,  expdate, exptime = fn.rsplit('/',3)[1].split('_')
+                        df['cRotation'] = centroid_rotation.get_centroid_rotation(fn.rsplit('/',2)[0], df, 2) 
                         df = bin_data(df,  BINSIZE)
                         df['experiment'] = expid
                         df['groupsize'] = groupsize
                         df['date'] = expdate
                         df['startTime'] = exptime
                         df['coherenceGroup'] = df['coherence'].median()
-                        df['trialID'] = expdate + '_' + exptime + '_' + str(df['coherence'].median())
+                        df['speedGroup'] = abs(df['speed']).max()
+                        df['trialID'] = expdate + '_' + exptime + '_' + str(abs(df['speed']).max())
                         
                         if '201712' in expdate:
                             if df['speed'].mean() > 0:
                                 df['dRotation'] = df['dRotation']*-1.0
+                                df['cRotation'] = df['cRotation']*-1.0
                         else:    
                             if df['dir'].mean() > 0:
                                 df['dRotation'] = df['dRotation']*-1.0
-                                
+                                df['cRotation'] = df['cRotation']*-1.0        
                         if df['speed'].mean() != 0:
                             DATA = pd.concat([DATA, df])
                         print '... OK'

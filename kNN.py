@@ -193,7 +193,7 @@ def doit(_MAIN_DIR, REPORT, MAKEVID, FROMSCRATCH):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--v', type=str, required=True,
+    parser.add_argument('--v', type=str, required=False,
                         help="path to video's main directory, eg: '/recnode/exp_20170527_162000")
     parser.add_argument('--report', type=str, required=False, default='nn',
                         help='list properties to report, eg: "nn, centroid-position"')
@@ -201,14 +201,37 @@ if __name__ == "__main__":
                         help='make true to make a video')
     parser.add_argument('--fromScratch', type=bool, required=False, default=False,
                         help='make true to discard old info and start from scratch')
+    parser.add_argument('--dir', type=str, required=False, default = '/media/recnodes/kn-crec05,/media/recnodes/kn-crec06,/media/recnodes/kn-crec07',help='path to directory')
+    parser.add_argument('--handle', type=str, required=False, default='_dotbot_', 
+                        help='provide unique identifier (or comma-separated list) to select a subset of directories.')
+    parser.add_argument('--exclude', type=str, required=False, default='EXCLUDENONE', 
+                        help='provide unique identifier (or comma-separated list) to exclude a subset of directories.') 
     args = parser.parse_args()
+
+    HANDLES = args.handle.split(',')
     
-    for vidfile in glob.glob(args.v):
-        try:
-            if not os.path.exists(vidfile + '/track/NNstatistics.svg'):
-                print 'starting: ', vidfile
-                doit(vidfile, args.report, args.makevid, args.fromScratch)
-                print '...complete.'
-        except:
-            print "********ERROR processing", vidfile
+    EXCLUDE = args.exclude.split(',')
+    
+    
+    DIRECTORIES = args.dir.split(',')
+    for x in range(len(DIRECTORIES)):
+        if DIRECTORIES[x][-1] != '/':
+            DIRECTORIES[x] += '/'
+
+    for handle in HANDLES:
+        for directory in DIRECTORIES:
+            for fn in glob.glob(directory + '*' + handle + '*/track/frameByFrameData.pickle'):
+                gonogo = True
+                for x in EXCLUDE:
+                    if x in fn:
+                        gonogo = False
+                if gonogo:        
+                    vidfile = fn.rsplit('/',2)[0]
+                    try:
+                        if not os.path.exists(vidfile + '/track/NNstatistics.svg'):
+                            print 'starting: ', vidfile
+                            doit(vidfile, args.report, args.makevid, args.fromScratch)
+                            print '...complete.'
+                    except:
+                        print "********ERROR processing", vidfile
 

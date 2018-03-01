@@ -5,6 +5,7 @@ from utilities import *
 import matplotlib.pyplot as plt
 import stim_handling
 from pykalman import KalmanFilter
+import centroid_rotation
 
 
 
@@ -31,10 +32,13 @@ def plot_density(DIR, df, colx, coly, fn=''):
     return
     
 def get_centroid(arr):
-    length = arr.shape[0]
-    sum_x = np.sum(arr[:, 0])
-    sum_y = np.sum(arr[:, 1])
-    return sum_x/length, sum_y/length
+    try:
+        length = arr.shape[0]
+        sum_x = np.sum(arr[:, 0])
+        sum_y = np.sum(arr[:, 1])
+        return sum_x/length, sum_y/length
+    except:
+        return (np.nan, np.nan)
 
 def get_colours(L):
     """pass an integer (L), returns a list of length (L) with colour codes"""
@@ -42,13 +46,14 @@ def get_colours(L):
     np.random.shuffle(foo)
     return foo
 
-def doit(fbf, TRACK_DIR):
+def calculate_group_rotation(fbf, TRACK_DIR):
     f = fbf.groupby(['frame'])
     frame_means = pd.DataFrame()
     frame_stds = pd.DataFrame()
 
     for i, data in f:
-        data = data.dropna().copy()
+        data = data.loc[data[XPOS].notnull(), :]
+        data = data.loc[data[YPOS].notnull(), :]
 
         #polarity
         
@@ -62,6 +67,9 @@ def doit(fbf, TRACK_DIR):
         
         #angular momentum of fish
         points = np.array(zip(data.loc[:,XPOS], data.loc[:,YPOS]))
+        
+        if len(points) < 0:
+            print "low tracking quality: ", TRACK_DIR.rsplit('/', 3)[1], str(i), str(len(points))
         centroid = get_centroid(points)   
         
         data.loc[:,'CX'] = data.loc[:,XPOS] - centroid[0] # component vector to centroid, X
@@ -72,28 +80,26 @@ def doit(fbf, TRACK_DIR):
         data = data.dropna()
         
         rotation_directed = np.cross(data[['uCX','uCY']], data[['uVX','uVY']])
-        rotation = abs(rotation_directed)
-        rotation = rotation[~np.isnan(rotation)]
 
         
         frame_means.loc[i, 'cx'] = centroid[0]
         frame_means.loc[i, 'cy'] = centroid[1]
         frame_means.loc[i, 'radius'] = data['radius'].mean()
         frame_means.loc[i, 'polarization'] = abs(np.sqrt((data['uVX'].mean())**2 + (data['uVY'].mean())**2))
-        frame_means.loc[i, 'rotation'] = rotation.mean()
         frame_means.loc[i, 'dRotation'] = rotation_directed.mean()
+        frame_means.loc[i, 'rotation'] = abs(rotation_directed).mean()
         
         frame_stds.loc[i, 'radius'] = data['radius'].std()
         frame_stds.loc[i, 'polarization'] = abs(np.sqrt((data['uVX'].std())**2 + (data['uVY'].std())**2))
-        frame_stds.loc[i, 'rotation'] = rotation.std()
         frame_stds.loc[i, 'dRotation'] = rotation_directed.std()
+        frame_stds.loc[i, 'rotation'] = abs(rotation_directed).std()
         
         
     frame_means.to_pickle(TRACK_DIR + '/frame_means_rotation_polarization.pickle')
     frame_stds.to_pickle(TRACK_DIR + '/frame_stds_rotation_polarization.pickle')
     return frame_means, frame_stds
 
-def kalman(df):
+def kalman(df, N_ITER):
     measurements = np.asarray(list(zip(df['cx'], df['cy'])))
     initial_state_mean = [measurements[0, 0],
                           0,
@@ -112,26 +118,29 @@ def kalman(df):
                       observation_matrices = observation_matrix,
                       initial_state_mean = initial_state_mean)
 
-    kf1 = kf1.em(measurements, n_iter=10)
+    kf1 = kf1.em(measurements, n_iter=N_ITER)
     (smoothed_state_means, smoothed_state_covariances) = kf1.smooth(measurements)
-    return smoothed_state_means[:,1], smoothed_state_means[:,3]
+    return smoothed_state_means[:,0], smoothed_state_means[:,2]
 
 
-def get_centroid_rotation(_MAIN_DIR, df):
+def get_centroid_rotation(_MAIN_DIR, df, N_ITER):
     #GET UNIT VECTORS OF GROUP CENTROID VELOCITY
     """
-    df['vx'] = df['cx'] - df.shift()['cx']
-    df['vy'] = df['cy'] - df.shift()['cy']
-    df['speed'] = np.sqrt(df['vx']**2 + df['vy']**2)
     """
-
-    df['vx'], df['vy'] = kalman(df)
+    df = df.loc[df.cx.notnull(), :]
+    df = df.loc[df.cy.notnull(), :]
+    df['cxK'], df['cyK'] = kalman(df[['cx','cy']], N_ITER) #smooth positions before calculating velocity.
+    df['vx'] = df['cxK'] - df.shift()['cxK'] #calculate velocity
+    df['vy'] = df['cyK'] - df.shift()['cyK'] #calculate velocity
+    df = df.loc[df.vx.notnull(), :]
+    df = df.loc[df.vy.notnull(), :]
+    
     df['speed'] = np.sqrt(df['vx']**2 + df['vy']**2)
     df['uVX'] = df['vx'] / df['speed'] # X component of unit vector
     df['uVY'] = df['vy'] / df['speed'] # Y component of unit vector
     
     #GET WIDTH OF ARENA TO DEFINE CENTRE
-    conv = open(_MAIN_DIR + 'track/conversion.settings')
+    conv = open(slashdir(_MAIN_DIR) + 'track/conversion.settings')
     SETTINGS = conv.readlines()
     for item in SETTINGS:
         if item.find('real_width') !=-1:
@@ -141,7 +150,7 @@ def get_centroid_rotation(_MAIN_DIR, df):
     #GET UNIT VECTORS OF GROUP CENTROID POSITION
     df['CX'] = df['cx'] - (ARENA_WIDTH/2.0)
     df['CY'] = df['cy'] - (ARENA_WIDTH/2.0)
-    df['radius'] = np.sqrt(df['CX']**2 + df['CY']**2)  #radius to centroid
+    df['radius'] = np.sqrt(df['CX']**2 + df['CY']**2)  #radius to centre of arena
     df['uCX'] = df['CX'] / df['radius'] # X component of unit vector R
     df['uCY'] = df['CY'] / df['radius'] # Y component of unit vector R
 
@@ -150,13 +159,12 @@ def get_centroid_rotation(_MAIN_DIR, df):
     df['centroid_rotation'] = abs(df['centroid_rotation_directed'])
     
     
-    #FIXME incomplete function
-    
-    return
+    return df['centroid_rotation_directed']
 
 
-def plot_order_vs_time(DIR, colA, colB, fn=''):
-    df = pd.read_pickle(DIR + 'track/frame_means_rotation_polarization.pickle')
+def plot_order_vs_time(DIR,  colA, colB, df=pd.DataFrame(), fn=''):
+    if len(df) < 1:
+        df = pd.read_pickle(DIR + 'track/frame_means_rotation_polarization.pickle')
     if not 'coherence' in df.columns:
         df = stim_handling.synch_coherence_with_rotation(DIR)
     df = df[df['FrameNumber'].notnull()]
@@ -209,21 +217,19 @@ def run(DIR):
     else:
         _fbf = pd.read_pickle(TRACK_DIR + 'frameByFrameData.pickle')
                 
-    if not os.path.exists(TRACK_DIR + 'frame_means_rotation_polarization.pickle'):
+    if not os.path.exists(TRACK_DIR + 'frame_means_rotation_polarizXXXation.pickle'): #FIXME
         print "calculating rotation and polarization"
-        frame_means, frame_stds = doit(_fbf, TRACK_DIR)
+        frame_means, frame_stds = calculate_group_rotation(_fbf, TRACK_DIR)
     else:
-        frame_means = pd.read_pickle(TRACK_DIR + 'frame_means_rotation_polarization.pickle')
+        frame_means = pd.read_pickle(TRACK_DIR + 'frame_means_rotation_polarXXXization.pickle')#FIXME
         if not 'dir' in frame_means.columns:
-            frame_means, frame_stds = doit(_fbf, TRACK_DIR)
+            frame_means, frame_stds = calculate_group_rotation(_fbf, TRACK_DIR)
         else:
-            frame_stds = pd.read_pickle(TRACK_DIR + 'frame_stds_rotation_polarization.pickle')
+            frame_stds = pd.read_pickle(TRACK_DIR + 'frame_stds_rotation_polarization.pickle') #FIXME
+   
     
-    plot_density(slashdir(DIR), frame_means, 'rotation','polarization', 'mean')
-    plot_density(slashdir(DIR), frame_means, 'dRotation','polarization', 'mean')
-    plot_density(slashdir(DIR), frame_stds, 'rotation','polarization', 'std') 
-    plot_order_vs_time(slashdir(DIR),  'rotation','polarization')  
-    plot_order_vs_time(slashdir(DIR),  'dRotation','polarization')  
+    centroid_rotation.run(DIR)
+    plot_order_vs_time(slashdir(DIR),   'dRotation','polarization', df=frame_means)   
     return
 
 if __name__ == "__main__":

@@ -168,17 +168,18 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum):
         launch_tracker = "~/FishTracker/Application/build/tracker -d '" + track_dir + "' -i '" + pv_file + "' -settings fishTracker -nowindow"
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"Running tracker on file: ", track_dir
         try:
-            task = subprocess.Popen([launch_tracker],stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True )
+            task = subprocess.Popen([launch_tracker],stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True )#
             PID = task.pid
             OUT, ERROR = task.communicate()
             if task.returncode != 0:
-                if task.returncode == None:
-                    task.kill()
+                #if task.returncode == None:
+                task.kill()
                     
                 raise Exception('returncode non-zero from tristrack\t' + str(PID) + '\n' + str(task.returncode))
                 
             #subprocess.check_call([launch_tracker],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
         except Exception, e:
+            print e
             errorLog = open(os.path.expanduser('~/FishTracker/Application/build/batchlog.txt'), 'a')
             errorLog.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t')
             errorLog.write(track_dir + '\t')

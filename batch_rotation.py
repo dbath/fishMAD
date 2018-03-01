@@ -44,22 +44,22 @@ if __name__ == "__main__":
     threadcount = 0
     for filenum in np.arange(len(fileList)):
         vDir = fileList[filenum]
-        if not os.path.exists(vDir + '/track/density_meandRotation-x_polarization-y.png'):
+        if not os.path.exists(vDir + '/track/vsTime_dRotation_cRotation_stateDepRotOrder.png'):
             if os.path.exists(vDir + '/track/frameByFrame_complete'):
-                try:
-                    p = Process(target=polarization_rotation.run, args=(vDir,))
-                    p.start()
-                    print "processing: ", vDir
-                    threadcount += 1
-                    
-                    if p.is_alive():
-                        if (threadcount >= 32) or (filenum == len(fileList)):
-                            threadcount = 0
-                            p.join()
+                #try:
+                p = Process(target=polarization_rotation.run, args=(vDir,))
+                p.start()
+                print "processing: ", vDir
+                threadcount += 1
+                
+                if p.is_alive():
+                    if (threadcount >= 32) or (filenum == len(fileList)):
+                        threadcount = 0
+                        p.join()
 
-                except Exception, e:
-                    errorLogIt(e)
-                    pass        
+                #except Exception, e:
+                #    errorLogIt(e)
+                #    pass        
 
 
 
