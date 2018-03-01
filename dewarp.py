@@ -18,8 +18,6 @@ class Dewarp:
         self.cameraMatrix = np.array(k)
         self.cameraDistortion = np.array(d)
         
-        self.newcamera = 'NotDefined'
-        
         print "Dewarping video: ", self.vidfile, "using calibration: ", self.calibrationFile
         
         return
@@ -50,7 +48,7 @@ class Dewarp:
         return mtxloaded, distloaded
 
     def undistort(self, img): 
-        if self.newcamera == 'NotDefined':
+        if not hasattr(self, 'newcamera'):
             h,w = img.shape[:2]
             self.newcamera, roi = cv2.getOptimalNewCameraMatrix(self.cameraMatrix, self.cameraDistortion, (w,h), 0) 
         
