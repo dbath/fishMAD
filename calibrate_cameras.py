@@ -21,14 +21,15 @@ def calibrate(VIDEO_FILE, CHECKERSHAPE, DESTFILE):
 
     cap = cv2.VideoCapture(VIDEO_FILE)
     found = 0
-    while (found < 15):  # Here, 10 can be changed to whatever number you like to choose
+    while (found < 25):  # Here, 10 can be changed to whatever number you like to choose
+    
         ret, img = cap.read() # Capture frame-by-frame
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        gray = img[:,:,0]#cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         # Find the chess board corners
         ret, corners = cv2.findChessboardCorners(gray, checkerShape,None)
 
-        cap.set(1, cap.get(1)+40)
+        #cap.set(1, cap.get(1)+7)
         # If found, add object points, image points (after refining them)
         if ret == True:
             objpoints.append(objp)   # Certainly, every loop objp is the same, in 3D.

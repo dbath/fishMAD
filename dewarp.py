@@ -59,37 +59,40 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--v', type=str, required=True, help='path to video')
+    parser.add_argument('--dir', type=str, required=True, help='path to videos')
     parser.add_argument('--saveas', type=str, required=False, default='notAssigned', help='output filename')
     args = parser.parse_args()
-    VIDEO_FILE = args.v
     
-    if args.saveas == 'notAssigned':
-        fn, ext =  VIDEO_FILE.rsplit('.',1)
-        OUTPUT_FILE =fn + '_dewarped.' + ext
-    else:
-        OUTPUT_FILE = VIDEO_FILE.rsplit('/',1)[0] + args.saveas
+    VIDEO_FILES = []
     
-    video = cv2.VideoCapture(VIDEO_FILE)
-    FPS = int(video.get(5))
-    print FPS
-    framecount = video.get(7)
-    videoformat = video.get(6)
-    print videoformat
-    videoSize = (int(video.get(3)), int(video.get(4)))  
+    for x in glob.glob(slashdir(args.dir) + '*.mp4'):
+        VIDEO_FILES.append(x)
     
-    DEWARP = Dewarp(VIDEO_FILE)
-    
-    out = cv2.VideoWriter(OUTPUT_FILE, cv2.VideoWriter_fourcc('a','v','c','1'),  FPS, videoSize)
-    
-    while video.isOpened():
-        ret, img = video.read()
-        if ret == True:
-            newimg = DEWARP.undistort(img)
-            out.write(newimg)
+    for VIDEO_FILE in VIDEO_FILES:
+        if args.saveas == 'notAssigned':
+            fn, ext =  VIDEO_FILE.rsplit('.',1)
+            OUTPUT_FILE =fn + '_dewarped.' + ext
         else:
-            break        
-      
-    video.release()
-      
+            OUTPUT_FILE = VIDEO_FILE.rsplit('/',1)[0] + args.saveas
+        
+        video = cv2.VideoCapture(VIDEO_FILE)
+        FPS = int(video.get(5))
+        framecount = video.get(7)
+        videoformat = video.get(6)
+        videoSize = (int(video.get(3)), int(video.get(4)))  
+        
+        DEWARP = Dewarp(VIDEO_FILE)
+        
+        out = cv2.VideoWriter(OUTPUT_FILE, cv2.VideoWriter_fourcc('a','v','c','1'),  FPS, videoSize)
+        
+        while video.isOpened():
+            ret, img = video.read()
+            if ret == True:
+                newimg = DEWARP.undistort(img)
+                out.write(newimg)
+            else:
+                break        
+          
+        video.release()
+    print "done."      
 
