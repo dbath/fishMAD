@@ -100,8 +100,11 @@ def stateDependentRotationOrder(df):
 def plot_order_vs_time(DIR,  colA, colB, colC, df=pd.DataFrame(), fn=''):
     if len(df) < 1:
         df = pd.read_pickle(DIR + 'track/frame_means_rotation_polarization.pickle')
-    if not 'coherence' in df.columns:
-        df = stim_handling.synch_coherence_with_rotation(DIR)
+    if not 'cohXXXXXXXXXXXXXXXXXerence' in df.columns: #FIXME
+        ret, df = stim_handling.synch_coherence_with_rotation(DIR)
+        if ret == 0:
+            print DIR.split('/')[-1], 'logged stim does not match timestamps'
+            return
     df = df[df['FrameNumber'].notnull()]
     fig  = plt.figure()
     fig.suptitle(DIR.split('/')[-2])
@@ -153,8 +156,12 @@ def run(DIR):
     frame_means = pd.read_pickle(TRACK_DIR + 'frame_means_rotation_polarization.pickle')
 
     #if not 'coherence' in frame_means.columns:
-    frame_means = stim_handling.synch_coherence_with_rotation(DIR)
-    
+    ret, frame_means = stim_handling.synch_coherence_with_rotation(DIR)
+    if ret == 0:
+        print DIR.split('/')[-1], 'logged stim does not match timestamps'
+        if os.path.exists(TRACK_DIR + 'centroid_rotation.pickle'):
+            os.remove(TRACK_DIR + 'centroid_rotation.pickle')
+        return    
     frame_means['timedelta'] = pd.to_timedelta(frame_means['Time'], unit='s')
     frame_means.index = frame_means['timedelta']
     frame_means = frame_means.resample('1s').median()

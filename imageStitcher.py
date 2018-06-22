@@ -1,7 +1,8 @@
  import numpy as np
  import imutils
  import cv2
- 
+
+
  def showFeatures(listy, LOCATION):
      plt.imshow(imgs[LOCATION])
      xs = []
@@ -13,11 +14,20 @@
      plt.show()
      return
 
+
+def getImages(directory):
+    imgs = []
+    for fn in glob.glob(directory + '/*undistorted.mp4'):
+        vid = cv2.VideoCapture(fn)
+        ret, img = vid.read()
+        imgs.append(img)
+    return imgs
+
 def getIt(directory):
     imgs = []
     kpsList = []
     featList = []
-    for fn in glob.glob(directory + '/*dewarped.mp4'):
+    for fn in glob.glob(directory + '/*undistorted.mp4'):
         vid = cv2.VideoCapture(fn)
         ret, img = vid.read()
         imgs.append(img)
@@ -185,4 +195,18 @@ def getIt(directory):
 
         # return the visualization
         return vis      
-        
+  
+  
+  
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--dir', type=str, required=True, help='path to videos')
+    parser.add_argument('--saveas', type=str, required=False, default='notAssigned', help='output filename')
+    args = parser.parse_args()
+
+    VIDEO_FILES = []
+
+    for x in glob.glob(slashdir(args.dir) + '*.mp4'):
+        VIDEO_FILES.append(x)      

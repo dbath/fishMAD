@@ -87,12 +87,12 @@ def calculate_group_rotation(fbf, TRACK_DIR):
         frame_means.loc[i, 'radius'] = data['radius'].mean()
         frame_means.loc[i, 'polarization'] = abs(np.sqrt((data['uVX'].mean())**2 + (data['uVY'].mean())**2))
         frame_means.loc[i, 'dRotation'] = rotation_directed.mean()
-        frame_means.loc[i, 'rotation'] = abs(rotation_directed).mean()
+        #frame_means.loc[i, 'rotation'] = abs(rotation_directed).mean()
         
         frame_stds.loc[i, 'radius'] = data['radius'].std()
         frame_stds.loc[i, 'polarization'] = abs(np.sqrt((data['uVX'].std())**2 + (data['uVY'].std())**2))
         frame_stds.loc[i, 'dRotation'] = rotation_directed.std()
-        frame_stds.loc[i, 'rotation'] = abs(rotation_directed).std()
+        #frame_stds.loc[i, 'rotation'] = abs(rotation_directed).std()
         
         
     frame_means.to_pickle(TRACK_DIR + '/frame_means_rotation_polarization.pickle')
@@ -165,8 +165,11 @@ def get_centroid_rotation(_MAIN_DIR, df, N_ITER):
 def plot_order_vs_time(DIR,  colA, colB, df=pd.DataFrame(), fn=''):
     if len(df) < 1:
         df = pd.read_pickle(DIR + 'track/frame_means_rotation_polarization.pickle')
-    if not 'coherence' in df.columns:
-        df = stim_handling.synch_coherence_with_rotation(DIR)
+    if not 'coheXXXXXrence' in df.columns: #FIXME
+        ret, df = stim_handling.synch_coherence_with_rotation(DIR)
+        if ret == 0:
+            print DIR.split('/')[-1], 'logged stim does not match timestamps'
+            return
     df = df[df['FrameNumber'].notnull()]
     fig  = plt.figure()
     fig.suptitle(DIR.split('/')[-2])
@@ -217,18 +220,18 @@ def run(DIR):
     else:
         _fbf = pd.read_pickle(TRACK_DIR + 'frameByFrameData.pickle')
                 
-    if not os.path.exists(TRACK_DIR + 'frame_means_rotation_polarizXXXation.pickle'): #FIXME
+    if not os.path.exists(TRACK_DIR + 'frame_means_rotation_polarization.pickle'): #FIXME
         print "calculating rotation and polarization"
         frame_means, frame_stds = calculate_group_rotation(_fbf, TRACK_DIR)
     else:
-        frame_means = pd.read_pickle(TRACK_DIR + 'frame_means_rotation_polarXXXization.pickle')#FIXME
+        frame_means = pd.read_pickle(TRACK_DIR + 'frame_means_rotation_polarization.pickle')
         if not 'dir' in frame_means.columns:
             frame_means, frame_stds = calculate_group_rotation(_fbf, TRACK_DIR)
         else:
-            frame_stds = pd.read_pickle(TRACK_DIR + 'frame_stds_rotation_polarization.pickle') #FIXME
+            frame_stds = pd.read_pickle(TRACK_DIR + 'frame_stds_rotation_polarization.pickle')
    
     
-    centroid_rotation.run(DIR)
+    #centroid_rotation.run(DIR)
     plot_order_vs_time(slashdir(DIR),   'dRotation','polarization', df=frame_means)   
     return
 

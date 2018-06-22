@@ -18,7 +18,7 @@ import traceback
 #from multiprocessing import Process
 
 def errorLogIt(E):
-    errorLog = open(os.path.expanduser('~/FishTracker/Application/build/batchlog_batch.txt'), 'a')
+    errorLog = open(os.path.expanduser('~/setup_debian/FishTracker/Application/build/batchlog_batch.txt'), 'a')
     errorLog.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t')
     errorLog.write(vDir + '\t')
     errorLog.write('ERROR from batch_fishTracker' + '\n')
@@ -32,15 +32,15 @@ def convert_video_format(MAIN_DIR):
     numFish = count.count_from_vid(MAIN_DIR + '/000000.mp4')
     vidSet = MAIN_DIR + '/%6d.mp4'
     track_dir = MAIN_DIR + '/track'
-    launch_conversion = "~/FishTracker/Application/build/framegrabber -d '" + track_dir + "' -i '" + vidSet + "' -o converted.pv -settings conversion -nowindow"
+    launch_conversion = "~/setup_debian/FishTracker/Application/build/framegrabber -d '" + track_dir + "' -i '" + vidSet + "' -o converted.pv -settings conversion -nowindow"
     if not (os.path.exists(track_dir + '/converted.pv')):
-        if os.path.exists(os.path.expanduser('~/FishTracker/Application/build/video_average.png')):
-            os.remove(os.path.expanduser('~/FishTracker/Application/build/video_average.png'))
+        if os.path.exists(os.path.expanduser('~/setup_debian/FishTracker/Application/build/video_average.png')):
+            os.remove(os.path.expanduser('~/setup_debian/FishTracker/Application/build/video_average.png'))
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"Running conversion on file: ", track_dir
         try:
             subprocess.check_call([launch_conversion],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
         except Exception, e:
-            errorLog = open(os.path.expanduser('~/FishTracker/Application/build/batchlog.txt'), 'w')
+            errorLog = open(os.path.expanduser('~/setup_debian/FishTracker/Application/build/batchlog.txt'), 'w')
             errorLog.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t')
             errorLog.write(track_dir + '\t')
             errorLog.write('error during conversion step' + '\n')
@@ -124,7 +124,7 @@ if __name__ == "__main__":
                 vDir = slashdir(vDir)
                 if (not os.path.exists(vDir + '/track/converted.results')) and (os.path.exists(vDir + '/track/converted.pv')):
                    
-                    _fishnum = vDir.split('/')[-2].split('_')[1]
+                    _fishnum = int(vDir.split('/')[-2].split('_')[1])
                     run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum)
                 if (not os.path.exists(vDir + '/track/frameByFrame_complete')):
                     try:
@@ -148,7 +148,7 @@ if __name__ == "__main__":
                     except Exception, e:
                         errorLogIt(e)
                         pass
-                """        
+                """    
 
     
     

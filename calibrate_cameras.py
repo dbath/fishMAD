@@ -1,10 +1,35 @@
 import numpy as np
 import cv2
 import yaml
+import matplotlib.pyplot as plt
+import pandas as pd
 
 
 
+def showFeatures(img, df, fn):
+     plt.imshow(img)
 
+     plt.scatter(df['x'], df['y'], color='r', s=2)
+     if fn == 'nosave':
+        plt.show()
+     else:
+        plt.savefig(fn, layout='Tight')
+     return
+
+def coords(a):
+    # where a is a cornerSubPix Array
+    xs = []
+    ys = []
+    for x in range(len(a)):
+        xs.append(a[x][0])
+        ys.append(a[x][1])
+    df = pd.DataFrame({'x':xs, 'y':ys})
+    return df
+    
+def getPointsList(a):
+    # where a is a cornerSubPix Array
+    return pd.DataFrame([a[x][0] for x in range(len(a))]) 
+     
 def calibrate(VIDEO_FILE, CHECKERSHAPE, DESTFILE):
     checkerShape = CHECKERSHAPE
     # termination criteria
@@ -21,22 +46,39 @@ def calibrate(VIDEO_FILE, CHECKERSHAPE, DESTFILE):
 
     cap = cv2.VideoCapture(VIDEO_FILE)
     found = 0
-    while (found < 25):  # Here, 10 can be changed to whatever number you like to choose
+    errorcount = 0
+    while (found < 90):  # Here, 10 can be changed to whatever number you like to choose
     
         ret, img = cap.read() # Capture frame-by-frame
-        gray = img[:,:,0]#cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-        # Find the chess board corners
-        ret, corners = cv2.findChessboardCorners(gray, checkerShape,None)
-
-        #cap.set(1, cap.get(1)+7)
-        # If found, add object points, image points (after refining them)
         if ret == True:
-            objpoints.append(objp)   # Certainly, every loop objp is the same, in 3D.
-            corners2 = cv2.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
-            imgpoints.append(corners2)
-            found += 1
+            try:
+                gray = img[:,:,0]#cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            except:
+                print "error here"
+                continue
 
+            # Find the chess board corners
+            ret, corners = cv2.findChessboardCorners(gray, checkerShape,None)
+
+            #
+            # If found, add object points, image points (after refining them)
+            if ret == True:
+                objpoints.append(objp)   # Certainly, every loop objp is the same, in 3D.
+                corners2 = cv2.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
+                imgpoints.append(corners2)
+                found += 1
+                cap.set(1, cap.get(1)+2)
+                lastImg = img
+                #showFeatures(img, pd.DataFrame(getPointsList(corners2) ,columns=['x','y']), 'nosave')
+        else:
+            errorcount +=1
+            if errorcount > 100:
+                print "Could not generate full calibration file: ", DESTFILE.split('/')[-1]
+                break
+                
+    df = pd.concat([getPointsList(imgpoints[x]) for x in range(len(imgpoints))])
+    df.columns = ['x','y']
+    df.to_pickle(VIDEO_FILE.rsplit('.',1)[0] +'.pickle')
 
     # When everything done, release the capture
     cap.release()
@@ -48,9 +90,15 @@ def calibrate(VIDEO_FILE, CHECKERSHAPE, DESTFILE):
 
     data = {'camera_matrix': np.asarray(mtx).tolist(), 'dist_coeff': np.asarray(dist).tolist()}
 
+    showFeatures(lastImg, df, VIDEO_FILE.rsplit('.',1)[0] +'.png')
+    
     with open(DESTFILE, "w") as f:
         yaml.dump(data, f)
+        
     print 'Calibration complete: ', DESTFILE.split('/')[-1]
+
+    
+    
     return 
 
 
@@ -65,16 +113,25 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--dir', type=str, required=True, help='path to directory containing checker vids')
     parser.add_argument('--checkersize', type=str, required=False, default='6x6', help='size of checkerboard, default is 6x6')
+    parser.add_argument('--saveas', type=str, required=False, default='notDefined', help='name for calibration, including date time string, ex: 20180404_123456')
 
                 
     args = parser.parse_args()
     
     CHECKERSIZE = tuple([int(k) for k in args.checkersize.split('x')])
     
+    
+    
     for vid in glob.glob(slashdir(args.dir) + '*.mp4'):
-        DATETIME = '_'.join(vid.split('/')[-1].split('.')[0].rsplit('_',2)[1:])
-        SERIAL = vid.split('/')[-1].split('.')[-2]
-        calibrate(vid, CHECKERSIZE, '/home/dan/fishMAD/camera_calibrations/'+'_'.join([DATETIME,SERIAL])+'.yaml') 
+        if args.saveas == 'notDefined':
+            DATETIME = '_'.join(vid.split('/')[-1].split('.')[0].rsplit('_',2)[1:])
+            SERIAL = vid.split('/')[-1].split('.')[-2]
+            SAVE_AS = '_'.join([DATETIME,SERIAL])
+        else:
+            SAVE_AS = '_'.join([args.saveas, vid.split('.')[-2]])
+            
+        
+        calibrate(vid, CHECKERSIZE, '/home/dan/fishMAD/camera_calibrations/'+SAVE_AS+'.yaml') 
 
 
 

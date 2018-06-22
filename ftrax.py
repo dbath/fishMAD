@@ -124,6 +124,8 @@ def annotateImage(_img, _status):
     else:
         return _img
 
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -199,25 +201,31 @@ if __name__ == "__main__":
         print "lastFrame: ", lastFrame, endTS         
     #out = cv2.VideoWriter(DIRECTORY + 'annotated.mp4', cv2.cv.FOURCC('a','v','c','1'), FPS, videoSize)
     
-    out = imgstore.new_for_format('mjpeg', mode='w', basedir=args.output,imgshape=store.image_shape, imgdtype=store.get_image(store.frame_min)[0].dtype, chunksize=1000)
+    #out = imgstore.new_for_format('mjpeg', mode='w', basedir=args.output,imgshape=store.image_shape, imgdtype=store.get_image(store.frame_min)[0].dtype, chunksize=1000)
     
-    ccw = cv2.imread('/home/dbath/fishMAD/counterclockwise.png' )[:,:,1]
-    cw = cv2.imread('/home/dbath/fishMAD/clockwise.png' )[:,:,1]
+    out = imgstore.new_for_format('mjpeg', mode='w', basedir='/home/dan/Desktop/annotated_vid', imgshape=store.image_shape, imgdtype=store.get_image(store.frame_min)[0].dtype, chunksize=1000)
+   
+    nFrames = store.frame_max - store.frame_min
+    ccw = cv2.imread('/home/dan/Desktop/arrow.png'  )[:,:,1]
+    cw = ccw.T# = cv2.imread('/home/dbath/fishMAD/clockwise.png' )[:,:,1]
     
-    img, (frame_number, frame_timestamp) = store.get_image(firstFrame)
+    #img, (frame_number, frame_timestamp) = store.get_image(firstFrame)
     
     
     for n in range(0,nFrames,9):
+        try:
+            img, (frame_number, frame_timestamp) = store.get_image(store.frame_min + n)
+        except:
+            pass
+        image = addSymbol(img, bar[bar.FrameNumber == frame_number])
         
-        img, (frame_number, frame_timestamp) = store.get_image(store.frame_min + n)
-
-        status = getEvent(frame_timestamp, stimData)
-        image = annotateImage(img, status)
-        cv2.putText(image, '3x speed D.Bath 2017.07.27' ,(1400,2000), cv2.FONT_HERSHEY_SIMPLEX, 1.4, 255, 2)
+        #status = getEvent(frame_timestamp, stimData)
+        #image = annotateImage(img, status)
+        cv2.putText(image, '3x speed. 64 sunbleak 2017.12.22' ,(1400,2000), cv2.FONT_HERSHEY_SIMPLEX, 1.1, 255, 2)
         out.add_image(image, n, frame_timestamp)
         
-        if (n % 1000 == 0) & (n != 0):
-            print 'Processed ', str(n), ' frames.', str(frame_timestamp), status.Timestamp, str(status.vel*status.dir)
+        if (n % 900 == 0) & (n != 0):
+            print 'Processed ', str(n), ' frames.', str(frame_timestamp)
             
     out.close()
     

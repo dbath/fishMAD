@@ -53,7 +53,7 @@ if __name__ == "__main__":
                 threadcount += 1
                 
                 if p.is_alive():
-                    if (threadcount >= 32) or (filenum == len(fileList)):
+                    if (threadcount >= 30) or (filenum == len(fileList)):
                         threadcount = 0
                         p.join()
 

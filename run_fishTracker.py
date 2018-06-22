@@ -15,7 +15,7 @@ from utilities import *
 def replace_background(_main_dir):
     if os.path.exists(_main_dir + 'track/video_average.png'):
         shutil.copy(_main_dir + 'track/video_average.png',
-                    os.path.expanduser('~/FishTracker/Application/build/video_average.png'))
+                    os.path.expanduser('~/setup_debian/FishTracker/Application/build/video_average.png'))
         print "retrieved previous background image"
     else:
         
@@ -23,28 +23,22 @@ def replace_background(_main_dir):
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"generating background image..."
         import utilities
         bkg = utilities.createBackgroundImage(_main_dir, 'mean')  #FIXME change to mode after tristan fixes
-        scipy.misc.imsave(os.path.expanduser('~/FishTracker/Application/build/video_average.png'), bkg)
+        scipy.misc.imsave(os.path.expanduser('~/setup_debian/FishTracker/Application/build/video_average.png'), bkg)
         scipy.misc.imsave(_main_dir + 'track/video_average.png', bkg)
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"got new background..."
     return
 
-def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum):
+def setup_tristrack(_main_dir, fishnum):
     MAIN_DIR = _main_dir
     if MAIN_DIR[-1] != '/':
         MAIN_DIR += '/'
     track_dir = MAIN_DIR + 'track'
     if not os.path.exists(track_dir):
         os.makedirs(track_dir)
-    
-    if (NEW_ONLY) and (os.path.exists(track_dir + 'converted.results')):
-        return
-    
-    if _make_bkg == True:
-        replace_background(MAIN_DIR)
-
+ 
     #copy default settings files and make fishdata dir
 
-    if not os.path.exists(track_dir + 'fishTracker.settings'):
+    if not os.path.exists(track_dir + 'fishTrXXXacker.settings'):
         if '_jwj_' in MAIN_DIR:
             shutil.copy(os.path.expanduser('~/fishMAD/tristrack_defaults/fishTracker_stickleback.settings'), track_dir + '/fishTracker.settings')
         else:
@@ -57,7 +51,8 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum):
     if not os.path.exists(track_dir + '/fishdata'):
         os.makedirs(track_dir + '/fishdata')
 
-    print "set up tristrack environment..."
+    print "set up tristrack environment..."   
+
     #Get metadata from videos
     store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml' )
     FPS = store.user_metadata['acquisitionframerate']
@@ -130,20 +125,39 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum):
     openFile.close()
 
     print "wrote new settings file..."
+    
+    
+    return
+
+
+
+def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum):
+    MAIN_DIR = _main_dir
+    if MAIN_DIR[-1] != '/':
+        MAIN_DIR += '/'
+    track_dir = MAIN_DIR + 'track'
+    if not os.path.exists(track_dir):
+        os.makedirs(track_dir)
+    
+    if (NEW_ONLY) and (os.path.exists(track_dir + 'converted.results')):
+        return
+    
+    if _make_bkg == True:
+        replace_background(MAIN_DIR)
 
     FNULL = open(os.devnull, 'w')
 
     # Launch conversion
     vidSet = MAIN_DIR + '%6d.mp4'
-    launch_conversion = "~/FishTracker/Application/build/framegrabber -d '" + track_dir + "' -i '" + vidSet + "' -o converted.pv -settings conversion -nowindow"
+    launch_conversion = "~/setup_debian/FishTracker/Application/build/framegrabber -d '" + track_dir + "' -i '" + vidSet + "' -o converted.pv -settings conversion -nowindow"
     if not (os.path.exists(track_dir + '/converted.pv')):
-        if os.path.exists(os.path.expanduser('~/FishTracker/Application/build/video_average.png')):
-            os.remove(os.path.expanduser('~/FishTracker/Application/build/video_average.png'))
+        if os.path.exists(os.path.expanduser('~/setup_debian/FishTracker/Application/build/video_average.png')):
+            os.remove(os.path.expanduser('~/setup_debian/FishTracker/Application/build/video_average.png'))
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"Running conversion on file: ", track_dir
         try:
             subprocess.check_call([launch_conversion],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
         except Exception, e:
-            errorLog = open(os.path.expanduser('~/FishTracker/Application/build/batchlog.txt'), 'w')
+            errorLog = open(os.path.expanduser('~/setup_debian/FishTracker/Application/build/batchlog.txt'), 'w')
             errorLog.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t')
             errorLog.write(track_dir + '\t')
             errorLog.write('error during conversion step' + '\n')
@@ -157,6 +171,7 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum):
     return
 
 def track(_main_dir, _make_bkg, NEW_ONLY, fishnum):
+    setup_tristrack(_main_dir, fishnum)
     MAIN_DIR = slashdir(_main_dir)
     track_dir = MAIN_DIR + 'track'
     # Launch tracker
@@ -165,7 +180,7 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum):
         shutil.rmtree(track_dir + '/fishdata')
         os.makedirs(track_dir + '/fishdata')
         pv_file = track_dir + '/converted.pv'
-        launch_tracker = "~/FishTracker/Application/build/tracker -d '" + track_dir + "' -i '" + pv_file + "' -settings fishTracker -nowindow"
+        launch_tracker = "~/setup_debian/FishTracker/Application/build/tracker -d '" + track_dir + "' -i '" + pv_file + "' -settings fishTracker -nowindow"
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"Running tracker on file: ", track_dir
         try:
             task = subprocess.Popen([launch_tracker],stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True )#
@@ -179,13 +194,14 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum):
                 
             #subprocess.check_call([launch_tracker],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
         except Exception, e:
-            print e
-            errorLog = open(os.path.expanduser('~/FishTracker/Application/build/batchlog.txt'), 'a')
-            errorLog.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t')
-            errorLog.write(track_dir + '\t')
-            errorLog.write('error during conversion step' + '\n')
+            #print e
+            errorLog = open(os.path.expanduser('~/setup_debian/FishTracker/Application/build/batchlog.txt'), 'a')
+            errorLog.write('--------------------------------------------------------------------------------------------------------\n\n\n')
+            errorLog.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\n')
+            errorLog.write(launch_tracker + '\n')
+            errorLog.write('ERROR OUTPUT:' + '\n\n')
             errorLog.write(str(ERROR) + '\n\n\n')
-            errorLog.write(str(OUT) + '\n\n\n')
+            #errorLog.write(str(OUT) + '\n\n\n')
             errorLog.close()
             FNULL.close()
             print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"ERROR tracking file: ", track_dir 

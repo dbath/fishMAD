@@ -61,11 +61,27 @@ for handle in HANDLES:
             
 for handle in HANDLES:
     for directory in DIRECTORIES:
-        for fn in glob.glob('/media/recnodes/' + directory + '/*' + handle + '*/track/vsTime_dRotation_polarization.png'):
+        for fn in glob.glob( directory + '/*' + handle + '*/track/vsTime_dRotation_polarization.png'):
             print fn
-            newfn = '/media/recnodes/Dan_storage/180220_christina_rotation/PNG/dRotation_polarization/' + fn.split('/')[4] + '.png'
+            newfn = '/home/dan/Desktop/temp_summaries/' + fn.split('/')[4] + '.png'
             shutil.copyfile(fn, newfn)            
             
+
+for fn in glob.glob("/home/dan/Desktop/temp_summaries/*.png"):
+    sorter = fn.split('/')[-1][-7]
+    
+    newfn = '/home/dan/Desktop/temp_summaries/1' + sorter + '/' + fn.split('/')[-1]
+    shutil.move(fn, newfn)
+    
+    
+    if sorter == '4':
+        shutil.move(fn, '/home/dan/Desktop/temp_summaries/14')
+    elif sorter == '5':
+        shutil.move(fn, '/home/dan/Desktop/temp_summaries/15')
+    elif sorter == '6':
+        shutil.move(fn, '/home/dan/Desktop/temp_summaries/16')
+    elif sorter == '7':
+        shutil.move(fn, '/home/dan/Desktop/temp_summaries/17')
             
             
 expIDs = []

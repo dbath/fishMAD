@@ -4,7 +4,7 @@ import glob
 import yaml
 from utilities import *
 
-class Dewarp:
+class Undistort:
 
     def __init__(self, VIDEOFILE):
         self.vidfile = VIDEOFILE
@@ -15,8 +15,8 @@ class Dewarp:
         
         k, d = self.loadCameraConfig(self.calibrationFile)
         
-        self.cameraMatrix = np.array(k)
-        self.cameraDistortion = np.array(d)
+        self.cameraMatrix = np.array(k) #UMAT
+        self.cameraDistortion = np.array(d) #UMAT
         
         print "Dewarping video: ", self.vidfile, "using calibration: ", self.calibrationFile
         
@@ -51,8 +51,9 @@ class Dewarp:
         if not hasattr(self, 'newcamera'):
             h,w = img.shape[:2]
             self.newcamera, roi = cv2.getOptimalNewCameraMatrix(self.cameraMatrix, self.cameraDistortion, (w,h), 0) 
+            self.newcamera = self.newcamera#UMAT
         
-        return cv2.undistort(img, self.cameraMatrix, self.cameraDistortion, None, self.newcamera)
+        return cv2.undistort(img, self.cameraMatrix, self.cameraDistortion, None, self.newcamera)#.get() downloads it from the graphics card #UMAT
 
 
 if __name__ == "__main__":
@@ -71,24 +72,25 @@ if __name__ == "__main__":
     for VIDEO_FILE in VIDEO_FILES:
         if args.saveas == 'notAssigned':
             fn, ext =  VIDEO_FILE.rsplit('.',1)
-            OUTPUT_FILE =fn + '_dewarped.' + ext
+            ext = 'avi'
+            OUTPUT_FILE =fn + '_undistorted.' + ext
         else:
             OUTPUT_FILE = VIDEO_FILE.rsplit('/',1)[0] + args.saveas
-        
+            
         video = cv2.VideoCapture(VIDEO_FILE)
         FPS = int(video.get(5))
         framecount = video.get(7)
         videoformat = video.get(6)
         videoSize = (int(video.get(3)), int(video.get(4)))  
         
-        DEWARP = Dewarp(VIDEO_FILE)
+        UND = Undistort(VIDEO_FILE)
         
-        out = cv2.VideoWriter(OUTPUT_FILE, cv2.VideoWriter_fourcc('a','v','c','1'),  FPS, videoSize)
+        out = cv2.VideoWriter(OUTPUT_FILE, cv2.VideoWriter_fourcc('H','2','6','4'),  FPS, videoSize)
         
         while video.isOpened():
             ret, img = video.read()
             if ret == True:
-                newimg = DEWARP.undistort(img)
+                newimg = UND.undistort(img)
                 out.write(newimg)
             else:
                 break        

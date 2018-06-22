@@ -13,7 +13,7 @@ from utilities import *
 def replace_background(_main_dir):
     if os.path.exists(_main_dir + 'track/video_average.png'):
         shutil.copyfile(_main_dir + 'track/video_average.png',
-                    os.path.expanduser('~/FishTracker/Application/build/video_average.png'))
+                    os.path.expanduser('~/setup_debian/FishTracker/Application/build/video_average.png'))
         print "retrieved previous background image"
     else:
         
@@ -21,7 +21,7 @@ def replace_background(_main_dir):
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"generating background image..."
         import utilities
         bkg = utilities.createBackgroundImage(_main_dir, 'mean')  #FIXME change to mode after tristan fixes
-        scipy.misc.imsave(os.path.expanduser('~/FishTracker/Application/build/video_average.png'), bkg)
+        scipy.misc.imsave(os.path.expanduser('~/setup_debian/FishTracker/Application/build/video_average.png'), bkg)
         scipy.misc.imsave(_main_dir + 'track/video_average.png', bkg)
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"got new background..."
     return
@@ -135,15 +135,15 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum):
 
     # Launch conversion
     vidSet = MAIN_DIR + '%6d.mp4'
-    launch_conversion = "~/FishTracker/Application/build/framegrabber -d '" + track_dir + "' -i '" + vidSet + "' -o converted.pv -settings conversion -nowindow"
+    launch_conversion = "~/setup_debian/FishTracker/Application/build/framegrabber -d '" + track_dir + "' -i '" + vidSet + "' -o converted.pv -settings conversion -nowindow"
     if not (os.path.exists(track_dir + '/converted.pv')):
-        if os.path.exists(os.path.expanduser('~/FishTracker/Application/build/video_average.png')):
-            os.remove(os.path.expanduser('~/FishTracker/Application/build/video_average.png'))
+        if os.path.exists(os.path.expanduser('~/setup_debian/FishTracker/Application/build/video_average.png')):
+            os.remove(os.path.expanduser('~/setup_debian/FishTracker/Application/build/video_average.png'))
         print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"Running conversion on file: ", track_dir
         try:
             subprocess.check_call([launch_conversion],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
         except Exception, e:
-            errorLog = open(os.path.expanduser('~/FishTracker/Application/build/batchlog.txt'), 'w')
+            errorLog = open(os.path.expanduser('~/setup_debian/FishTracker/Application/build/batchlog.txt'), 'w')
             errorLog.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t')
             errorLog.write(track_dir + '\t')
             errorLog.write('error during conversion step' + '\n')
