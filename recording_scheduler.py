@@ -1,5 +1,8 @@
 import pandas as pd
 import numpy as np
+from utilities import getTimeFromTimeString
+from utilities import copyAndroidLog
+from utilities import getTimeStringFromTime
 import utilities
 from motifapi import MotifApi as Motif
 import time
@@ -8,7 +11,7 @@ import datetime
 import argparse
 from pytz import utc
 import logging
-
+import apscheduler
 from apscheduler.schedulers.background import BackgroundScheduler
 
 
@@ -61,7 +64,7 @@ class Experiment(object):
         self._FN = FN
         self._DURATION = DURATION
         self.BASE_DIRECTORY = '/media/recnodes/recnode_jolle2/'
-        self.destfile = self.BASE_DIRECTORY + 'dotbot_logs/dotbotLog_archive_' + rigID[-3:] +'_'+ utilities.getTimeStringFromTime() + '.txt'
+        self.destfile = self.BASE_DIRECTORY + 'dotbot_logs/dotbotLog_archive_' + rigID[-3:] +'_'+ getTimeStringFromTime() + '.txt'
         self.api = self.setupAPI()
     
     def setupAPI(self):

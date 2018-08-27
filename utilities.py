@@ -1,5 +1,5 @@
 
-import cv2
+
 import numpy as np
 import scipy.stats as stats
 import os
@@ -75,6 +75,7 @@ def createBackgroundImage(DIRECTORY, method='mode'):
     takes directory of mp4s, 
     returns image with modal pixel values from the first video
     """
+    import cv2
     if DIRECTORY[-1] != '/':
         DIRECTORY += '/'
         

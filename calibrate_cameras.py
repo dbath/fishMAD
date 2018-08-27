@@ -47,7 +47,7 @@ def calibrate(VIDEO_FILE, CHECKERSHAPE, DESTFILE):
     cap = cv2.VideoCapture(VIDEO_FILE)
     found = 0
     errorcount = 0
-    while (found < 90):  # Here, 10 can be changed to whatever number you like to choose
+    while (found < 90):  #  can be changed to whatever number you like to choose
     
         ret, img = cap.read() # Capture frame-by-frame
         if ret == True:
@@ -111,7 +111,9 @@ if __name__ == "__main__":
     from utilities import *
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--dir', type=str, required=True, help='path to directory containing checker vids')
+    parser.add_argument('--dir', type=str, required=False, default='/media/recnodes/recnode_2mfish/',
+			 help='path to directory containing checker vids')
+    parser.add_argument('--handle', type=str, required=True, help='unique identifier that marks the files to use for calibration. Ideally use the timestamp of the recording, ie "20180808_153229".'
     parser.add_argument('--checkersize', type=str, required=False, default='6x6', help='size of checkerboard, default is 6x6')
     parser.add_argument('--saveas', type=str, required=False, default='notDefined', help='name for calibration, including date time string, ex: 20180404_123456')
 
@@ -122,7 +124,7 @@ if __name__ == "__main__":
     
     
     
-    for vid in glob.glob(slashdir(args.dir) + '*.mp4'):
+    for vid in glob.glob(slashdir(args.dir) + '*' + args.handle + '*.mp4'):
         if args.saveas == 'notDefined':
             DATETIME = '_'.join(vid.split('/')[-1].split('.')[0].rsplit('_',2)[1:])
             SERIAL = vid.split('/')[-1].split('.')[-2]
