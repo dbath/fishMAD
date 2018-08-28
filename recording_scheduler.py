@@ -25,7 +25,7 @@ camInfo = {"rigID":['10.126.18.111',
                     '10.126.18.118'], 
 
             "Key": ['028aa0df3c59b7e364ec931e584e51d1',
-                    'unknown',
+                    'b4ea527a5e049f6770c2405158666136',
                     '028aa0df3c59b7e364ec931e584e51d1',
                     'ec80e72dbe4fd0641436f7de584e601b',
                     'c883634262cb732016235664584e7665',
@@ -34,7 +34,7 @@ camInfo = {"rigID":['10.126.18.111',
                     '18a6d53607255225ffbc1bae584e6e21'],
 
             "IP": [ '10.126.18.38',
-                    'bigTank',
+                    '10.126.18.49',
                     '10.126.18.38',
                     '10.126.18.35',
                     '10.126.18.36',
@@ -71,29 +71,42 @@ class Experiment(object):
         self._codec='mq'
         api = Motif(self.CAMERA_IP, self.CAMERA_KEY)
         
-        camInfo = pd.DataFrame(api.call('cameras').items()[0][1])
-        camName = camInfo[camInfo.serial == self.CAMERA_SERIAL]['name'].values[0]
-        if "Ximea" in camName:
-            self.CAMERA_SERIAL = camName.split('(')[1][0]
-        
+        caminfo = pd.DataFrame(api.call('cameras').items()[0][1])
+        if len(caminfo) >1:
+            self.MULTICAM = True
+        else:
+            self.MULTICAM = False            
+        serials = []
+        for cam in caminfo:
+            if "Ximea" in cam['name']:
+                serials.append(cam['name'].split('(')[1][0]
+            else:
+                serials.append(cam['serial']
+        self.CAMERA_SERIAL = serials                
 
         return api   
           
     def configure_camera(self):
-        if not (self.api.call('camera/'+self.CAMERA_SERIAL)['camera_info']['status'] == 'ready'):
-            raise Exception('CAMERA IS ALREADY IN USE')
-        #camsn = api.call('cameras')['cameras'][0]['serial']
-        self.api.call('camera/' + self.CAMERA_SERIAL + '/configure', 
-                AcquisitionFrameRate=40.0,
-                ExposureTime=2000.0 )
+        
+        for cam in self.CAMERA_SERIAL:
+             if not (self.api.call('camera/'+cam)['camera_info']['status'] == 'ready'):
+                raise Exception('CAMERA IS ALREADY IN USE')
+            #camsn = api.call('cameras')['cameras'][0]['serial']
+            self.api.call('camera/' + cam + '/configure', 
+                    AcquisitionFrameRate=40.0,
+                    ExposureTime=2000.0 )               
+
         return
         
     def loopbio_record(self, FN, DUR, META):
-        
-        if not (self.api.call('camera/'+self.CAMERA_SERIAL)['camera_info']['status'] == 'ready'):
-            raise Exception('CAMERA IS ALREADY IN USE')
-            
-        foo = self.api.call('camera/' + self.CAMERA_SERIAL + '/recording/start',
+        for cam in self.CAMERA_SERIAL:
+            if not (self.api.call('camera/'+cam)['camera_info']['status'] == 'ready'):
+                raise Exception('CAMERA IS ALREADY IN USE')
+        if self.MULTICAM:
+            cameraCall = 'recording/start'
+        else:    
+            cameraCall = 'camera/' + self.CAMERA_SERIAL[0] + '/recording/start'
+        foo = self.api.call(cameraCall,
                 duration=DUR,
                 filename=FN,
                 codec=self._codec,
@@ -107,9 +120,12 @@ class Experiment(object):
         
     def record(self):
         self.configure_camera()
-        self.vidfile = self.loopbio_record( self._FN, self._DURATION, self._metadata)
-        print "initiated recording: ", self.ANDROID_IP, self.vidfile['filename'].split('/')[0]
-        self.destfile = self.BASE_DIRECTORY + 'dotbot_logs/dotbotLog_' + self.vidfile['filename'].split('/')[0] + '.txt'
+        self.loopbio_record( self._FN, self._DURATION, self._metadata)
+        time.sleep(3)
+        info = self.api.call('camera/' + self.CAMERA_SERIAL[0])
+        self.vidfile = info.items()[1][1]['filename']
+        print "initiated recording: ", self.ANDROID_IP, self.vidfile['filename'].split('.')[0]
+        self.destfile = self.BASE_DIRECTORY + 'dotbot_logs/dotbotLog_' + self.vidfile['filename'].split('.')[0] + '.txt'
         return 
           
     def movelog(self):
