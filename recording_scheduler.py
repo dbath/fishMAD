@@ -77,11 +77,12 @@ class Experiment(object):
         else:
             self.MULTICAM = False            
         serials = []
-        for cam in caminfo:
-            if "Ximea" in cam['name']:
-                serials.append(cam['name'].split('(')[1][0]
+        print caminfo
+        for cam in caminfo.index:
+            if "Ximea" in caminfo.ix[cam]['name']:
+                serials.append(cam['name'].split('(')[1][0])
             else:
-                serials.append(cam['serial']
+                serials.append(caminfo.ix[cam]['serial'])
         self.CAMERA_SERIAL = serials                
 
         return api   
@@ -89,12 +90,12 @@ class Experiment(object):
     def configure_camera(self):
         
         for cam in self.CAMERA_SERIAL:
-             if not (self.api.call('camera/'+cam)['camera_info']['status'] == 'ready'):
+            if not (self.api.call('camera/'+cam)['camera_info']['status'] == 'ready'):
                 raise Exception('CAMERA IS ALREADY IN USE')
             #camsn = api.call('cameras')['cameras'][0]['serial']
             self.api.call('camera/' + cam + '/configure', 
                     AcquisitionFrameRate=40.0,
-                    ExposureTime=2000.0 )               
+                    ExposureTime=2500.0 )               
 
         return
         
@@ -124,14 +125,17 @@ class Experiment(object):
         time.sleep(3)
         info = self.api.call('camera/' + self.CAMERA_SERIAL[0])
         self.vidfile = info.items()[1][1]['filename']
-        print "initiated recording: ", self.ANDROID_IP, self.vidfile['filename'].split('.')[0]
-        self.destfile = self.BASE_DIRECTORY + 'dotbot_logs/dotbotLog_' + self.vidfile['filename'].split('.')[0] + '.txt'
+        print "initiated recording: ", self.ANDROID_IP, self.vidfile.split('.')[0]
+        self.destfile = self.BASE_DIRECTORY + 'dotbot_logs/dotbotLog_' + self.vidfile.split('.')[0] + '.txt'
         return 
           
     def movelog(self):
         if not os.path.exists(self.BASE_DIRECTORY + 'dotbot_logs'):
-            os.makedirs(self.BASE_DIRECTORY + 'dotbot_logs')               
-        utilities.copyAndroidLog(self.ANDROID_IP, '/sdcard/dotbot/dotbot_log.txt', self.destfile)
+            os.makedirs(self.BASE_DIRECTORY + 'dotbot_logs')  
+        if self.MULTICAM:
+            utilities.copyWindowsLog('/media/recnodes/Dan_storage/dotbot_temp_logs/dotbot_log_temp.txt', self.destfile)             
+        else:
+            utilities.copyAndroidLog(self.ANDROID_IP, '/sdcard/dotbot/dotbot_log.txt', self.destfile)
         print "copied: ", self.destfile
         return
 

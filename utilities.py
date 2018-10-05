@@ -9,6 +9,7 @@ import math
 import time
 import datetime
 from motifapi import MotifApi as Motif
+from statsmodels.nonparametric.smoothers_lowess import lowess
 
 XPOS = 'X#centroid (cm)'
 YPOS = 'Y#centroid (cm)'
@@ -30,7 +31,17 @@ def getTimeStringFromTime(TIME=None):
     else:
         return datetime.datetime.strftime(TIME,"%Y%m%d_%H%M%S")
 
+def smooth(y, x='notDefined', frac=0.05):
+    if x=='notDefined':
+        x = range(len(y))
+    filtered = lowess(y, x, frac=frac)
+    return filtered[:,1]
 
+def instaSlope(data):
+    foo = smooth(data, frac=0.1)
+    res = foo - np.roll(foo, 1)
+    res[0] =np.nan
+    return res 
 
 def loopbio_record(IP, KEY, FN, DUR, META, SN):
     _codec='nvenc-mq'
@@ -67,6 +78,16 @@ def copyAndroidLog(IP, src, dst):
     except:
         return
     time.sleep(2)
+    return
+
+def copyWindowsLog(src, dst):
+    from subprocess import call
+    cmd = "cp " + src + " " + dst
+    try:
+        call([cmd], shell=True)
+    except:
+        return
+    time.sleep(1)
     return
 
 
@@ -130,6 +151,23 @@ def getFrameByFrameData(DIRECTORY, RESUME=True):
                 df = pd.concat([df, f])
         else:
             f = pd.read_csv(fn)
+            f['trackid'] = ID
+            df = f#pd.concat([df, f])
+        if i%500 == 0:
+            #print "processed track number :", i
+            df.to_pickle(DIRECTORY + 'frameByFrameData.pickle')
+        i +=1
+    
+    for fn in glob.glob(DIRECTORY + 'fishdata/*.npz'):
+        ID = fn.split('fish')[-1].split('.')[0]
+        d = np.load(fn)
+        f =  pd.DataFrame([d[x] for x in d.iterkeys()]).T
+        f.columns = d.keys()
+        if (len(df) >0):
+            if not (ID in df['trackid'].values):
+                f['trackid'] = ID
+                df = pd.concat([df, f])
+        else:
             f['trackid'] = ID
             df = f#pd.concat([df, f])
         if i%500 == 0:
