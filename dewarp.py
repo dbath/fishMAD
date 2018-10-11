@@ -3,6 +3,7 @@ import cv2
 import glob
 import yaml
 from utilities import *
+import imgstore
 
 class Undistort:
 
@@ -38,7 +39,7 @@ class Undistort:
         return '/home/dan/fishMAD/camera_calibrations/' + calTime + '_' + self.camSerial + '.yaml'
         
     def loadCameraConfig(self, CALIBRATION):
-    
+    BB
         with open(CALIBRATION) as f:
             loadeddict = yaml.load(f)
 
@@ -65,36 +66,48 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     VIDEO_FILES = []
-    
-    for x in glob.glob(slashdir(args.dir) + '*.mp4'):
-        VIDEO_FILES.append(x)
-    
-    for VIDEO_FILE in VIDEO_FILES:
-        if args.saveas == 'notAssigned':
-            fn, ext =  VIDEO_FILE.rsplit('.',1)
-            ext = 'avi'
-            OUTPUT_FILE =fn + '_undistorted.' + ext
-        else:
-            OUTPUT_FILE = VIDEO_FILE.rsplit('/',1)[0] + args.saveas
-            
-        video = cv2.VideoCapture(VIDEO_FILE)
-        FPS = int(video.get(5))
-        framecount = video.get(7)
-        videoformat = video.get(6)
-        videoSize = (int(video.get(3)), int(video.get(4)))  
+    if os.path.exists(slashdir(args.dir) + 'metadata.yaml'):
+        USE_STORES = True
+    else:
+        USE_STORES = False
         
-        UND = Undistort(VIDEO_FILE)
+    if not USE_STORES:    
+        for x in glob.glob(slashdir(args.dir) + '*.mp4'):
+            VIDEO_FILES.append(x)
         
-        out = cv2.VideoWriter(OUTPUT_FILE, cv2.VideoWriter_fourcc('H','2','6','4'),  FPS, videoSize)
-        
-        while video.isOpened():
-            ret, img = video.read()
-            if ret == True:
-                newimg = UND.undistort(img)
-                out.write(newimg)
+        for VIDEO_FILE in VIDEO_FILES:
+            if args.saveas == 'notAssigned':
+                fn, ext =  VIDEO_FILE.rsplit('.',1)
+                ext = 'avi'
+                OUTPUT_FILE =fn + '_undistorted.' + ext
             else:
-                break        
-          
-        video.release()
+                OUTPUT_FILE = VIDEO_FILE.rsplit('/',1)[0] + args.saveas
+                
+            video = cv2.VideoCapture(VIDEO_FILE)
+            FPS = int(video.get(5))
+            framecount = video.get(7)
+            videoformat = video.get(6)
+            videoSize = (int(video.get(3)), int(video.get(4)))  
+            
+            UND = Undistort(VIDEO_FILE)
+            
+            out = cv2.VideoWriter(OUTPUT_FILE, cv2.VideoWriter_fourcc('H','2','6','4'),  FPS, videoSize)
+            
+            while video.isOpened():
+                ret, img = video.read()
+                if ret == True:
+                    newimg = UND.undistort(img)
+                    out.write(newimg)
+                else:
+                    break        
+              
+            video.release()
+        
+        elif USE_STORES:
+            
+            
+            
+            
+            
     print "done."      
 
