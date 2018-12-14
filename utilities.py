@@ -1,5 +1,5 @@
 
-
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
 import os
@@ -90,6 +90,11 @@ def copyWindowsLog(src, dst):
     time.sleep(1)
     return
 
+def sho(i):
+    plt.imshow(i)
+    plt.show()
+    return
+
 
 def createBackgroundImage(DIRECTORY, method='mode'):
     """
@@ -104,7 +109,7 @@ def createBackgroundImage(DIRECTORY, method='mode'):
     for vidnum in ['000000.mp4','000010.mp4']:  #LAZY DANNO FIXME    
         vid = cv2.VideoCapture(DIRECTORY + vidnum)
         framecount = int(vid.get(7))
-        skipFrames = 1#int(np.round(framecount/100))
+        skipFrames = 17#int(np.round(framecount/100))
         frameList = range(1,framecount, skipFrames)
         for frame in frameList:
             vid.set(1, frame)
