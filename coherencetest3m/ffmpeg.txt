@@ -1,0 +1,16 @@
+ffmpeg version 0.11.1 Copyright (c) 2000-2012 the FFmpeg developers
+  built on Sep 18 2017 14:56:00 with gcc 5.4.1 20160904
+  configuration: --enable-gpl --enable-libfaac --enable-libmp3lame --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libtheora --enable-libvorbis --enable-libx264 --enable-libxvid --enable-nonfree --enable-postproc --enable-version3 --enable-x11grab --enable-shared --enable-libvpx --enable-pic
+  libavutil      51. 54.100 / 51. 54.100
+  libavcodec     54. 23.100 / 54. 23.100
+  libavformat    54.  6.100 / 54.  6.100
+  libavdevice    54.  0.100 / 54.  0.100
+  libavfilter     2. 77.100 /  2. 77.100
+  libswscale      2.  1.100 /  2.  1.100
+  libswresample   0. 15.100 /  0. 15.100
+  libpostproc    52.  0.100 / 52.  0.100
+[rawvideo @ 0x7bd5a0] Estimating duration from bitrate, this may be inaccurate
+Input #0, rawvideo, from 'pipe:':
+  Duration: N/A, start: 0.000000, bitrate: N/A
+    Stream #0:0: Video: rawvideo (RGB[24] / 0x18424752), rgb24, 2560x1440, 30 tbr, 30 tbn, 30 tbc
+Unknown encoder 'h264'
