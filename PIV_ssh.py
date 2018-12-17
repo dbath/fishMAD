@@ -279,7 +279,7 @@ if __name__ == "__main__":
                     vs = []
                     vorts = []
                 firstframe = True   
-                for i in range(startframe, store.frame_max-1):
+                for i in range(int(startframe), store.frame_max-1):
 
                     if firstframe == True:
                         print "making image 1"
