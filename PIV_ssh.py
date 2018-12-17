@@ -248,28 +248,30 @@ if __name__ == "__main__":
     for term in HANDLE:
         for DIR in DIRECTORIES:
             for vDir in glob.glob(DIR + '*' + term + '*.stitched'):
+                OUTPUT_FILENAME = slashdir(vDir)
+                if os.path.exists(OUTPUT_FILENAME + 'piv_complete'):
+                    continue
                 # LOAD VIDEO
                 STORE_FILENAME = slashdir(vDir) + 'metadata.yaml'
                 store = imgstore.new_for_filename(STORE_FILENAME)
                 
                 img1 = np.zeros(store.image_shape)
                 startframe = store.frame_min + startframe
-                OUTPUT_FILENAME = slashdir(vDir)
                 
                 # LOAD OR CREATE A BACKGROUND IMAGE
                 if BKG_RULE == False:
                     bkg = np.load('/home/dan/recnodes/Dan_storage/PIV/bkg_20181026_101202.npy' ) 
                 elif BKG_RULE ==True:
                     bkg = createBackgroundImage(BKG_RULE, method='mode') #FIXME when tristan updates
-                    date = '_'.join(fn.split('/')[-1].split('.')[0].split('_')[-2:])
+                    date = '_'.join(vDir.split('/')[-1].split('.')[0].split('_')[-2:])
                     np.save('/home/dan/recnodes/Dan_storage/PIV/bkg_' + date + '.npy', bkg)
                     BKG_RULE=False
 
                 # LOAD STORED DATA AND INITIALIZE DATA VARS
-                if os.path.exists(OUTPUT_FILENAME + '/piv_u.npy'):
-                    us = list(np.load(OUTPUT_FILENAME + '/piv_u.npy'))
-                    vs = list(np.load(OUTPUT_FILENAME + '/piv_v.npy'))
-                    vorts = list(np.load(OUTPUT_FILENAME + '/piv_vort.npy'))
+                if os.path.exists(OUTPUT_FILENAME + 'piv_u.npy'):
+                    us = list(np.load(OUTPUT_FILENAME + 'piv_u.npy'))
+                    vs = list(np.load(OUTPUT_FILENAME + 'piv_v.npy'))
+                    vorts = list(np.load(OUTPUT_FILENAME + 'piv_vort.npy'))
                     startframe = us[-1][0]
                 else:
                     us = []
@@ -303,11 +305,12 @@ if __name__ == "__main__":
                     print "processed:", str(i - store.frame_min-startframe)
                     if i%10 == 0:
                         
-                        np.save(OUTPUT_FILENAME + '/piv_u.npy', us)
-                        np.save(OUTPUT_FILENAME + '/piv_v.npy', vs)
-                        np.save(OUTPUT_FILENAME + '/piv_vort.npy', vorts)
+                        np.save(OUTPUT_FILENAME + 'piv_u.npy', us)
+                        np.save(OUTPUT_FILENAME + 'piv_v.npy', vs)
+                        np.save(OUTPUT_FILENAME + 'piv_vort.npy', vorts)
                     
-                    spots1 = spots2       
+                    spots1 = spots2  
+                np.save(OUTPUT_FILENAME + 'piv_complete', x)     
 
                 print "done"
 
