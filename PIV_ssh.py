@@ -221,6 +221,7 @@ cdict = {
 
 if __name__ == "__main__":
     import argparse
+    import glob
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--dir', type=str, required=False, default = '/home/dan/recnodes/recnode_2mfish/',help='path to directory')
     parser.add_argument('--handle', type=str, required=False, default='_dotbot_', 
