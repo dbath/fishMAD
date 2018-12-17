@@ -252,6 +252,7 @@ if __name__ == "__main__":
                 if os.path.exists(OUTPUT_FILENAME + 'piv_complete'):
                     continue
                 # LOAD VIDEO
+                print "PROCESSING: ", OUTPUT_FILENAME
                 STORE_FILENAME = slashdir(vDir) + 'metadata.yaml'
                 store = imgstore.new_for_filename(STORE_FILENAME)
                 
@@ -302,7 +303,7 @@ if __name__ == "__main__":
                     vs.append(np.append(np.array([f,t]),v.ravel()))
                     vorts.append(np.append(np.array([f,t]),vort.ravel()))
 
-                    print "processed:", str(i - store.frame_min-startframe)
+                    print "processed:", str(i)
                     if i%10 == 0:
                         
                         np.save(OUTPUT_FILENAME + 'piv_u.npy', us)
