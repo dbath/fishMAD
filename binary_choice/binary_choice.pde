@@ -1,5 +1,8 @@
 
 
+
+
+
 //-------------------------- DO NOT CHANGE VALUES ABOVE------------------------------------
 
 
@@ -38,6 +41,8 @@ import java.util.Collections;
 
 //GUI Setup
 
+
+
 import controlP5.*;
 ControlP5 cP5;
 Slider abc;
@@ -70,7 +75,7 @@ int bkgSaturation;
 int dotSaturation_R;
 int dotSaturation_L;
 boolean showDots = false;
-boolean NEWFILE = true;
+boolean NEWFILE = false;
 String HEADERS = "TIME" 
                 + '\t' + "BKGCOLOUR" 
                 + '\t' + "BKGBRIGHTNESS"
@@ -103,116 +108,120 @@ void setup(){
   int H = int(0.03*height);
   
   // setup GUI
+  
+  
   cP5 = new ControlP5(this);
   
+  
   cP5.addSlider("bkgColour")
-     .setPosition(int(0.5*sqBar),1*H)
+     .setPosition(int(0.1*sqBar),1*H)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(51)
      .setValue(defaultBkgColour)
      ;
     cP5.addSlider("dotColour_R")
-     .setPosition(int(0.5*sqBar),5*H)
+     .setPosition(int(0.1*sqBar),5*H)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(51)
      .setValue(defaultDotColour_R)
      ;  
     cP5.addSlider("dotColour_L")
-     .setPosition(int(0.5*sqBar),9*H)
+     .setPosition(int(0.1*sqBar),9*H)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(51)
      .setValue(defaultDotColour_L)
      ;  
     cP5.addSlider("bkgBrightness")
-     .setPosition(int(0.5*sqBar),3*H)
+     .setPosition(int(0.1*sqBar),3*H)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(51)
      .setValue(defaultBkgBrightness)
      ;
     cP5.addSlider("dotBrightness_R")
-     .setPosition(int(0.5*sqBar),7*H)
+     .setPosition(int(0.1*sqBar),7*H)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(51)
      .setValue(defaultDotBrightness_R)
      ;  
     cP5.addSlider("dotBrightness_L")
-     .setPosition(int(0.5*sqBar),11*H)
+     .setPosition(int(0.1*sqBar),11*H)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(51)
      .setValue(defaultDotBrightness_L)
      ;  
     cP5.addSlider("bkgSaturation")
-     .setPosition(int(0.5*sqBar),2*H)
+     .setPosition(int(0.1*sqBar),2*H)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(51)
      .setValue(defaultBkgSaturation)
      ;
     cP5.addSlider("dotSaturation_R")
-     .setPosition(int(0.5*sqBar),6*H)
+     .setPosition(int(0.1*sqBar),6*H)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(51)
      .setValue(defaultSaturation_R)
      ;  
     cP5.addSlider("dotSaturation_L")
-     .setPosition(int(0.5*sqBar),10*H)
+     .setPosition(int(0.1*sqBar),10*H)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(51)
      .setValue(defaultSaturation_L)
      ;  
     cP5.addSlider("dotSize")
-     .setPosition(int(0.5*sqBar),13*H)
+     .setPosition(int(0.1*sqBar),13*H)
      .setSize(200,28)
      .setRange(0,0.5)
      .setNumberOfTickMarks(51)
      .setValue(dotSize)
      ;  
     cP5.addSlider("dotPosX")
-     .setPosition(int(0.5*sqBar),14*H)
+     .setPosition(int(0.1*sqBar),14*H)
      .setSize(200,28)
      .setRange(0,1)
      .setNumberOfTickMarks(51)
      .setValue(dotPosX)
      ;  
     cP5.addSlider("dotPosY")
-     .setPosition(int(0.5*sqBar),15*H)
+     .setPosition(int(0.1*sqBar),15*H)
      .setSize(200,28)
      .setRange(0,1)
      .setNumberOfTickMarks(51)
      .setValue(dotPosY)
      ;  
     cP5.addSlider("stimDelay")
-     .setPosition(int(0.5*sqBar),17*H)
+     .setPosition(int(0.1*sqBar),17*H)
      .setSize(200,28)
      .setRange(0,60)
      .setNumberOfTickMarks(61)
      .setValue(3)
      ;  
     cP5.addSlider("stimDuration")
-     .setPosition(int(0.5*sqBar),18*H)
+     .setPosition(int(0.1*sqBar),18*H)
      .setSize(200,28)
      .setRange(0,60)
      .setNumberOfTickMarks(61)
      .setValue(3)
      ;  
-  cP5.addBang("Report_Settings",int(0.5*sqBar),20*H,60,30);
-  //cP5.addBang("Hide",sqBar-220,300,60,30);
-  //cP5.addBang("Reverse",sqBar-220,350,60,30);
-  cP5.addBang("Go",int(0.8*sqBar),20*H,60,30);
-  cP5.addBang("SETUP",int(0.8*sqBar),22*H,60,30);
+    cP5.addBang("Report_Settings",int(0.1*sqBar),20*H,60,30);
+    //cP5.addBang("Hide",sqBar-220,300,60,30);
+    //cP5.addBang("Reverse",sqBar-220,350,60,30);
+    cP5.addBang("Go",int(0.5*sqBar),20*H,60,30);
+    cP5.addToggle("SETUP")
+     .setPosition(int(0.5*sqBar),22*H)
+     .setSize(60,30);
    
   stroke(0,0,0,0);
 
-  String TIME = RTFN();
-  logEntry(TIME + '\t' + "PROGRAM INITIATED", true);
+  logEntry("PROGRAM INITIATED", true);
 }
 
 void keyPressed(){
@@ -250,6 +259,7 @@ void logEntry(String msg, boolean append) {
     File file =new File("/sdcard/dotbot/log_binaryChoice.txt");
     if (!file.exists()) {
       file.createNewFile();
+      NEWFILE = true;
     }
  
     FileWriter fw = new FileWriter(file, append);///true = append
@@ -258,6 +268,7 @@ void logEntry(String msg, boolean append) {
     if (NEWFILE == true){
       pw.write(HEADERS);
       println(HEADERS);
+      NEWFILE = false;
     }
 
     String defaultInfo = RTFN() 
