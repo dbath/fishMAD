@@ -48,6 +48,7 @@ ControlP5 cP5;
 Slider abc;
 boolean goNoGo = false;
 boolean SETUP = false;
+boolean HIDE = false;
 //Logging setup
 FileWriter fw;
 BufferedWriter bw;
@@ -215,6 +216,9 @@ void setup(){
     //cP5.addBang("Hide",sqBar-220,300,60,30);
     //cP5.addBang("Reverse",sqBar-220,350,60,30);
     cP5.addBang("Go",int(0.5*sqBar),20*H,60,30);
+    cP5.addToggle("HIDE")
+     .setPosition(int(0.1*sqBar),22*H)
+     .setSize(60,30);
     cP5.addToggle("SETUP")
      .setPosition(int(0.5*sqBar),22*H)
      .setSize(60,30);
@@ -235,6 +239,10 @@ void keyPressed(){
 
 void SETUP(){
   SETUP = !SETUP;
+}
+
+void HIDE(){
+  HIDE = !HIDE;
 }
 
 
@@ -312,37 +320,40 @@ void squareFrame(){
 
 
 void draw(){
-  background(bkgColour,bkgSaturation,bkgBrightness,100);
-
-  int dotSize_adj = int(dotSize*height);
-  int dotPosX_adj = int(dotPosX*height);
-  int dotPosY_adj = int(dotPosY*height);
-  if (SETUP == true){
-    fill(dotColour_2, dotSaturation_2, dotBrightness_2, 100);
-    ellipse(width/2 - dotPosX_adj, dotPosY_adj, 1.4*dotSize_adj, dotSize_adj);
-    fill(dotColour_1, dotSaturation_1, dotBrightness_1, 100);
-    ellipse(width/2 + dotPosX_adj, dotPosY_adj, 1.4*dotSize_adj, dotSize_adj);
-  }
-    
-  else if (goNoGo == true){
-    
-    if (tLoop - t0 >= stimDuration*1000 + stimDelay*1000){
-      goNoGo = false;
-      showDots = false;
-      logEntry("STIM OFF",true);
-    }
-    else if (tLoop - t0 >= stimDelay*1000){
-      if (showDots == false){
-        logEntry("STIM ON", true);
-        showDots = true;
-      }
+  if (HIDE == true){ background(0,0,100,100);}
+  else {
+    background(bkgColour,bkgSaturation,bkgBrightness,100);
+  
+    int dotSize_adj = int(dotSize*height);
+    int dotPosX_adj = int(dotPosX*height);
+    int dotPosY_adj = int(dotPosY*height);
+    if (SETUP == true){
       fill(dotColour_2, dotSaturation_2, dotBrightness_2, 100);
-      ellipse(width/2 - RANDO*dotPosX_adj, dotPosY_adj, 1.4*dotSize_adj, dotSize_adj);
+      ellipse(width/2 - dotPosX_adj, dotPosY_adj, 1.4*dotSize_adj, dotSize_adj);
       fill(dotColour_1, dotSaturation_1, dotBrightness_1, 100);
-      ellipse(width/2 + RANDO*dotPosX_adj, dotPosY_adj, 1.4*dotSize_adj, dotSize_adj);
+      ellipse(width/2 + dotPosX_adj, dotPosY_adj, 1.4*dotSize_adj, dotSize_adj);
     }
-    tLoop = millis();
-
+      
+    else if (goNoGo == true){
+      
+      if (tLoop - t0 >= stimDuration*1000 + stimDelay*1000){
+        goNoGo = false;
+        showDots = false;
+        logEntry("STIM OFF",true);
+      }
+      else if (tLoop - t0 >= stimDelay*1000){
+        if (showDots == false){
+          logEntry("STIM ON", true);
+          showDots = true;
+        }
+        fill(dotColour_2, dotSaturation_2, dotBrightness_2, 100);
+        ellipse(width/2 - RANDO*dotPosX_adj, dotPosY_adj, 1.4*dotSize_adj, dotSize_adj);
+        fill(dotColour_1, dotSaturation_1, dotBrightness_1, 100);
+        ellipse(width/2 + RANDO*dotPosX_adj, dotPosY_adj, 1.4*dotSize_adj, dotSize_adj);
+      }
+      tLoop = millis();
+  
+    }
   }
   squareFrame();
   fill(0,0,100,100);
