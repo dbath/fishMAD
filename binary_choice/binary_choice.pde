@@ -9,21 +9,21 @@
 float stimDelay = 3.0; //delay between pressing "go" and presentation of stimulus
 float stimDuration = 3.0; //duration of stimulus presentation in seconds 
 
-float dotSize = 0.05;  // size of dots in proportion of screen height (eg 0.5 will be half the height of the screen)
-float dotPosX = 0.4; //horizontal distance of dots from centre, in proportion of screen height
+float dotSize = 0.01;  // size of dots in proportion of screen height (eg 0.5 will be half the height of the screen)
+float dotPosX = 0.33; //horizontal distance of dots from centre, in proportion of screen height
 float dotPosY = 0.5; //vertical distance of dots from top, in proportion of screen height
 
 int defaultBkgColour = 50; //default colour of background from 0 (red) to 100 (red) ROYGBIVR
 int defaultBkgBrightness = 100; //default brightness of background from 0 (black) to 100 (white)
-int defaultBkgSaturation = 0; //default colour of background from 0 (black) to 100 (white)
+int defaultBkgSaturation = 50; //default colour of background from 0 (black) to 100 (white)
 
-int defaultdotColour_1 = 33; //default colour of dots from 0 (red) to 100 (red) ROYGBIVR
+int defaultdotColour_1 = 44; //default colour of dots from 0 (red) to 100 (red) ROYGBIVR
 int defaultDotBrightness_1 = 100; //default colour of dots from 0 (black) to 100 (bright)
-int defaultSaturation_1 = 100; //default colour of dots from 0 (black) to 100 (white)
+int defaultSaturation_1 = 64; //default colour of dots from 0 (black) to 100 (white)
 
-int defaultdotColour_2 = 0; //default colour of dots from 0 (red) to 100 (red) ROYGBIVR
+int defaultdotColour_2 = 50; //default colour of dots from 0 (red) to 100 (red) ROYGBIVR
 int defaultDotBrightness_2 = 100; //default colour of dots from 0 (black) to 100 (white)
-int defaultSaturation_2 = 100; //default colour of dots from 0 (black) to 100 (white)
+int defaultSaturation_2 = 50; //default colour of dots from 0 (black) to 100 (white)
 
 
 //-------------------------- DO NOT CHANGE VALUES BELOW------------------------------------
@@ -223,7 +223,7 @@ void setup(){
      .setPosition(int(0.5*sqBar),22*H)
      .setSize(60,30);
    
-  stroke(0,0,0,0);
+  //stroke(0,0,0,0);
 
   logEntry("PROGRAM INITIATED", true);
 }
@@ -328,9 +328,11 @@ void draw(){
     int dotPosX_adj = int(dotPosX*height);
     int dotPosY_adj = int(dotPosY*height);
     if (SETUP == true){
+      stroke(dotColour_2, dotSaturation_2, dotBrightness_2, 100);
       fill(dotColour_2, dotSaturation_2, dotBrightness_2, 100);
       ellipse(width/2 - dotPosX_adj, dotPosY_adj, 1.4*dotSize_adj, dotSize_adj);
       fill(dotColour_1, dotSaturation_1, dotBrightness_1, 100);
+      stroke(dotColour_1, dotSaturation_1, dotBrightness_1, 100);
       ellipse(width/2 + dotPosX_adj, dotPosY_adj, 1.4*dotSize_adj, dotSize_adj);
     }
       
@@ -346,8 +348,10 @@ void draw(){
           logEntry("STIM ON", true);
           showDots = true;
         }
+        stroke(dotColour_2, dotSaturation_2, dotBrightness_2, 100);
         fill(dotColour_2, dotSaturation_2, dotBrightness_2, 100);
         ellipse(width/2 - RANDO*dotPosX_adj, dotPosY_adj, 1.4*dotSize_adj, dotSize_adj);
+        stroke(dotColour_1, dotSaturation_1, dotBrightness_1, 100);
         fill(dotColour_1, dotSaturation_1, dotBrightness_1, 100);
         ellipse(width/2 + RANDO*dotPosX_adj, dotPosY_adj, 1.4*dotSize_adj, dotSize_adj);
       }
@@ -355,6 +359,7 @@ void draw(){
   
     }
   }
+  stroke(0,0,0,0);
   squareFrame();
   fill(0,0,100,100);
   textSize(40);

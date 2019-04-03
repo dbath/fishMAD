@@ -14,7 +14,6 @@ import java.util.Collections;
 import controlP5.*;
 ControlP5 cP5;
 Slider abc;
-boolean goNoGo = false;
 
 //Logging setup
 FileWriter fw;
@@ -22,14 +21,25 @@ BufferedWriter bw;
 DecimalFormat formatter = new DecimalFormat("###.#");
 
 
+int RANDO=1;
+int dotSize = 30;  // size of dots
 
-int dotSize = 50;  // size of dots
+int defaultBkgColour = 50; //default colour of background from 0 (red) to 100 (red) ROYGBIVR
+int defaultBkgBrightness = 100; //default brightness of background from 0 (black) to 100 (white)
+int defaultBkgSaturation = 0; //default colour of background from 0 (black) to 100 (white)
 
-int nDots = 500;  //number of dots
+int defaultdotColour = 33; //default colour of dots from 0 (red) to 100 (red) ROYGBIVR
+int defaultDotBrightness = 50; //default colour of dots from 0 (black) to 100 (bright)
+int defaultSaturation = 50; //default colour of dots from 0 (black) to 100 (white)
+
+int nDots = 400;  //number of dots
 int nDotsSlider;
 
-Dots group1 = new Dots(2000,0,1,1);
+boolean goNoGo = false;
+boolean SETUP = false;
+boolean HIDE = false;
 
+int H;
 int t0;
 int tLoop;
 float alpha = 100;
@@ -48,62 +58,111 @@ int bkgColour;
 int dotColour;
 int bkgBrightness;
 int dotBrightness;
+int bkgSaturation;
+int dotSaturation;
+boolean showDots = false;
+boolean NEWFILE = false;
+String HEADERS = "TIME" 
+                + '\t' + "BKGCOLOUR" 
+                + '\t' + "BKGBRIGHTNESS"
+                + '\t' + "BKGSAT" 
+                + '\t' + "DOTCOLOUR" 
+                + '\t' + "DOTBRIGHTNESS" 
+                + '\t' + "DOTSAT" 
+                + '\n';
 
+
+Dots group1 = new Dots(2000,speed,1,1);
 
 void setup(){
 
   
-  
-  randomSeed(10);
   colorMode(HSB, 100,100,100,100);
   fullScreen();
   ellipseMode(CENTER);
+    
   sqBar = (width - height) /2;
+  
+  H = int(0.03*height);
+  
+  // setup GUI
+  
   
   cP5 = new ControlP5(this);
   
+  
   cP5.addSlider("bkgColour")
-     .setPosition(sqBar-300,50)
+     .setPosition(int(0.1*sqBar),1*H)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(51)
-     .setValue(50)
+     .setValue(defaultBkgColour)
      ;
     cP5.addSlider("dotColour")
-     .setPosition(sqBar-300,90)
+     .setPosition(int(0.1*sqBar),5*H)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(51)
-     .setValue(50)
+     .setValue(defaultdotColour)
      ;  
     cP5.addSlider("bkgBrightness")
-     .setPosition(sqBar-300,130)
+     .setPosition(int(0.1*sqBar),3*H)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(51)
-     .setValue(50)
+     .setValue(defaultBkgBrightness)
      ;
     cP5.addSlider("dotBrightness")
-     .setPosition(sqBar-300,170)
+     .setPosition(int(0.1*sqBar),7*H)
      .setSize(200,28)
      .setRange(0,100)
      .setNumberOfTickMarks(51)
-     .setValue(50)
+     .setValue(defaultDotBrightness)
      ;  
-    cP5.addSlider("speed")
-     .setPosition(sqBar-300,210)
+    cP5.addSlider("bkgSaturation")
+     .setPosition(int(0.1*sqBar),2*H)
      .setSize(200,28)
      .setRange(0,100)
-     .setNumberOfTickMarks(21)
-     .setValue(35)
+     .setNumberOfTickMarks(51)
+     .setValue(defaultBkgSaturation)
+     ;
+    cP5.addSlider("dotSaturation")
+     .setPosition(int(0.1*sqBar),6*H)
+     .setSize(200,28)
+     .setRange(0,100)
+     .setNumberOfTickMarks(51)
+     .setValue(defaultSaturation)
      ;  
-  cP5.addBang("Go",sqBar-220,250,60,30);
-  cP5.addBang("Hide",sqBar-220,300,60,30);
-  cP5.addBang("Reverse",sqBar-220,350,60,30);
-  cP5.addBang("StopStart",sqBar-220,400,60,30);
+    cP5.addSlider("speed")
+     .setPosition(int(0.1*sqBar),12*H)
+     .setSize(200,28)
+     .setRange(0,100)
+     .setNumberOfTickMarks(51)
+     .setValue(speed)
+     ;  
+    cP5.addSlider("dotSize")
+     .setPosition(int(0.1*sqBar),13*H)
+     .setSize(200,28)
+     .setRange(0,100)
+     .setNumberOfTickMarks(51)
+     .setValue(dotSize)
+     ;  
+    cP5.addBang("Report_Settings",int(0.1*sqBar),20*H,60,30);
+    //cP5.addBang("Hide",sqBar-220,300,60,30);
+    //cP5.addBang("Reverse",sqBar-220,350,60,30);
+    cP5.addBang("Go",int(0.5*sqBar),20*H,60,30);
+    cP5.addToggle("HIDE")
+     .setPosition(int(0.1*sqBar),22*H)
+     .setSize(60,30);
+    cP5.addToggle("SETUP")
+     .setPosition(int(0.5*sqBar),22*H)
+     .setSize(60,30);
+    cP5.addToggle("Reverse")
+     .setPosition(int(0.5*sqBar),18*H)
+     .setSize(60,30);
    
   stroke(0,0,0,0);
-  fill(55,80,100,100);; 
+  //fill(55,80,100,100);; 
 
   group1.Init();
 
@@ -157,13 +216,23 @@ void StopStart(){
 
 
 
-void Go(){
-  goNoGo = true;
-  t0 = millis();
-  group1.Init();
-  group1.Set(nDots, speed, 1); 
-  running = true;
+
+void Report_Settings(){
+    logEntry("REPORT SETTINGS", true);
 }
+
+void SETUP(){
+  SETUP = !SETUP;
+}
+
+void Go(){
+  SETUP = false;
+  RANDO = int(pow(-1, int(random(0,100))));
+  t0 = millis();
+  goNoGo = true;
+  logEntry("START", true);
+}
+
 
 void Hide(){
   hideMode = hideMode - 1;
@@ -207,7 +276,7 @@ void squareFrame(){
 }
 
 void hideFrame(float alpha){
-  fill(bkgColour,100,bkgBrightness,alpha);
+  fill(bkgColour,bkgSaturation,bkgBrightness,alpha);
   rect(0,0,width, height);
 }
 
@@ -243,12 +312,12 @@ public class Dots {
     }
   }
   void update() { 
+    stroke(dotColour,dotSaturation,dotBrightness,100);
+    fill(dotColour,dotSaturation,dotBrightness,100);
     for(int i=0; i < nDots; i++){//DotList.length; i++){  //for (Dot dot : DotList){
       Dot dot = DotList[i];
       dot.renew();
-      stroke(dotColour,100,dotBrightness,dot.COLOUR);
-      fill(dotColour,100,dotBrightness,dot.COLOUR);
-      ellipse(dot.X1, dot.Y1, dot.SIZE, dot.SIZE);
+      ellipse(dot.X1, dot.Y1, dotSize, dotSize);
     }
   }
   void Resize(float lowBound, float highBound) { 
@@ -295,7 +364,7 @@ class Dot{
     this.CX = width/2;
     this.CY = height/2;
     this.ROTATION = rotation;
-    this.VEL = vel*random(0.7,1.3);
+    this.VEL = vel*random(-30,30);
     this.DIR = dir;
     this.X1 = random(0,1.42)*height + sqBar; 
     this.Y1 = random(0,1.42)*height;
@@ -304,7 +373,7 @@ class Dot{
   }
   
   void renew() {
-    this.ROTATION = this.ROTATION + this.VEL*this.DIR*stopgo*DIRECTION;
+    this.ROTATION = this.ROTATION + +(this.VEL + speed)*0.001*this.DIR*stopgo*DIRECTION;
     this.X1 = (cos(this.ROTATION)*this.RAD + sin(this.VAR*this.ROTATION)) + this.CX ;
     this.Y1 = (sin(this.ROTATION)*this.RAD + sin(this.VAR*this.ROTATION)) + this.CY ;
   }
@@ -375,10 +444,10 @@ void draw(){
       
     */
     
-    background(bkgColour,100,bkgBrightness,100);
+    background(bkgColour,bkgSaturation,bkgBrightness,100);
     group1.update();
     
-    hideFrame(alpha*hideMode);
+    //hideFrame(alpha*hideMode);
   }
   squareFrame();
 }
