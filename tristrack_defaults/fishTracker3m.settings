@@ -1,0 +1,20 @@
+calculate_posture = false
+cam_limit_exposure = 3500
+fish_max_speed = 80
+fish_minmax_size = [0.3,6]
+fish_speed_decay = 0.1
+fixed_count = true
+frame_rate = 40
+fish_max_reassign_time = 0.5
+number_fish = 500
+outline_curvature_range = 15
+output_dir = '/media/recnodes/recnode_jolle2/whitelight_2_20171024_171801/track'
+posture_threshold_constant = 30
+theshold_constant = 30
+output_min_frames = 40
+gui_max_path_time = 1
+matching_probability_threshold = 0.2
+gui_auto_quit = true
+
+output_graphs = [["frame",[]], ["time",[]], ["X",["RAW","WCENTROID"]], ["Y",["RAW","WCENTROID"]],["SPEED",["SMOOTH","WCENTROID"]], ["VX",["SMOOTH","WCENTROID"]], ["VY",["SMOOTH","WCENTROID"]],["ACCELERATION",["SMOOTH","WCENTROID"]], ["AX",["SMOOTH","WCENTROID"]],["AY",["SMOOTH","WCENTROID"]],["ANGULAR_V",["RAW","WCENTROID"]], ["ANGULAR_A",["RAW","WCENTROID"]],["BORDER_DISTANCE",["RAW","WCENTROID"]]]
+

@@ -1,14 +1,16 @@
 #!/usr/bin/python
 
 
+from __future__ import print_function
+from __future__ import absolute_import
 import glob
 import run_fishTracker
 import argparse
 import os
 import plot_positions
-import polarization_rotation
+#import polarization_rotation
 from utilities import *
-import count
+#import count
 
 
 
@@ -36,10 +38,11 @@ def convert_video_format(MAIN_DIR):
     if not (os.path.exists(track_dir + '/converted.pv')):
         if os.path.exists(os.path.expanduser('~/setup_debian/FishTracker/Application/build/video_average.png')):
             os.remove(os.path.expanduser('~/setup_debian/FishTracker/Application/build/video_average.png'))
-        print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"Running conversion on file: ", track_dir
+        print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"Running conversion on file: ", track_dir)
         try:
             subprocess.check_call([launch_conversion],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
-        except Exception, e:
+        
+        except Exception as e:
             errorLog = open(os.path.expanduser('~/setup_debian/FishTracker/Application/build/batchlog.txt'), 'w')
             errorLog.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t')
             errorLog.write(track_dir + '\t')
@@ -47,7 +50,7 @@ def convert_video_format(MAIN_DIR):
             errorLog.write(str(e) + '\n\n\n')
             errorLog.close()
             FNULL.close()
-            print datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"ERROR converting file: ", track_dir
+            print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"ERROR converting file: ", track_dir)
             return
     return
 
@@ -61,6 +64,10 @@ if __name__ == "__main__":
                         help="provide an path or integer descrbing how to handle backgrounds.  path:'\t'Generate a background image from the given directory and use it repeatedly. '\n'0:'\t'use pre-existing.'\n'1:'\t'create one, then use it repeatedly.'\n'>1:'\t'create a new bkg for every video.")
     parser.add_argument('--newonly', type=bool, required=False, default=True,
                         help='make false to retrack and save over old data')
+    parser.add_argument('--exportNewData', type=bool, required=False, default=False,
+                        help='make true to reload old files and export new npz files')
+    parser.add_argument('--debug', type=bool, required=False, default=False,
+                        help='make True to show window during tracking and conversion')
                 
     args = parser.parse_args()
     
@@ -74,7 +81,7 @@ if __name__ == "__main__":
             DIRECTORIES[x] += '/'
     
     if os.path.exists(BKG_RULE):
-        import utilities
+        from . import utilities
         utilities.createBackgroundImage(BKG_RULE, method='mean') #FIXME when tristan updates
         mkBkg=False
     elif BKG_RULE == '0':
@@ -120,12 +127,24 @@ if __name__ == "__main__":
     # TRACK, THEN RUN BASIC ANALYSIS
     for term in HANDLE:
         for DIR in DIRECTORIES:
-            for vDir in glob.glob(DIR + '*' + term + '*'):
+            for vDir in glob.glob(DIR + '*' + term + '*' + '.stitched'):
                 vDir = slashdir(vDir)
-                if (not os.path.exists(vDir + '/track/converted.results')) and (os.path.exists(vDir + '/track/converted.pv')):
-                   
-                    _fishnum = int(vDir.split('/')[-2].split('_')[1])
-                    run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum)
+                _fishnum = int(vDir.split('/')[-2].split('_')[1])
+                if not os.path.exists(vDir + 'track/converted.pv'):
+                    if os.path.getsize(vDir + '000000.mp4') > 1000: #skip blank files...
+                        run_fishTracker.setup_tristrack(vDir, _fishnum)
+                        run_fishTracker.convert(vDir, mkBkg, args.newonly, _fishnum, args.debug)
+                    
+                if (not os.path.exists(vDir + 'track/converted.results')) and (os.path.exists(vDir + 'track/converted.pv')):
+                    run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
+                elif (os.path.exists(vDir + 'track/converted.results')) and (os.path.exists(vDir + 'track/converted.pv') and (args.exportNewData)):
+                    if not os.path.exists(vDir + 'track/fishTracker.settings'):
+                        run_fishTracker.setup_tristrack(vDir, _fishnum)
+                        run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
+                    elif getModTime(vDir + 'track/fishTracker.settings') < getTimeFromTimeString('20190315_130000'):
+                        run_fishTracker.setup_tristrack(vDir, _fishnum)
+                        run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
+                """    
                 if (not os.path.exists(vDir + '/track/frameByFrame_complete')):
                     try:
                         fbf = getFrameByFrameData(vDir + '/track', RESUME=False)
@@ -140,7 +159,7 @@ if __name__ == "__main__":
                     except Exception, e:
                         errorLogIt(e)
                         pass
-                """                
+                                
                 if (not os.path.exists(vDir + '/track/density_meandRotation-x_polarization-y.png')):
                     try:
                         polarization_rotation.run(vDir)

@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,14 +10,29 @@ import math
 import time
 import datetime
 from motifapi import MotifApi as Motif
-from statsmodels.nonparametric.smoothers_lowess import lowess
+import sys
 
-XPOS = 'X#centroid (cm)'
-YPOS = 'Y#centroid (cm)'
-XVEL = 'VX#centroid (cm/s)' 
-YVEL = 'VY#centroid (cm/s)'
-
-
+"""
+def getColumnNames(dateString):
+    date = getTimeFromTimeString(dateString)
+    if date < getTimeFromTimeString('20180701_010000'):
+        XPOS = 'X#centroid (cm)'
+        YPOS = 'Y#centroid (cm)'
+        XVEL = 'VX#centroid (cm/s)' 
+        YVEL = 'VY#centroid (cm/s)'
+        SPEED = 'SPEED'
+        ACC = 'ACC'
+    else:
+"""
+XPOS = 'X#wcentroid'
+YPOS = 'Y#wcentroid'
+XVEL = 'VX#smooth#wcentroid'
+YVEL = 'VY#smooth#wcentroid'
+SPEED = 'SPEED#smooth#wcentroid'
+ACC = 'ACCELERATION#smooth#wcentroid'
+angVel = 'ANGULAR_A#wcentroid'
+angAcc = 'ANGULAR_V#wcentroid'
+        
 def getTimeFromTimeString(string=None):
     if string == None:
         return datetime.datetime.now()
@@ -31,7 +47,13 @@ def getTimeStringFromTime(TIME=None):
     else:
         return datetime.datetime.strftime(TIME,"%Y%m%d_%H%M%S")
 
+def getModTime(fn):
+    t = os.path.getmtime(fn)
+    return datetime.datetime.utcfromtimestamp(t)
+
 def smooth(y, x='notDefined', frac=0.05):
+    if lowess not in sys.modules:
+        from statsmodels.nonparametric.smoothers_lowess import lowess
     if x=='notDefined':
         x = range(len(y))
     filtered = lowess(y, x, frac=frac)
@@ -106,7 +128,7 @@ def createBackgroundImage(DIRECTORY, method='mode'):
         DIRECTORY += '/'
         
     firstframe=True
-    for vidnum in ['000000.mp4','000010.mp4']:  #LAZY DANNO FIXME    
+    for vidnum in ['000000.mp4','000002.mp4']:  #LAZY DANNO FIXME    
         vid = cv2.VideoCapture(DIRECTORY + vidnum)
         framecount = int(vid.get(7))
         skipFrames = 17#int(np.round(framecount/100))
@@ -141,12 +163,23 @@ def getFrameByFrameData(DIRECTORY, RESUME=True):
 
     if DIRECTORY[-1] != '/':
         DIRECTORY = DIRECTORY + '/'
+    
         
     if os.path.exists(DIRECTORY + 'frameByFrameData.pickle') and RESUME:
+    
         df = pd.read_pickle(DIRECTORY + 'frameByFrameData.pickle')
+        if not XPOS in df.columns:
+            print(XPOS, "not found in columns. removing tracked data.", DIRECTORY)
+            print(df.columns)
+            #os.remove(DIRECTORY + 'frameByFrameData.pickle')
+            #os.rmtree(DIRECTORY + 'fishdata')
+            if os.path.exists(DIRECTORY + 'frameByFrame_complete'):
+                os.remove(DIRECTORY + 'frameByFrame_complete')
+            return
+    
     else:
         df = pd.DataFrame()
-    i = 0
+    i = 1
     for fn in glob.glob(DIRECTORY + 'fishdata/*.csv'):
         ID = fn.split('fish')[-1].split('.')[0]
         if (len(df) >0):
@@ -179,12 +212,26 @@ def getFrameByFrameData(DIRECTORY, RESUME=True):
             #print "processed track number :", i
             df.to_pickle(DIRECTORY + 'frameByFrameData.pickle')
         i +=1
-    df['frame'] = df['frame'].astype(int)
-    df.replace(to_replace=np.inf, value=np.nan, inplace=True)
-    df.to_pickle(DIRECTORY + 'frameByFrameData.pickle')
-    open(DIRECTORY + 'frameByFrame_complete','a').close()
+    try:
+        df['frame'] = df['frame'].astype(int)
+        df.replace(to_replace=np.inf, value=np.nan, inplace=True)
+        df.to_pickle(DIRECTORY + 'frameByFrameData.pickle')
+        FINISHED = open(DIRECTORY + 'frameByFrame_complete','w')
+        FINISHED.write(getTimeStringFromTime())
+        FINISHED.close()
+    except:
+        print("ERROR: problem compiling:", DIRECTORY + "frameByFrameData.pickle", df.shape)
     return df
+
+def crop_stitched_img(img):
+    if len(img.shape)==2:
+        h,w = img.shape
+        return img[100:h-100,100:w-100]
+    elif len(img.shape)==3:
+        h, w, _ = img.shape
+        return img[100:h-100,100:w-100,:]
     
+   
 def angle_from_vertical(point1, point2):
     """
     RETURNS A VALUE IN DEGREES BETWEEN 0 AND 360, WHERE 0 AND 360 ARE NORTH ORIENTATION.
@@ -210,4 +257,24 @@ def getFramelessValues(myDict):
             myArray.append(y)
     myArray = np.array(myArray)
     return myArray
+    
+def reportExperimentalSessions():
+    df = pd.DataFrame() 
+    for x in glob.glob('/media/recnodes/recnode_2mfish/*dotbot*'):
+         expID, groupsize, _ , date, time = x.split('/')[-1].split('.')[0].split('_')[:5]
+         f = {'expID':expID, 'groupsize':groupsize, 'date':date, 'time':time}
+         df = df.append(f, ignore_index=True)
+    g = df.groupby(['date', 'expID'])
+
+    foo = pd.merge(g.min(), g.max(), left_index=True, right_index=True)
+    foo.columns = ['groupsize','firstExp','groupsize2','lastExp']
+    print(foo[['groupsize','firstExp','lastExp']])
+    return foo[['groupsize','firstExp','lastExp']]
+
+def reportExperimentGroups(fileList):
+    df = pd.DataFrame({'names':fileList})
+    df[['groupsize','date','time']] = pd.DataFrame([np.array(x.split('/')[-1].split('.')[0].split('_'))[[1,3,4]].astype(int) for x in df['names']])
+    print(df.groupby('groupsize').count()['names'])
+    print("Date range: "+ str(df['date'].min())+ str(df['date'].max()))
+    return
 

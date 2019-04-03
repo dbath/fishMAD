@@ -1,0 +1,17 @@
+frame_rate = 40
+cam_framerate = 40
+crop_offsets = [0.0, 0.0, 0.0, 0]
+fish_minmax_size = [0.421401,6.5]
+threshold_constant = 30
+cam_resolution = [3908, 4096]
+
+cam_limit_exposure = 3500
+cam_limit_framerate = false
+cam_circle_mask = false
+cam_undistort = false
+recording = true
+meta_real_width = 320
+meta_species = "Sunbleak"
+
+image_invert = false
+enable_absolute_difference = false

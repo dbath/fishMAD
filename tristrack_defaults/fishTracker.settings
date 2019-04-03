@@ -1,7 +1,7 @@
 calculate_posture = false
 cam_limit_exposure = 3500
-fish_max_speed = 150
-fish_minmax_size = [1.5,7]
+fish_max_speed = 120
+fish_minmax_size =  [0.421401,6.5]
 fixed_count = true
 frame_rate = 40
 fish_max_reassign_time = 1.333333
@@ -12,6 +12,6 @@ posture_threshold_constant = 30
 theshold_constant = 50
 output_min_frames = 40
 gui_max_path_time = 1
-matching_probability_threshold = 0.3
+matching_probability_threshold = 0.4
 gui_auto_quit = true
 output_graphs = [["frame"],["X",["CENTROID"]],["Y",["CENTROID"]],["VX",["CENTROID"]],["VY",["CENTROID"]],["SPEED",["CENTROID","SMOOTH"]],["ANGLE",["CENTROID"]],["BORDER_DISTANCE",["CENTROID"]]]

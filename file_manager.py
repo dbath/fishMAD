@@ -50,7 +50,7 @@ class Mover(object):
         self.ANDROID_IP = rigID
         self.SOURCE = sourcefile
         self.DEST = slashdir(destdir)
-        self.BASE_DIRECTORY = 'media/recnodes/dotbot_logs/'
+        self.BASE_DIRECTORY = '/media/recnodes/dotbot_logs/'
         self.FN = getTimeStringFromTime() + '_' + self.SOURCE.split('/')[-1]
         self.destfile = self.BASE_DIRECTORY + self.DEST + self.FN
         self.MULTICAM = False

@@ -78,7 +78,7 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum):
     elif fishnum <= 200:
         fishnum += 15
     else:
-        fishnum += 25
+        fishnum = fishnum*1.1
 
     #  customize conversion.settings
     openFile = open(track_dir + '/conversion.settings', 'r+b')
