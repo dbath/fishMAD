@@ -114,6 +114,7 @@ def copyWindowsLog(src, dst):
 
 def sho(i):
     plt.imshow(i)
+    plotnice('img')
     plt.show()
     return
 
@@ -128,7 +129,7 @@ def createBackgroundImage(DIRECTORY, method='mode'):
         DIRECTORY += '/'
         
     firstframe=True
-    for vidnum in ['000000.mp4','000002.mp4']:  #LAZY DANNO FIXME    
+    for vidnum in ['000000.mp4','000001.mp4']:  #LAZY DANNO FIXME    
         vid = cv2.VideoCapture(DIRECTORY + vidnum)
         framecount = int(vid.get(7))
         skipFrames = 17#int(np.round(framecount/100))
@@ -230,7 +231,21 @@ def crop_stitched_img(img):
     elif len(img.shape)==3:
         h, w, _ = img.shape
         return img[100:h-100,100:w-100,:]
-    
+
+def plotnice(plotType='standard'):
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    if plotType == 'hist':
+        plt.gca().spines['left'].set_visible(False)
+        plt.gca().set_yticks([])
+    elif plotType=='img':
+        plt.gca().spines['left'].set_visible(False)
+        plt.gca().spines['bottom'].set_visible(False)
+        plt.gca().set_xticks([])
+        plt.gca().set_yticks([])
+        plt.axis('off')
+    return
+        
    
 def angle_from_vertical(point1, point2):
     """

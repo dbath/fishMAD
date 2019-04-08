@@ -72,8 +72,12 @@ def setup_tristrack(_main_dir, fishnum):
 
     #Get metadata from videos
     store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml' )
-    FPS = 40#store.user_metadata['acquisitionframerate']
     
+    if len(store.user_metadata) >0:
+        FPS = store.user_metadata['acquisitionframerate']
+    else:
+        FPS = 40
+        
     #FIX VIDEO SIZE BUG:
     videoSize =store.image_shape
     vidDims = []
@@ -185,14 +189,14 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG):
     vidSet = MAIN_DIR + '%6d.mp4'
     launch_conversion = "~/FishTracker/Application/build/framegrabber -d '" + track_dir + "' -i '" + vidSet + "' -o converted.pv -settings '" + track_dir + "/conversion.settings'"
     if DEBUG==False:
-        launch_conversion += "-nowindow"
+        launch_conversion += " -nowindow"
     if not (os.path.exists(track_dir + '/converted.pv')):
-        if os.path.exists(os.path.expanduser('~/FishTracker/Application/build/video_average.png')):
-            os.remove(os.path.expanduser('~/FishTracker/Application/build/video_average.png'))
+        #if os.path.exists(os.path.expanduser('~/FishTracker/Application/build/video_average.png')):
+        #    os.remove(os.path.expanduser('~/FishTracker/Application/build/video_average.png'))
         print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"Running conversion on file: ", track_dir)
         #try:
         print(launch_conversion)
-        subprocess.check_call([launch_conversion],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
+        subprocess.check_call([launch_conversion],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)#FNULL
         """
         except Exception as e:
             errorLog = open(os.path.expanduser('~/FishTracker/Application/build/batchlog.txt'), 'w')

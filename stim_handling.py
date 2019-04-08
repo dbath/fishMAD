@@ -56,6 +56,48 @@ def synch_coherence_with_rotation(MAIN_DIR, r=None):
     else:    
         return 1, bar  
 
+def get_logfile(MAIN_DIR):
+
+    MAIN_DIR = slashdir(MAIN_DIR)
+    if 'stitched' in MAIN_DIR:
+        LOG_FN = '/media/recnodes/recnode_jolle2/dotbot_logs/dotbotLog_' + MAIN_DIR.split('/')[-2].rsplit('.',1)[0] + '.txt'
+    else:
+        LOG_FN = '/media/recnodes/recnode_jolle2/dotbot_logs/dotbotLog_' + MAIN_DIR.split('/')[-2] + '.txt'
+    
+
+    log = pd.read_table(LOG_FN)
+    log.loc[:,'Timestamp'] /=  1000.0
+    
+    return log
+
+def get_frame_metadata(df, store):
+    framelist = pd.DataFrame(store.get_frame_metadata())
+    framelist.columns=['FrameNumber','Timestamp'] 
+
+    foo = df.merge(framelist, left_index=True, right_index=True)
+    return foo    
+
+def sync_reversals(r, log, store):
+    """
+    pass: r - any df with frame number (0>N) as index
+          log - a corresponding log file (from get_logfile())
+          store - imgstore object of corresponding video
+    returns:  df with frame numbers from camera, timestamps, and stim info
+    """    
+
+    foo = get_frame_metadata(r, store)
+    
+    
+    bar = foo.merge(log, how='outer') 
+    bar = bar.sort_values('Timestamp') 
+    bar['speed'] = bar['speed'].fillna(method='ffill').fillna(0)
+    bar['dir'] = bar['dir'].fillna(method='ffill').fillna(0)
+    bar.loc[:,'Time'] = (bar.loc[:,'Timestamp'] - bar.loc[0,'Timestamp'])
+    if bar.iloc[5].Timestamp - bar.iloc[0].Timestamp > 10: #check if log overlaps with track data
+        return 0, bar
+    else:    
+        return 1, bar  
+
 def synch_reversals(MAIN_DIR, r=None):
     MAIN_DIR = slashdir(MAIN_DIR)
     TRACK_DIR = MAIN_DIR + 'track/'

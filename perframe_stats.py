@@ -169,38 +169,104 @@ def get_rotation(data):
     return data, rotation_directed
     
 
-def plot_gaussian(f, n, save=True):
+def plot_gaussian(f, n, fig=None, ax1=None, plotpeaks=False):
     """
         pass a fbf dataframe grouped by frame (f) and a frame number (n).
         plots a histogram of heading directions and a pdf of a gaussian kde of the headings.
     """
     data = f.get_group(n)
     data, rotation_directed = get_rotation(data)
-    
+    rotation_directed = rotation_directed[~np.isnan(rotation_directed)]
     X = np.linspace(-1,1,201)
     results, edges = np.histogram(rotation_directed, bins=X, density=True)
     binWidth=edges[1] - edges[0]
     
-    fig, ax1 = plt.subplots()
+    if fig== None:
+        fig = plt.figure()
+        ax1 = fig.add_subplot(111)
     ax1.bar(edges[:-1], results*binWidth, binWidth, color='darkorange')
     ax1.set_ylabel('Frequency', size=14, color='darkorange')
     ax1.tick_params('y', colors='darkorange')
     ax1.set_ylim(0,0.5)
-    ax1.set_xlabel('Direction relative to group centroid', size=14)
+    ax1.set_xlabel('Direction relative to group centroid')
     ax2 = ax1.twinx()
     #plt.hist(rotation_directed, bins=201, normed=True)
-    ax2.plot(gaussian_X, scipy.stats.gaussian_kde(rotation_directed).pdf(X), linewidth=3, color='royalblue')
+    ax2.plot(X, scipy.stats.gaussian_kde(rotation_directed).pdf(X), linewidth=2, color='royalblue')
+    if plotpeaks:
+        peaks, peakParams = scipy.signal.find_peaks(scipy.stats.gaussian_kde(rotation_directed).pdf(X),0)
+        for j in range(len(peaks)):
+            a = peakParams['peak_heights'][j] / 1.0
+            if a > 1.0:
+                a = 1.0
+            ax1.plot(X[peaks[j]], 0.45, markeredgecolor='royalblue',
+                        markerfacecolor='royalblue', 
+                        markersize=10.0, 
+                        alpha=a, marker="o")
+            ax1.plot(X[np.abs(X - rotation_directed.mean()).argmin()], 0.45, markeredgecolor='black',
+                        markerfacecolor='black', 
+                        markersize=5.0, marker="o")
+            ax1.plot(X[np.abs(X - np.median(rotation_directed)).argmin()], 0.45, markeredgecolor='red',
+                        markerfacecolor='red', 
+                        markersize=5.0, marker="o")
+            ax1.plot(-1.0*data['dir'].mean(), 0.35, markeredgecolor='black',
+                        markerfacecolor='black', 
+                        markersize=15.0, marker="*")
+            #plt.axvline(x=X[peaks[j]], c='royalblue', alpha=a, linewidth=2)
+            #plt.axvline(x=X[np.abs(X - rotation_directed.mean()).argmin()], c='black', linewidth=1)
+            #plt.axvline(x=X[np.abs(X - np.median(rotation_directed)).argmin()], c='red', linewidth=1)
     ax2.set_ylim(0,2.5)
-    ax2.set_ylabel('Probability density', size=14, color='royalblue')
+    ax2.set_ylabel('Probability density',  color='royalblue')
     ax2.set_yticks([])
     plt.xticks([-1,0,1],['ccw','normal','cw'])
     fig.tight_layout()
-    if save==True:
-        plt.savefig('/home/dan/Desktop/gaussian_vid/%04d.png'%(n-4000))
-        plt.close('all')
-        return
+    return fig, rotation_directed
+
+from skimage import exposure
+
+def plot_image(img, ax):
+    h, w, _ = img.shape
+    img = img[100:h-100, 100:w-100, :]
+    plt.setp(ax.get_yticklabels(), visible=False)
+    plt.setp(ax.get_xticklabels(), visible=False)
+    ax.imshow(exposure.adjust_sigmoid(img, 0.40, 8))
+    ax.set_xticks([]); ax.set_yticks([])
+    return    
+
+MAIN_DIR = '/media/recnodes/recnode_2mfish/reversals3m_512_dotbot_20181017_111201.stitched/'
+store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
+fbf = pd.read_pickle(MAIN_DIR + 'track/frameByFrameData.pickle')
+ret, fbf = sync_reversals(fbf, get_logfile(MAIN_DIR), store)
+fbf = fbf.loc[fbf[XPOS].notnull(), :]
+fbf = fbf.loc[fbf[YPOS].notnull(), :]
+fbf.loc[:,'uVX'] = fbf.loc[:,XVEL] / fbf.loc[:,SPEED]
+fbf.loc[:,'uVY'] = fbf.loc[:,YVEL] / fbf.loc[:,SPEED]
+fbf = fbf.drop(columns=['header'])
+df = fbf.groupby(['frame'])
+
+def plot_data_above_image(framenumber=None, image_width=3666, image_height=3848, saveas=None, plotpeaks=True):
+    """
+    requires global variables "store", "df" (grouped by frame number)
+    """
+    if framenumber==None:
+        img, (f,t) = store.get_next_image()
     else:
-        return fig
+        img, (f,t) = store.get_image(store.frame_min + framenumber)
+    
+    fig = plt.figure(figsize=(image_width/500, image_height*1.2/500), dpi=200 )
+    ax1 = plt.subplot2grid((12,10), (0,0), colspan=10, rowspan=10)
+    fig.add_axes(ax1)
+    plot_image(img, ax1)
+    ax2 = plt.subplot2grid((12,10), (10,0), colspan=10, rowspan=2)
+    fig.add_axes(ax2)
+    fig, rotation = plot_gaussian(df, framenumber, fig, ax2, plotpeaks=plotpeaks)
+    plt.subplots_adjust(left=0.0, bottom=0.0, right=1.0, top=1.0, wspace=0.0, hspace=0.0)
+    if saveas == None:
+        return fig, rotation
+    else:
+        plt.savefig(saveas, bbox_inches='tight', pad_inches=0)
+        plt.close('all')
+        return rotation
+    
 
 
 
