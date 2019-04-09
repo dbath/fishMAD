@@ -209,7 +209,7 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG):
                     if (len(sp) == 11) and (sp[3] == 'FPS:'): #read only progress report lines
                         printProgressBar(int(sp[1].split('/')[0]), nFrames, 
                                 prefix='Converting: ', 
-                                suffix='ETA'+ line.split('eta:')[1].split('),')[0])
+                                suffix='ETA: '+ line.split('eta:')[1].split('),')[0])
                     if not line:
                         print("\n")
                         task.stdout.flush()
@@ -226,9 +226,9 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG):
         except:# Exception as e:
             errorLog = open(os.path.expanduser('~/FishTracker/Application/build/conversion_log.txt'), 'w')
             errorLog.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t')
-            errorLog.write(track_dir + '\t')
+            errorLog.write(track_dir + '\n')
             errorLog.write(launch_conversion + '\n')
-            errorLog.write('error during conversion step' + '\n')
+            errorLog.write('error during conversion step:' + '\n')
             errorLog.write(str(ERROR) + '\n')
             errorLog.write('--------------------------------------------------------------------------------------------------------\n\n')
             errorLog.close()
