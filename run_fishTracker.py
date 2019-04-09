@@ -203,14 +203,19 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG):
             PID = task.pid
             print('Process ID: ', PID)
             while task.stdout is not None:
-                line = task.stdout.readline().decode()
-                sp = line.split(' ')
-                if (len(sp) == 11) and (sp[3] == 'FPS:'): #read only progress report lines
-                    printProgressBar(int(sp[1].split('/')[0]), nFrames, 'Converting: ')
-                if not line:
-                    print("\n")
-                    task.stdout.flush()
-                    break
+                try:
+                    line = task.stdout.readline().decode()
+                    sp = line.split(' ')
+                    if (len(sp) == 11) and (sp[3] == 'FPS:'): #read only progress report lines
+                        printProgressBar(int(sp[1].split('/')[0]), nFrames, 
+                                prefix='Converting: ', 
+                                suffix='ETA'+ line.split('eta:')[1].split('),')[0])
+                    if not line:
+                        print("\n")
+                        task.stdout.flush()
+                        break
+                except:
+                    pass
             OUT, ERROR = task.communicate()
             if task.returncode != 0:
                 #if task.returncode == None:
@@ -259,14 +264,18 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG=False):
             PID = task.pid
             print('Process ID: ', PID)
             while task.stdout is not None:
-                line = task.stdout.readline().decode()
-                if ('frame' in line) and (') filter_blobs' in line): #read only progress report lines
-                    framenum = int(line.split('frame')[1].split(' ')[1].split('/')[0])
-                    printProgressBar(framenum, nFrames, 'Tracking: ')
-                if not line:
-                    print("\n")
-                    task.stdout.flush()
-                    break
+                try:
+                    line = task.stdout.readline().decode()
+                    if ('frame' in line) and (') filter_blobs' in line)and ('eta ' in line): #read only progress report lines
+                        framenum = int(line.split('% frame ')[1].split('/')[0])
+                        eta = line.split('eta ')[1].split(')')[0]
+                        printProgressBar(framenum, nFrames, prefix='Tracking: ', suffix='ETA: ' + eta)
+                    if not line:
+                        print("\n")
+                        task.stdout.flush()
+                        break
+                except:
+                    pass
             OUT, ERROR = task.communicate()
             if task.returncode != 0:
                 #if task.returncode == None:
@@ -277,7 +286,7 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG=False):
             print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"Finished tracking on file: ", track_dir )
                 
             #subprocess.check_call([launch_tracker],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
-            
+        
         except:# Exception(e):
             #print(e)
             errorLog = open(os.path.expanduser('~/FishTracker/Application/build/batchlog.txt'), 'a')
@@ -290,7 +299,7 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG=False):
             errorLog.close()
             FNULL.close()
             print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"ERROR tracking file: ", track_dir )
-            
+        
 
     FNULL.close()
     
