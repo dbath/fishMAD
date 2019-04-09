@@ -176,6 +176,8 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG):
     track_dir = MAIN_DIR + 'track'
     if not os.path.exists(track_dir):
         os.makedirs(track_dir)
+    store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
+    nFrames = store.frame_count
     
     if (NEW_ONLY) and (os.path.exists(track_dir + 'converted.results')):
         return
@@ -196,19 +198,39 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG):
         print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"Running conversion on file: ", track_dir)
         #try:
         print(launch_conversion)
-        subprocess.check_call([launch_conversion],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)#FNULL
-        """
-        except Exception as e:
-            errorLog = open(os.path.expanduser('~/FishTracker/Application/build/batchlog.txt'), 'w')
+        try:
+            task = subprocess.Popen([launch_conversion],stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)#FNULL
+            PID = task.pid
+            print('Process ID: ', PID)
+            while task.stdout is not None:
+                line = task.stdout.readline().decode()
+                sp = line.split(' ')
+                if (len(sp) == 11) and (sp[3] == 'FPS:'): #read only progress report lines
+                    printProgressBar(int(sp[1].split('/')[0]), nFrames, 'Converting: ')
+                if not line:
+                    print("\n")
+                    task.stdout.flush()
+                    break
+            OUT, ERROR = task.communicate()
+            if task.returncode != 0:
+                #if task.returncode == None:
+                task.kill()
+                    
+                raise Exception('returncode non-zero from conversion\t' + str(PID) + '\n' + str(task.returncode))
+        
+        except:# Exception as e:
+            errorLog = open(os.path.expanduser('~/FishTracker/Application/build/conversion_log.txt'), 'w')
             errorLog.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t')
             errorLog.write(track_dir + '\t')
+            errorLog.write(launch_conversion + '\n')
             errorLog.write('error during conversion step' + '\n')
-            errorLog.write(str(e) + '\n\n\n')
+            errorLog.write(str(ERROR) + '\n')
+            errorLog.write('--------------------------------------------------------------------------------------------------------\n\n')
             errorLog.close()
             FNULL.close()
             print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"ERROR converting file: ", track_dir)
-            return
-        """
+            
+        
     FNULL.close()
 
     return
@@ -230,17 +252,32 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG=False):
             launch_tracker += " -nowindow"
         print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"Running tracker on file: ", track_dir)
         print(launch_tracker)
+        store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
+        nFrames = store.frame_count
         try:
             task = subprocess.Popen([launch_tracker],stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True )#
             PID = task.pid
+            print('Process ID: ', PID)
+            while task.stdout is not None:
+                line = task.stdout.readline().decode()
+                if ('frame' in line) and (') filter_blobs' in line): #read only progress report lines
+                    framenum = int(line.split('frame')[1].split(' ')[1].split('/')[0])
+                    printProgressBar(framenum, nFrames, 'Tracking: ')
+                if not line:
+                    print("\n")
+                    task.stdout.flush()
+                    break
             OUT, ERROR = task.communicate()
             if task.returncode != 0:
                 #if task.returncode == None:
                 task.kill()
                     
                 raise Exception('returncode non-zero from tristrack\t' + str(PID) + '\n' + str(task.returncode))
+            
+            print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"Finished tracking on file: ", track_dir )
                 
             #subprocess.check_call([launch_tracker],stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
+            
         except:# Exception(e):
             #print(e)
             errorLog = open(os.path.expanduser('~/FishTracker/Application/build/batchlog.txt'), 'a')
@@ -253,8 +290,7 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG=False):
             errorLog.close()
             FNULL.close()
             print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"ERROR tracking file: ", track_dir )
-            return
-        print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"Finished tracking on file: ", track_dir )
+            
 
     FNULL.close()
     
