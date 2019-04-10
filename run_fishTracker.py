@@ -224,7 +224,7 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG):
                 raise Exception('returncode non-zero from conversion\t' + str(PID) + '\n' + str(task.returncode))
         
         except:# Exception as e:
-            errorLog = open(os.path.expanduser('~/FishTracker/Application/build/conversion_log.txt'), 'w')
+            errorLog = open(os.path.expanduser('~/FishTracker/Application/build/conversion_log.txt'), 'a')
             errorLog.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t')
             errorLog.write(track_dir + '\n')
             errorLog.write(launch_conversion + '\n')
