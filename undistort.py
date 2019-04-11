@@ -44,13 +44,13 @@ class Undistort:
         """
         fileList = []
         times = []
-        for x in glob.glob('/home/dan/fishMAD/camera_calibrations/*.yaml'):
+        for x in glob.glob(os.path.expanduser('~/fishMAD/camera_calibrations/*.yaml'):
             fileList.append(x)
             times.append(getTimeFromTimeString(x.split('/')[-1].split('.')[0].rsplit('_',1)[0]))
         df = pd.DataFrame({'filename':fileList, 'times':times})
         calTime = df[df.times < self.startTime].max()['filename'].split('/')[-1].rsplit('_',1)[0]
         
-        return '/home/dan/fishMAD/camera_calibrations/' + calTime + '_' + self.camSerial + '.yaml'
+        return os.path.expanduser('~/fishMAD/camera_calibrations/' + calTime + '_' + self.camSerial + '.yaml'
         
     def loadCameraConfig(self, CALIBRATION):
         with open(CALIBRATION) as f:

@@ -40,7 +40,6 @@ def oddSizeBugfix(_main_dir, axis, newsize):
     for name in keys:
         nf[name] = f[name]
     nf["imgshape"][axis] = newsize
-    print("adjusted video shape: ", f["imgshape"], '>', nf["imgshape"])
     np.savez(_main_dir + '000000', **nf)
     return
     
@@ -133,7 +132,6 @@ def setup_tristrack(_main_dir, fishnum):
     openFile.write(''.join(SETTINGS))
     openFile.close()
 
-    print("wrote new conversion file...")
     # Customize fishTracker.settings
 
     #   get and read tracker settings
@@ -160,10 +158,7 @@ def setup_tristrack(_main_dir, fishnum):
     openFile.truncate()
     # re-write the content with the updated content
     openFile.write(''.join(SETTINGS))
-    openFile.close()
-
-    print("wrote new settings file...")
-    
+    openFile.close()  
     
     return
 
@@ -197,18 +192,18 @@ def convert(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG):
         #    os.remove(os.path.expanduser('~/FishTracker/Application/build/video_average.png'))
         print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '\t' ,"Running conversion on file: ", track_dir)
         #try:
-        print(launch_conversion)
+        if DEBUG == True:
+            print(launch_conversion)
         try:
             task = subprocess.Popen([launch_conversion],stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)#FNULL
             PID = task.pid
-            print('Process ID: ', PID)
             while task.stdout is not None:
                 try:
                     line = task.stdout.readline().decode()
                     sp = line.split(' ')
                     if (len(sp) == 11) and (sp[3] == 'FPS:'): #read only progress report lines
                         printProgressBar(int(sp[1].split('/')[0]), nFrames, 
-                                prefix='Converting: ', 
+                                prefix='Converting: ('+PID+')', 
                                 suffix='ETA: '+ line.split('eta:')[1].split('),')[0])
                     if not line:
                         print("\n")
@@ -256,20 +251,20 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG=False):
         if DEBUG==False:
             launch_tracker += " -nowindow"
         print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"Running tracker on file: ", track_dir)
-        print(launch_tracker)
+        if DEBUG == True:
+            print(launch_tracker)
         store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
         nFrames = store.frame_count
         try:
             task = subprocess.Popen([launch_tracker],stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True )#
             PID = task.pid
-            print('Process ID: ', PID)
             while task.stdout is not None:
                 try:
                     line = task.stdout.readline().decode()
                     if ('frame' in line) and (') filter_blobs' in line)and ('eta ' in line): #read only progress report lines
                         framenum = int(line.split('% frame ')[1].split('/')[0])
                         eta = line.split('eta ')[1].split(')')[0]
-                        printProgressBar(framenum, nFrames, prefix='Tracking: ', suffix='ETA: ' + eta)
+                        printProgressBar(framenum, nFrames, prefix='Tracking:  ('+PID+')', suffix='ETA: ' + eta)
                     if not line:
                         print("\n")
                         task.stdout.flush()
