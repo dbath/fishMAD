@@ -44,17 +44,20 @@ def get_centroid(arr):
         
         
 def calculate_perframe_stats(fbf, TRACK_DIR):
-    fbf = fbf.loc[fbf[XPOS].notnull(), :]
-    fbf = fbf.loc[fbf[YPOS].notnull(), :]
     if not SPEED in fbf.columns:
         os.remove(TRACK_DIR + '/frameByFrameData.pickle')
         os.remove(TRACK_DIR + '/frameByFrame_complete')
         fbf = getFrameByFrameData(TRACK_DIR, RESUME=False)
+    fbf = fbf.loc[fbf[XPOS].notnull(), :]
+    fbf = fbf.loc[fbf[YPOS].notnull(), :]
     fbf.loc[:,'uVX'] = fbf.loc[:,XVEL] / fbf.loc[:,SPEED]
     fbf.loc[:,'uVY'] = fbf.loc[:,YVEL] / fbf.loc[:,SPEED]
     fbf = fbf.drop(columns=['header'])
     f = fbf.groupby(['frame'])
     frame_means = pd.DataFrame(columns=['cx','cy','radius',
+                                 'polarization','dRotation','swimSpeed',
+                                 'borderDistance'])
+    frame_medians = pd.DataFrame(columns=['cx','cy','radius',
                                  'polarization','dRotation','swimSpeed',
                                  'borderDistance'])
     frame_stds = pd.DataFrame(columns=['cx','cy','radius',
@@ -63,85 +66,82 @@ def calculate_perframe_stats(fbf, TRACK_DIR):
     rotation_pdf_centroids = pd.DataFrame(columns=['frame','centroid','height'])
     
     gaussian_X = np.linspace(-1,1,201)
-    
+    ARENA_WIDTH = get_arena_width(TRACK_DIR.split('/track')[0])
     for i, data in f:
-        if 4000 < i < 5000:
-            
-            #polarization is the length of the average of all unit vectors
-            #polarization = abs(np.sqrt((data.loc[:,'uVX'].mean())**2 + (data.loc[:,'uVY'].mean())**2))
-            
-            
-            #angular momentum of fish
-            points = np.array(zip(data.loc[:,XPOS], data.loc[:,YPOS]))
-            
-            if len(points) < 0:
-                print "low tracking quality: ", TRACK_DIR.rsplit('/', 3)[1], str(i), str(len(points))
-            centroid = get_centroid(points)   
-            
-            data.loc[:,'CX'] = data.loc[:,XPOS] - centroid[0] # component vector to centroid, X
-            data.loc[:,'CY'] = data.loc[:,YPOS] - centroid[1] # component vector to centroid, Y
-            data.loc[:,'radius'] = np.sqrt(data.loc[:,'CX']**2 + data.loc[:,'CY']**2)  #radius to centroid
-            data.loc[:,'uCX'] = data.loc[:,'CX'] / data.loc[:,'radius'] # X component of unit vector R
-            data.loc[:,'uCY'] = data.loc[:,'CY'] / data.loc[:,'radius'] # Y component of unit vector R
-            data = data.dropna()
-            
-            rotation_directed = np.cross(data[['uCX','uCY']], data[['uVX','uVY']])
-            
-            #Find centroid of PDF of rotation scores fit to gaussian
-            peaks, peakParams = scipy.signal.find_peaks(scipy.stats.gaussian_kde(rotation_directed).pdf(gaussian_X),0)
-            for j in range(len(peaks)):
-                rotation_pdf_centroids = rotation_pdf_centroids.append({'frame':i, 'centroid':gaussian_X[peaks[j]], 'height':peakParams['peak_heights'][j]}, ignore_index=True)
-            
-            
-            #compile mean stats:
-            
-            m = data.mean()
-            row = pd.Series({'cx':centroid[0],
-                             'cy':centroid[1],
-                             'radius':m['radius'],
-                             'polarization':np.sqrt(m['uVX']**2 + m['uVY']**2),
-                             'dRotation':rotation_directed.mean(),
-                             'swimSpeed':m[SPEED],
-                             'borderDistance':m['BORDER_DISTANCE#wcentroid']
-                             }, name=i)
-                             
-            frame_means.append(row)
-            
-            #compile std stats:
-            
-            std = data.std()
-            row = pd.Series({'cx':centroid[0],
-                             'cy':centroid[1],
-                             'radius':std['radius'],
-                             'polarization':np.sqrt(std['uVX']**2 + std['uVY']**2),
-                             'dRotation':rotation_directed.std(),
-                             'swimSpeed':std[SPEED],
-                             'borderDistance':std['BORDER_DISTANCE#wcentroid']
-                             }, name=i)
-                             
-            frame_stds.append(row)  
-            print "processed:", i      
-            
-            """
-            frame_means.loc[i, 'cx'] = centroid[0]
-            frame_means.loc[i, 'cy'] = centroid[1]
-            frame_means.loc[i, 'radius'] = m['radius']
-            frame_means.loc[i, 'polarization'] = abs(np.sqrt((data['uVX'].mean())**2 + (data['uVY'].mean())**2))
-            frame_means.loc[i, 'dRotation'] = rotation_directed.mean()
-            frame_means.loc[i, 'swimSpeed'] = data[SPEED].mean()
-            frame_means.loc[i, 'borderDistance'] = data['BORDER_DISTANCE#wcentroid'].mean()
-            
-            frame_stds.loc[i, 'radius'] = data['radius'].std()
-            frame_stds.loc[i, 'polarization'] = abs(np.sqrt((data['uVX'].std())**2 + (data['uVY'].std())**2))
-            frame_stds.loc[i, 'dRotation'] = rotation_directed.std()
-            frame_stds.loc[i, 'swimSpeed'] = data[SPEED].std()
-            frame_stds.loc[i, 'borderDistance'] = data['BORDER_DISTANCE#wcentroid'].std()
-            """
-        else:
-            pass
-    frame_means['centroidRotation'] = get_centroid_rotation(frame_means, TRACK_DIR, 8)
+        #polarization is the length of the average of all unit vectors
+        #polarization = abs(np.sqrt((data.loc[:,'uVX'].mean())**2 + (data.loc[:,'uVY'].mean())**2))
+        
+        
+        #angular momentum of fish
+        points = np.array(zip(data.loc[:,XPOS], data.loc[:,YPOS]))
+        
+        if len(points) < 0:
+            print "low tracking quality: ", TRACK_DIR.rsplit('/', 3)[1], str(i), str(len(points))
+        centroid = get_centroid(points)   
+        
+        data.loc[:,'CX'] = data.loc[:,XPOS] - centroid[0] # component vector to centroid, X
+        data.loc[:,'CY'] = data.loc[:,YPOS] - centroid[1] # component vector to centroid, Y
+        data.loc[:,'radius'] = np.sqrt(data.loc[:,'CX']**2 + data.loc[:,'CY']**2)  #radius to centroid
+        data.loc[:,'uCX'] = data.loc[:,'CX'] / data.loc[:,'radius'] # X component of unit vector R
+        data.loc[:,'uCY'] = data.loc[:,'CY'] / data.loc[:,'radius'] # Y component of unit vector R
+        data = data.dropna()
+        
+        rotation_directed = np.cross(data[['uCX','uCY']], data[['uVX','uVY']])
+        
+        #Find centroid of PDF of rotation scores fit to gaussian
+        peaks, peakParams = scipy.signal.find_peaks(scipy.stats.gaussian_kde(rotation_directed).pdf(gaussian_X),0)
+        for j in range(len(peaks)):
+            rotation_pdf_centroids = rotation_pdf_centroids.append({'frame':i, 'centroid':gaussian_X[peaks[j]], 'height':peakParams['peak_heights'][j]}, ignore_index=True)
+        
+        
+        #compile mean stats:
+        
+        m = data.mean()
+        row = pd.Series({'cx':centroid[0],
+                         'cy':centroid[1],
+                         'radius':m['radius'],
+                         'polarization':np.sqrt(m['uVX']**2 + m['uVY']**2),
+                         'dRotation':rotation_directed.mean(),
+                         'swimSpeed':m[SPEED],
+                         'borderDistance':m['BORDER_DISTANCE#wcentroid']
+                         }, name=i)
+                         
+        frame_means.append(row)
+        
+         #compile median stats:
+        
+        med = data.median()
+        row = pd.Series({'cx':centroid[0],
+                         'cy':centroid[1],
+                         'radius':med['radius'],
+                         'polarization':np.sqrt(med['uVX']**2 + med['uVY']**2),
+                         'dRotation':rotation_directed.median(),
+                         'swimSpeed':med[SPEED],
+                         'borderDistance':med['BORDER_DISTANCE#wcentroid']
+                         }, name=i)
+                         
+        frame_medians.append(row)       
+        #compile std stats:
+        
+        std = data.std()
+        row = pd.Series({'cx':centroid[0],
+                         'cy':centroid[1],
+                         'radius':std['radius'],
+                         'polarization':np.sqrt(std['uVX']**2 + std['uVY']**2),
+                         'dRotation':rotation_directed.std(),
+                         'swimSpeed':std[SPEED],
+                         'borderDistance':std['BORDER_DISTANCE#wcentroid']
+                         }, name=i)
+                         
+        frame_stds.append(row)      
+
+    centroidRotation = get_centroid_rotation(frame_means, TRACK_DIR, 8, ARENA_WIDTH)
+    
+    frame_means['centroidRotation'] = centroidRotation
+    frame_medians['centroidRotation'] = centroidRotation
         
     frame_means.to_pickle(TRACK_DIR + '/frame_means_rotation_polarization.pickle')
+    frame_medians.to_pickle(TRACK_DIR + '/frame_medians_rotation_polarization.pickle')
     frame_stds.to_pickle(TRACK_DIR + '/frame_stds_rotation_polarization.pickle')
     g = rotation_pdf_centroids.groupby('frame')
     rotation_pdf_centroids.index = rotation_pdf_centroids['frame']
@@ -149,7 +149,7 @@ def calculate_perframe_stats(fbf, TRACK_DIR):
     rotation_pdf_centroids['relheight'] = rotation_pdf_centroids['height'] / rotation_pdf_centroids['framemaxheight']
     rotation_pdf_centroids.to_pickle(TRACK_DIR + '/rotation_pdf_centroids.pickle')
 
-    return frame_means, frame_stds 
+    return frame_means, frame_medians, frame_stds 
 
 
 def get_rotation(data):
@@ -293,8 +293,16 @@ def kalman(df, N_ITER):
     (smoothed_state_means, smoothed_state_covariances) = kf1.smooth(measurements)
     return smoothed_state_means[:,0], smoothed_state_means[:,2]
 
+def get_arena_width(MAIN_DIR):
+    conv = open(slashdir(_MAIN_DIR) + 'track/conversion.settings')
+    SETTINGS = conv.readlines()
+    for item in SETTINGS:
+        if item.find('real_width') !=-1:
+             ARENA_WIDTH = int(item.split(' = ')[1].split('\n')[0]  )
+    conv.close()
+    return ARENA_WIDTH
     
-def get_centroid_rotation(df, trackdir, N_ITER):
+def get_centroid_rotation(df, trackdir, N_ITER, ARENA_WIDTH=None):
     #GET UNIT VECTORS OF GROUP CENTROID VELOCITY
     """
     """
@@ -312,12 +320,8 @@ def get_centroid_rotation(df, trackdir, N_ITER):
     df['uVCY'] = df['vcy'] / df['centroidSpeed'] # Y component of unit vector
     
     #GET WIDTH OF ARENA TO DEFINE CENTRE
-    conv = open(slashdir(_MAIN_DIR) + 'track/conversion.settings')
-    SETTINGS = conv.readlines()
-    for item in SETTINGS:
-        if item.find('real_width') !=-1:
-             ARENA_WIDTH = int(item.split(' = ')[1].split('\n')[0]  )
-    conv.close()
+    if ARENA_WIDTH==None:
+        ARENA_WIDTH = get_arena_width(MAIN_DIR)
     
     #GET UNIT VECTORS OF GROUP CENTROID POSITION
     df['CX'] = df['cx'] - (ARENA_WIDTH/2.0)
@@ -395,15 +399,28 @@ def run(MAIN_DIR, RESUME=True):
             return
     else:
         fbf = getFrameByFrameData(trackdir, RESUME)
-    means, stds = calculate_perframe_stats(fbf, trackdir)
+    means, medians, stds = calculate_perframe_stats(fbf, trackdir)
+    
+    store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
+    log = get_logfile(MAIN_DIR)
     if 'reversals' in MAIN_DIR:
-        ret, means = stim_handling.synch_reversals(MAIN_DIR, means)
-        ret, stds = stim_handling.synch_reversals(MAIN_DIR, stds)
-        plot_perframe_vs_time(MAIN_DIR, ['dir','polarization','dRotation','centroidRotation',SPEED,'BORDER_DISTANCE#wcentroid'], ['Direction','Pol. Order','Rot. Order','Rot. Order (centroid)','Mean Speed','Mean Border Distance']) 
+        ret, means = stim_handling.sync_reversals(means, log, store)
+        ret, medians = stim_handling.sync_reversals(medians, log, store)
+        ret, stds = stim_handling.sync_reversals(stds, log, store)
+        plot_perframe_vs_time(MAIN_DIR, 
+            ['dir','polarization','dRotation','centroidRotation',SPEED,'BORDER_DISTANCE#wcentroid'], 
+            ['Direction','Pol. Order','Rot. Order','Rot. Order (centroid)','Median Speed','Median Border Distance']
+            medians,
+            '_median') 
     elif 'coherence' in MAIN_DIR:
         ret, means = stim_handling.synch_coherence_with_rotation(MAIN_DIR, means)
+        ret, medians = stim_handling.synch_coherence_with_rotation(MAIN_DIR, medians)
         ret, stds = stim_handling.synch_coherence_with_rotation(MAIN_DIR, stds)
-        plot_perframe_vs_time(MAIN_DIR, ['coherence','polarization','dRotation','centroidRotation',SPEED,'BORDER_DISTANCE#wcentroid'], ['Coherence','Pol. Order','Rot. Order','Rot. Order (centroid)','Mean Speed','Mean Border Distance']) 
+        plot_perframe_vs_time(MAIN_DIR, 
+            ['coherence','polarization','dRotation','centroidRotation',SPEED,'BORDER_DISTANCE#wcentroid'], 
+            ['Coherence','Pol. Order','Rot. Order','Rot. Order (centroid)','Median Speed','Median Border Distance']
+            medians,
+            '_median') 
     elif 'cogs' in MAIN_DIR:
         pass #FIXME 
     
