@@ -4,11 +4,12 @@ import numpy as np
 from utilities import *
 import matplotlib.pyplot as plt
 import stim_handling
-from pykalman import KalmanFilter
-import centroid_rotation
+#from pykalman import KalmanFilter
+#import centroid_rotation
 from multiprocessing import Process
 import scipy
 from scipy.signal import find_peaks
+import imgstore
 
 def plot_density(DIR, df, colx, coly, fn=''):
     ymax, xmax = (2048, 2048)
@@ -41,37 +42,22 @@ def get_centroid(arr):
     except:
         return (np.nan, np.nan)
 
-        
-        
+
+    
 def calculate_perframe_stats(fbf, TRACK_DIR):
-    if not SPEED in fbf.columns:
-        os.remove(TRACK_DIR + '/frameByFrameData.pickle')
-        os.remove(TRACK_DIR + '/frameByFrame_complete')
-        fbf = getFrameByFrameData(TRACK_DIR, RESUME=False)
     fbf = fbf.loc[fbf[XPOS].notnull(), :]
     fbf = fbf.loc[fbf[YPOS].notnull(), :]
     fbf.loc[:,'uVX'] = fbf.loc[:,XVEL] / fbf.loc[:,SPEED]
     fbf.loc[:,'uVY'] = fbf.loc[:,YVEL] / fbf.loc[:,SPEED]
     fbf = fbf.drop(columns=['header'])
     f = fbf.groupby(['frame'])
-    frame_means = pd.DataFrame(columns=['cx','cy','radius',
-                                 'polarization','dRotation','swimSpeed',
-                                 'borderDistance'])
-    frame_medians = pd.DataFrame(columns=['cx','cy','radius',
-                                 'polarization','dRotation','swimSpeed',
-                                 'borderDistance'])
-    frame_stds = pd.DataFrame(columns=['cx','cy','radius',
-                                 'polarization','dRotation','swimSpeed',
-                                 'borderDistance'])
+    perframe_stats = pd.DataFrame()
     rotation_pdf_centroids = pd.DataFrame(columns=['frame','centroid','height'])
     
     gaussian_X = np.linspace(-1,1,201)
     ARENA_WIDTH = get_arena_width(TRACK_DIR.split('/track')[0])
     for i, data in f:
-        #polarization is the length of the average of all unit vectors
-        #polarization = abs(np.sqrt((data.loc[:,'uVX'].mean())**2 + (data.loc[:,'uVY'].mean())**2))
-        
-        
+
         #angular momentum of fish
         points = np.array(zip(data.loc[:,XPOS], data.loc[:,YPOS]))
         
@@ -91,65 +77,64 @@ def calculate_perframe_stats(fbf, TRACK_DIR):
         #Find centroid of PDF of rotation scores fit to gaussian
         peaks, peakParams = scipy.signal.find_peaks(scipy.stats.gaussian_kde(rotation_directed).pdf(gaussian_X),0)
         for j in range(len(peaks)):
-            rotation_pdf_centroids = rotation_pdf_centroids.append({'frame':i, 'centroid':gaussian_X[peaks[j]], 'height':peakParams['peak_heights'][j]}, ignore_index=True)
+            rotation_pdf_centroids = rotation_pdf_centroids.append({'frame':i, 
+                                        'centroid':gaussian_X[peaks[j]], 
+                                        'height':peakParams['peak_heights'][j]}, 
+                                        ignore_index=True)
         
-        
+
+        if len(peaks) < 2:
+            Peak_1 = gaussian_X[peaks[peakParams['peak_heights'].argmax()]]
+            PeakHeight_1 = peakParams['peak_heights'].max()
+            Peak_2 = np.nan
+            PeakHeight_2 = np.nan
+        else:
+            first, second = pd.DataFrame(peakParams)['peak_heights'].nlargest(2).index
+            Peak_1 = gaussian_X[peaks[first]]
+            PeakHeight_1 = peakParams['peak_heights'][first]
+            Peak_2 = gaussian_X[peaks[second]]
+            PeakHeight_2 = peakParams['peak_heights'][second]
         #compile mean stats:
         
         m = data.mean()
-        row = pd.Series({'cx':centroid[0],
-                         'cy':centroid[1],
-                         'radius':m['radius'],
-                         'polarization':np.sqrt(m['uVX']**2 + m['uVY']**2),
-                         'dRotation':rotation_directed.mean(),
-                         'swimSpeed':m[SPEED],
-                         'borderDistance':m['BORDER_DISTANCE#wcentroid']
-                         }, name=i)
-                         
-        frame_means.append(row)
-        
-         #compile median stats:
-        
         med = data.median()
-        row = pd.Series({'cx':centroid[0],
-                         'cy':centroid[1],
-                         'radius':med['radius'],
-                         'polarization':np.sqrt(med['uVX']**2 + med['uVY']**2),
-                         'dRotation':rotation_directed.median(),
-                         'swimSpeed':med[SPEED],
-                         'borderDistance':med['BORDER_DISTANCE#wcentroid']
-                         }, name=i)
-                         
-        frame_medians.append(row)       
-        #compile std stats:
-        
         std = data.std()
         row = pd.Series({'cx':centroid[0],
                          'cy':centroid[1],
-                         'radius':std['radius'],
-                         'polarization':np.sqrt(std['uVX']**2 + std['uVY']**2),
-                         'dRotation':rotation_directed.std(),
-                         'swimSpeed':std[SPEED],
-                         'borderDistance':std['BORDER_DISTANCE#wcentroid']
+                         'mean_radius':m['radius'],
+                         'mean_polarization':np.sqrt(m['uVX']**2 + m['uVY']**2),
+                         'mean_dRotation':rotation_directed.mean(),
+                         'mean_swimSpeed':m[SPEED],
+                         'mean_borderDistance':m['BORDER_DISTANCE#wcentroid'],
+                         'median_radius':med['radius'],
+                         'median_polarization':np.sqrt(med['uVX']**2 + med['uVY']**2),
+                         'median_dRotation':np.median(rotation_directed),
+                         'median_swimSpeed':med[SPEED],
+                         'median_borderDistance':med['BORDER_DISTANCE#wcentroid'],
+                         'std_radius':std['radius'],
+                         'std_polarization':np.sqrt(std['uVX']**2 + std['uVY']**2),
+                         'std_dRotation':rotation_directed.std(),
+                         'std_swimSpeed':std[SPEED],
+                         'std_borderDistance':std['BORDER_DISTANCE#wcentroid'],
+                         'pdfPeak1':Peak_1,
+                         'pdfPeak2':Peak_2,
+                         'pdfPeak1_height':Peak_1,
+                         'pdfPeak2_height':Peak_2
                          }, name=i)
-                         
-        frame_stds.append(row)      
+        perframe_stats = perframe_stats.append(row) 
 
-    centroidRotation = get_centroid_rotation(frame_means, TRACK_DIR, 8, ARENA_WIDTH)
-    
-    frame_means['centroidRotation'] = centroidRotation
-    frame_medians['centroidRotation'] = centroidRotation
+    perframe_stats.loc[:,'centroidRotation'] = get_centroid_rotation(perframe_stats, TRACK_DIR,  ARENA_WIDTH)
+
         
-    frame_means.to_pickle(TRACK_DIR + '/frame_means_rotation_polarization.pickle')
-    frame_medians.to_pickle(TRACK_DIR + '/frame_medians_rotation_polarization.pickle')
-    frame_stds.to_pickle(TRACK_DIR + '/frame_stds_rotation_polarization.pickle')
+    perframe_stats.to_pickle(TRACK_DIR + '/perframe_stats.pickle')
+    """
     g = rotation_pdf_centroids.groupby('frame')
     rotation_pdf_centroids.index = rotation_pdf_centroids['frame']
     rotation_pdf_centroids['framemaxheight'] = g['height'].max()
     rotation_pdf_centroids['relheight'] = rotation_pdf_centroids['height'] / rotation_pdf_centroids['framemaxheight']
     rotation_pdf_centroids.to_pickle(TRACK_DIR + '/rotation_pdf_centroids.pickle')
-
-    return frame_means, frame_medians, frame_stds 
+    """
+    return perframe_stats
 
 
 def get_rotation(data):
@@ -231,7 +216,7 @@ def plot_image(img, ax):
     ax.imshow(exposure.adjust_sigmoid(img, 0.40, 8))
     ax.set_xticks([]); ax.set_yticks([])
     return    
-
+"""
 MAIN_DIR = '/media/recnodes/recnode_2mfish/reversals3m_512_dotbot_20181017_111201.stitched/'
 store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
 fbf = pd.read_pickle(MAIN_DIR + 'track/frameByFrameData.pickle')
@@ -242,7 +227,7 @@ fbf.loc[:,'uVX'] = fbf.loc[:,XVEL] / fbf.loc[:,SPEED]
 fbf.loc[:,'uVY'] = fbf.loc[:,YVEL] / fbf.loc[:,SPEED]
 fbf = fbf.drop(columns=['header'])
 df = fbf.groupby(['frame'])
-
+"""
 def plot_data_above_image(framenumber=None, image_width=3666, image_height=3848, saveas=None, plotpeaks=True):
     """
     requires global variables "store", "df" (grouped by frame number)
@@ -293,8 +278,11 @@ def kalman(df, N_ITER):
     (smoothed_state_means, smoothed_state_covariances) = kf1.smooth(measurements)
     return smoothed_state_means[:,0], smoothed_state_means[:,2]
 
+
+
+
 def get_arena_width(MAIN_DIR):
-    conv = open(slashdir(_MAIN_DIR) + 'track/conversion.settings')
+    conv = open(slashdir(MAIN_DIR) + 'track/conversion.settings')
     SETTINGS = conv.readlines()
     for item in SETTINGS:
         if item.find('real_width') !=-1:
@@ -302,37 +290,39 @@ def get_arena_width(MAIN_DIR):
     conv.close()
     return ARENA_WIDTH
     
-def get_centroid_rotation(df, trackdir, N_ITER, ARENA_WIDTH=None):
+def get_centroid_rotation(df, trackdir, ARENA_WIDTH=None):
     #GET UNIT VECTORS OF GROUP CENTROID VELOCITY
     """
     """
     MAIN_DIR = '/'.join(trackdir.split('/')[:-1])
     df = df.loc[df.cx.notnull(), :]
     df = df.loc[df.cy.notnull(), :]
-    df['cxK'], df['cyK'] = kalman(df[['cx','cy']], N_ITER) #smooth positions before calculating velocity.
-    df['vcx'] = df['cxK'] - df.shift()['cxK'] #calculate velocity
-    df['vcy'] = df['cyK'] - df.shift()['cyK'] #calculate velocity
+    #smooth positions before calculating velocity.
+    df.loc[:,'cx_smoothed'] = df['cx'].rolling(5, center=True).mean()
+    df.loc[:,'cy_smoothed'] = df['cy'].rolling(5, center=True).mean()
+    df.loc[:,'vcx'] = df['cx_smoothed'] - df.shift()['cx_smoothed'] #calculate velocity
+    df.loc[:,'vcy'] = df['cy_smoothed'] - df.shift()['cy_smoothed'] #calculate velocity
     df = df.loc[df.vcx.notnull(), :]
     df = df.loc[df.vcy.notnull(), :]
     
-    df['centroidSpeed'] = np.sqrt(df['vcx']**2 + df['vcy']**2)
-    df['uVCX'] = df['vcx'] / df['centroidSpeed'] # X component of unit vector
-    df['uVCY'] = df['vcy'] / df['centroidSpeed'] # Y component of unit vector
+    df.loc[:,'centroidSpeed'] = np.sqrt(df['vcx']**2 + df['vcy']**2)
+    df.loc[:,'uVCX'] = df['vcx'] / df['centroidSpeed'] # X component of unit vector
+    df.loc[:,'uVCY'] = df['vcy'] / df['centroidSpeed'] # Y component of unit vector
     
     #GET WIDTH OF ARENA TO DEFINE CENTRE
     if ARENA_WIDTH==None:
         ARENA_WIDTH = get_arena_width(MAIN_DIR)
     
     #GET UNIT VECTORS OF GROUP CENTROID POSITION
-    df['CX'] = df['cx'] - (ARENA_WIDTH/2.0)
-    df['CY'] = df['cy'] - (ARENA_WIDTH/2.0)
-    df['radius'] = np.sqrt(df['CX']**2 + df['CY']**2)  #radius to centre of arena
-    df['uCX'] = df['CX'] / df['radius'] # X component of unit vector R
-    df['uCY'] = df['CY'] / df['radius'] # Y component of unit vector R
+    df.loc[:,'CX'] = df['cx'] - (ARENA_WIDTH/2.0)
+    df.loc[:,'CY'] = df['cy'] - (ARENA_WIDTH/2.0)
+    df.loc[:,'radius'] = np.sqrt(df['CX']**2 + df['CY']**2)  #radius to centre of arena
+    df.loc[:,'uCX'] = df['CX'] / df['radius'] # X component of unit vector R
+    df.loc[:,'uCY'] = df['CY'] / df['radius'] # Y component of unit vector R
 
     #GET ROTATION ORDER:
-    df['centroid_rotation_directed'] = np.cross(df[['uCX','uCY']], df[['uVCX','uVCY']])
-    df['centroid_rotation'] = abs(df['centroid_rotation_directed'])
+    df.loc[:,'centroid_rotation_directed'] = np.cross(df[['uCX','uCY']], df[['uVCX','uVCY']])
+    #df['centroid_rotation'] = abs(df['centroid_rotation_directed'])
     
     
     return df['centroid_rotation_directed']           
@@ -346,23 +336,26 @@ def plot_perframe_vs_time(DIR, subs, ylabs, df=pd.DataFrame(), fn=''):
     fig.suptitle(DIR.split('/')[-2])
     colourlist = ['black','red','blue', 'orange','purple','green','yellow']
     axes = []
-    for x in len(subs):
+    for x in range(len(subs)):
         ax = fig.add_subplot(len(subs), 1, 1+x)
         axes.append(ax)
     for REP in range(len(subs)):
         ax = axes[REP]
         fig.add_axes(ax)
         plt.plot(df.Time, df[subs[REP]].values, color=colourlist[REP])
-        ax.set_title(subs[REP])
+        #ax.set_title(subs[REP])
         ax.set_ylabel(ylabs[REP])
         if REP == len(subs)-1:
             plt.setp(ax.get_xticklabels(), visible=False)
         else:
             ax.set_xlabel('Time (s)')
-        if subs[REP] in ['dRotation','centroidRotation']:
+        if 'Rotation' in subs[REP]:
             ax.set_ylim(-1,1)
             ax.set_yticks([-1,0,1])
             plt.axhline(y=0.0, color='k', linestyle='-')
+        elif subs[REP] == 'dir':
+            ax.set_ylim(-1,1)
+            ax.set_yticks([-1,0,1])
         elif subs[REP] == 'coherence':
             ax.set_ylim(-0.1,1.1) 
             ax.set_yticks([0,0.5,1])
@@ -399,26 +392,28 @@ def run(MAIN_DIR, RESUME=True):
             return
     else:
         fbf = getFrameByFrameData(trackdir, RESUME)
-    means, medians, stds = calculate_perframe_stats(fbf, trackdir)
+        
+    if len(set(fbf.frame)) < 501:
+        print "FOUND INCOMPLETE TRACKING DATA. DELETING TRACKDIR'
+        os.rmtree(trackdir)
+        return
+        
+    perframe_stats = calculate_perframe_stats(fbf, trackdir)
     
-    store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
-    log = get_logfile(MAIN_DIR)
+    store = imgstore.new_for_filename(slashdir(MAIN_DIR) + 'metadata.yaml')
+    log = stim_handling.get_logfile(MAIN_DIR)
     if 'reversals' in MAIN_DIR:
-        ret, means = stim_handling.sync_reversals(means, log, store)
-        ret, medians = stim_handling.sync_reversals(medians, log, store)
-        ret, stds = stim_handling.sync_reversals(stds, log, store)
-        plot_perframe_vs_time(MAIN_DIR, 
-            ['dir','polarization','dRotation','centroidRotation',SPEED,'BORDER_DISTANCE#wcentroid'], 
-            ['Direction','Pol. Order','Rot. Order','Rot. Order (centroid)','Median Speed','Median Border Distance']
-            medians,
+        ret, perframe_stats = stim_handling.sync_reversals(perframe_stats, log, store)
+        plot_perframe_vs_time(slashdir(MAIN_DIR),         ['dir','median_polarization','median_dRotation','centroidRotation','median_swimSpeed'], 
+            ['Direction','Pol. Order','Rot. Order','Rot. Order (centroid)','Median Speed'],
+            perframe_stats,
             '_median') 
     elif 'coherence' in MAIN_DIR:
         ret, means = stim_handling.synch_coherence_with_rotation(MAIN_DIR, means)
         ret, medians = stim_handling.synch_coherence_with_rotation(MAIN_DIR, medians)
         ret, stds = stim_handling.synch_coherence_with_rotation(MAIN_DIR, stds)
-        plot_perframe_vs_time(MAIN_DIR, 
-            ['coherence','polarization','dRotation','centroidRotation',SPEED,'BORDER_DISTANCE#wcentroid'], 
-            ['Coherence','Pol. Order','Rot. Order','Rot. Order (centroid)','Median Speed','Median Border Distance']
+        plot_perframe_vs_time(MAIN_DIR,  ['coherence','median_polarization','median_dRotation','centroidRotation','median_swimSpeed'], 
+            ['Coherence','Pol. Order','Rot. Order','Rot. Order (centroid)','Median Speed'],
             medians,
             '_median') 
     elif 'cogs' in MAIN_DIR:
@@ -444,6 +439,8 @@ if __name__ == "__main__":
     
     DIRECTORIES = args.dir.split(',')
 
+    print SPEED
+    print XPOS
         
     fileList = []
     for term in HANDLE:
@@ -458,11 +455,7 @@ if __name__ == "__main__":
     for filenum in np.arange(len(fileList)):
         vDir = fileList[filenum]
         if os.path.exists(vDir + '/track/converted.results'):
-            if not os.path.exists(vDir + '/track/vsTime_perframe_stats.png'):
-                if os.path.exists(vDir + '/track/frameByFrameData.pickle'):
-                    if getModTime(vDir + '/track/frameByFrameData.pickle') < getTimeFromTimeString('20190315_130000'):
-                        os.remove(vDir + '/track/frameByFrameData.pickle')
-                        os.remove(vDir + '/track/frameByFrame_complete')
+            if not os.path.exists(vDir + '/track/vsTime_perframe_stats_median.png'):
                 
                 #try:
                 p = Process(target=run, args=(vDir,args.resume))

@@ -4,6 +4,7 @@ import glob
 import time
 import datetime
 import numpy
+import imgstore
 
 def checkDate(fn):
     if os.path.exists(fn):
@@ -48,17 +49,21 @@ def plot_cumulative(df):
     plt.xlabel('date')
     plt.ylabel('millions of frames')
     plt.show()
-    plt.close('all')
+    #plt.close('all')
     return
     
 
 
  
  
- df = pd.DataFrame()
- for fn in glob.glob('/media/recnodes/recnode_2mfish/*dotbot*.stitched'):
+df = pd.DataFrame()
+for fn in glob.glob('/media/recnodes/recnode_2mfish/*dotbot*.stitched'):
     try:
         df = df.append(collectProcessingStats(fn), ignore_index=True)
         print "appended", fn.split('/')[-1]
-    except:
-        print "ERROR: ", fn
+    except Exception as E:
+        print "ERROR: ", fn, E
+
+plot_cumulative(df)
+df.to_pickle('/home/dan/Desktop/processing_report.pickle')
+plot_cumulative(df)

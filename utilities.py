@@ -118,7 +118,23 @@ def sho(i):
     plt.show()
     return
 
-def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█'):
+
+
+def applyParallel(dfGrouped, func, nCores=None):
+    """
+    pass a pandas dataframe groupby object and a function to call on it. 
+    the function must return a single dataframe.
+    returns the output of the passed function
+    """
+
+    from multiprocessing import Pool, cpu_count
+    if nCores == None:
+        nCores = cpu_count() - 4
+    with Pool(nCores) as p:
+        ret_list = p.map(func, [group for name, group in dfGrouped])
+    return pandas.concat(ret_list)
+
+def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = 'X'):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -240,8 +256,9 @@ def getFrameByFrameData(DIRECTORY, RESUME=True):
         FINISHED = open(DIRECTORY + 'frameByFrame_complete','w')
         FINISHED.write(getTimeStringFromTime())
         FINISHED.close()
-    except:
+    except Exception as e:
         print("ERROR: problem compiling:", DIRECTORY + "frameByFrameData.pickle", df.shape)
+        print(e)
     return df
 
 def crop_stitched_img(img):
