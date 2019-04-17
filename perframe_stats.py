@@ -14,6 +14,7 @@ import scipy
 from scipy.signal import find_peaks
 import imgstore
 
+
 def plot_density(DIR, df, colx, coly, fn=''):
     ymax, xmax = (2048, 2048)
     my_dpi = 300
@@ -51,12 +52,15 @@ def process_chunk(df):
 
 
     f = df.groupby('frame')
-
+    maxFrame = df.frame.max()
+    if maxFrame%args.maxthreads == 0:
+        progressbar = True
+    else:
+        progressbar = False
     perframe_stats = pd.DataFrame()
     #rotation_pdf_centroids = pd.DataFrame(columns=['frame','centroid','height'])
     
     gaussian_X = np.linspace(-1,1,201)  #FIXME move to global?
-    ARENA_WIDTH = get_arena_width(TRACK_DIR.split('/track')[0]) #FIXME add to fbf?
 
     rotations = {}
 
@@ -69,11 +73,11 @@ def process_chunk(df):
             print "low tracking quality: ", TRACK_DIR.rsplit('/', 3)[1], str(i), str(len(points))
         centroid = get_centroid(points)   
         
-        data.loc[:,'CX'] = data.loc[:,XPOS] - centroid[0] # component vector to centroid, X
-        data.loc[:,'CY'] = data.loc[:,YPOS] - centroid[1] # component vector to centroid, Y
-        data.loc[:,'radius'] = np.sqrt(data.loc[:,'CX']**2 + data.loc[:,'CY']**2)  #radius to centroid
-        data.loc[:,'uCX'] = data.loc[:,'CX'] / data.loc[:,'radius'] # X component of unit vector R
-        data.loc[:,'uCY'] = data.loc[:,'CY'] / data.loc[:,'radius'] # Y component of unit vector R
+        data.loc[:,'CX'] = data.loc[:,XPOS].copy() - centroid[0] # component vector to centroid, X
+        data.loc[:,'CY'] = data.loc[:,YPOS].copy() - centroid[1] # component vector to centroid, Y
+        data.loc[:,'radius'] = np.sqrt(data.loc[:,'CX'].copy()**2 + data.loc[:,'CY'].copy()**2)  #radius to centroid
+        data.loc[:,'uCX'] = data.loc[:,'CX'].copy() / data.loc[:,'radius'].copy() # X component of unit vector R
+        data.loc[:,'uCY'] = data.loc[:,'CY'].copy() / data.loc[:,'radius'].copy() # Y component of unit vector R
         data = data.dropna()
         
         rotationOrder = np.cross(data[['uCX','uCY']], data[['uVX','uVY']])
@@ -101,9 +105,9 @@ def process_chunk(df):
             PeakHeight_2 = peakParams['peak_heights'][second]
         #compile mean stats:
         
-        m = data.mean()
-        med = data.median()
-        std = data.std()
+        m = data.mean().copy()
+        med = data.median().copy()
+        std = data.std().copy()
         row = pd.Series({'cx':centroid[0],
                          'cy':centroid[1],
                          'mean_radius':m['radius'],
@@ -128,20 +132,21 @@ def process_chunk(df):
                          }, name=i)
         perframe_stats = perframe_stats.append(row)
         rotations[i] = np.array(rotationOrder)
+        if progressbar == True:
+            printProgressBar(i,maxFrame, prefix='Frame by frame processing: ') 
         
     return perframe_stats, rotations
 
 
-def calculate_perframe_stats(fbf, TRACK_DIR):
+def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
 
     # SETUP PARALLEL PROCESSING
-    nCores = 8
+
     ppe = ProcessPoolExecutor(nCores)
     futures = []
     statResults = []
     rotResults = []
     
-
     # PREPARE DATAFRAME
     fbf = fbf.loc[fbf[XPOS].notnull(), :]
     fbf = fbf.loc[fbf[YPOS].notnull(), :]
@@ -152,7 +157,7 @@ def calculate_perframe_stats(fbf, TRACK_DIR):
     
     # INITIATE PARALLEL PROCESSES
     for n in range(nCores):
-        p = ppe.submit(process_chunk, fbf[fbf['coreGroup'] == n)
+        p = ppe.submit(process_chunk, fbf[fbf['coreGroup'] == n])
         futures.append(p)
     
     # COLLECT PROCESSED DATA AS IT IS FINISHED    
@@ -171,6 +176,8 @@ def calculate_perframe_stats(fbf, TRACK_DIR):
     pickle.dump(rotationOrders, pick)
     pick.close()
     
+
+    ARENA_WIDTH = get_arena_width(TRACK_DIR.split('/track')[0])
     perframe_stats.loc[:,'centroidRotation'] = get_centroid_rotation(perframe_stats, TRACK_DIR,  ARENA_WIDTH)
      
     perframe_stats.to_pickle(TRACK_DIR + '/perframe_stats.pickle')
@@ -373,7 +380,9 @@ def plot_perframe_vs_time(DIR, subs, ylabs, df=pd.DataFrame(), fn=''):
         df = pd.read_pickle(DIR + 'track/frame_means_rotation_polarization.pickle')
 
     df = df[df['FrameNumber'].notnull()]
-    fig  = plt.figure()
+    if 'dir' in df.columns:
+        df.loc[:,'dir'] = -1.0*df.loc[:,'dir']
+    fig  = plt.figure(figsize=(4, 2*len(subs)))
     fig.suptitle(DIR.split('/')[-2])
     colourlist = ['black','red','blue', 'orange','purple','green','yellow']
     axes = []
@@ -391,11 +400,11 @@ def plot_perframe_vs_time(DIR, subs, ylabs, df=pd.DataFrame(), fn=''):
         else:
             ax.set_xlabel('Time (s)')
         if 'Rotation' in subs[REP]:
-            ax.set_ylim(-1,1)
+            ax.set_ylim(-1.1,1.1)
             ax.set_yticks([-1,0,1])
             plt.axhline(y=0.0, color='k', linestyle='-')
         elif subs[REP] == 'dir':
-            ax.set_ylim(-1,1)
+            ax.set_ylim(-1.3,1.3)
             ax.set_yticks([-1,0,1])
         elif subs[REP] == 'coherence':
             ax.set_ylim(-0.1,1.1) 
@@ -439,7 +448,7 @@ def run(MAIN_DIR, RESUME=True):
         os.rmtree(trackdir)
         return
         
-    perframe_stats = calculate_perframe_stats(fbf, trackdir)
+    perframe_stats = calculate_perframe_stats(fbf, trackdir, args.maxthreads)
     
     store = imgstore.new_for_filename(slashdir(MAIN_DIR) + 'metadata.yaml')
     log = stim_handling.get_logfile(MAIN_DIR)
@@ -496,8 +505,13 @@ if __name__ == "__main__":
     for filenum in np.arange(len(fileList)):
         vDir = fileList[filenum]
         if os.path.exists(vDir + '/track/converted.results'):
-            if not os.path.exists(vDir + '/track/vsTime_perframe_stats_median.png'):
-                
+            if not os.path.exists(vDir + '/track/perframe_stats.pickle'):
+                try:
+                    run(vDir, args.resume)
+                except Exception as e:
+                    print "ERROR: ", vDir
+                    print e
+                """
                 #try:
                 p = Process(target=run, args=(vDir,args.resume))
                 p.start()
@@ -507,4 +521,4 @@ if __name__ == "__main__":
                     if (threadcount >= args.maxthreads) or (filenum == len(fileList)):
                         threadcount = 0
                         p.join()
-
+                """
