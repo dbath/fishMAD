@@ -459,10 +459,8 @@ def run(MAIN_DIR, RESUME=True):
             perframe_stats,
             '_median') 
     elif 'coherence' in MAIN_DIR:
-        ret, means = stim_handling.synch_coherence_with_rotation(MAIN_DIR, means)
-        ret, medians = stim_handling.synch_coherence_with_rotation(MAIN_DIR, medians)
-        ret, stds = stim_handling.synch_coherence_with_rotation(MAIN_DIR, stds)
-        plot_perframe_vs_time(MAIN_DIR,  ['coherence','median_polarization','median_dRotation','centroidRotation','median_swimSpeed'], 
+        ret, perframe_stats = stim_handling.synch_coherence_with_rotation(perframe_stats, log, store)
+        plot_perframe_vs_time(slashdir(MAIN_DIR),  ['coherence','median_polarization','median_dRotation','centroidRotation','median_swimSpeed'], 
             ['Coherence','Pol. Order','Rot. Order','Rot. Order (centroid)','Median Speed'],
             medians,
             '_median') 

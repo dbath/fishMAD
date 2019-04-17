@@ -26,24 +26,17 @@ def get_direction(log):
     s = log.groupby('Timestamp').mean()
     return s['dir'].reset_index()
 
-def synch_coherence_with_rotation(MAIN_DIR, r=None):
-    MAIN_DIR = slashdir(MAIN_DIR)
-    TRACK_DIR = MAIN_DIR + 'track/'
-    LOG_FN = '/media/recnodes/recnode_jolle2/dotbot_logs/dotbotLog_' + MAIN_DIR.split('/')[-2] + '.txt'
+def synch_coherence_with_rotation(r, log, store):
+    """
+    pass: r - any df with frame number (0>N) as index
+          log - a corresponding log file (from get_logfile())
+          store - imgstore object of corresponding video
+    returns:  df with frame numbers from camera, timestamps, and stim info
+    """    
 
-    if r==None:
-        r = pd.read_pickle(TRACK_DIR + 'frame_means_rotation_polarization.pickle')
-    store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
-
-    framelist = pd.DataFrame(store.get_frame_metadata())
-    framelist.columns=['FrameNumber','Timestamp'] 
-
-    foo = r.merge(framelist, left_index=True, right_index=True)
-
-    log = pd.read_table(LOG_FN)
-    log = log.loc[log.index %2 == 0, :]
-    log.loc[:,'Timestamp'] /=  1000.0
-
+    foo = get_frame_metadata(r, store)
+    
+    
     bar = foo.merge(log, how='outer') 
     bar = bar.sort_values('Timestamp') 
     bar['coh'] = bar['coh'].fillna(method='ffill')
