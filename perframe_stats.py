@@ -1,6 +1,9 @@
 import argparse
 import pandas as pd
+import pickle
 import numpy as np
+import time
+from concurrent.futures import ProcessPoolExecutor, as_completed #for multiprocessing
 from utilities import *
 import matplotlib.pyplot as plt
 import stim_handling
@@ -43,21 +46,22 @@ def get_centroid(arr):
         return (np.nan, np.nan)
 
 
-    
-def calculate_perframe_stats(fbf, TRACK_DIR):
-    fbf = fbf.loc[fbf[XPOS].notnull(), :]
-    fbf = fbf.loc[fbf[YPOS].notnull(), :]
-    fbf.loc[:,'uVX'] = fbf.loc[:,XVEL] / fbf.loc[:,SPEED]
-    fbf.loc[:,'uVY'] = fbf.loc[:,YVEL] / fbf.loc[:,SPEED]
-    fbf = fbf.drop(columns=['header'])
-    f = fbf.groupby(['frame'])
-    perframe_stats = pd.DataFrame()
-    rotation_pdf_centroids = pd.DataFrame(columns=['frame','centroid','height'])
-    
-    gaussian_X = np.linspace(-1,1,201)
-    ARENA_WIDTH = get_arena_width(TRACK_DIR.split('/track')[0])
-    for i, data in f:
 
+def process_chunk(df):
+
+
+    f = df.groupby('frame')
+
+    perframe_stats = pd.DataFrame()
+    #rotation_pdf_centroids = pd.DataFrame(columns=['frame','centroid','height'])
+    
+    gaussian_X = np.linspace(-1,1,201)  #FIXME move to global?
+    ARENA_WIDTH = get_arena_width(TRACK_DIR.split('/track')[0]) #FIXME add to fbf?
+
+    rotations = {}
+
+    for i, data in f:
+        
         #angular momentum of fish
         points = np.array(zip(data.loc[:,XPOS], data.loc[:,YPOS]))
         
@@ -72,17 +76,18 @@ def calculate_perframe_stats(fbf, TRACK_DIR):
         data.loc[:,'uCY'] = data.loc[:,'CY'] / data.loc[:,'radius'] # Y component of unit vector R
         data = data.dropna()
         
-        rotation_directed = np.cross(data[['uCX','uCY']], data[['uVX','uVY']])
+        rotationOrder = np.cross(data[['uCX','uCY']], data[['uVX','uVY']])
         
         #Find centroid of PDF of rotation scores fit to gaussian
-        peaks, peakParams = scipy.signal.find_peaks(scipy.stats.gaussian_kde(rotation_directed).pdf(gaussian_X),0)
+        peaks, peakParams = scipy.signal.find_peaks(scipy.stats.gaussian_kde(rotationOrder).pdf(gaussian_X),0)
+        
+        """
         for j in range(len(peaks)):
             rotation_pdf_centroids = rotation_pdf_centroids.append({'frame':i, 
                                         'centroid':gaussian_X[peaks[j]], 
                                         'height':peakParams['peak_heights'][j]}, 
                                         ignore_index=True)
-        
-
+        """
         if len(peaks) < 2:
             Peak_1 = gaussian_X[peaks[peakParams['peak_heights'].argmax()]]
             PeakHeight_1 = peakParams['peak_heights'].max()
@@ -103,17 +108,17 @@ def calculate_perframe_stats(fbf, TRACK_DIR):
                          'cy':centroid[1],
                          'mean_radius':m['radius'],
                          'mean_polarization':np.sqrt(m['uVX']**2 + m['uVY']**2),
-                         'mean_dRotation':rotation_directed.mean(),
+                         'mean_dRotation':rotationOrder.mean(),
                          'mean_swimSpeed':m[SPEED],
                          'mean_borderDistance':m['BORDER_DISTANCE#wcentroid'],
                          'median_radius':med['radius'],
                          'median_polarization':np.sqrt(med['uVX']**2 + med['uVY']**2),
-                         'median_dRotation':np.median(rotation_directed),
+                         'median_dRotation':np.median(rotationOrder),
                          'median_swimSpeed':med[SPEED],
                          'median_borderDistance':med['BORDER_DISTANCE#wcentroid'],
                          'std_radius':std['radius'],
                          'std_polarization':np.sqrt(std['uVX']**2 + std['uVY']**2),
-                         'std_dRotation':rotation_directed.std(),
+                         'std_dRotation':rotationOrder.std(),
                          'std_swimSpeed':std[SPEED],
                          'std_borderDistance':std['BORDER_DISTANCE#wcentroid'],
                          'pdfPeak1':Peak_1,
@@ -121,19 +126,55 @@ def calculate_perframe_stats(fbf, TRACK_DIR):
                          'pdfPeak1_height':Peak_1,
                          'pdfPeak2_height':Peak_2
                          }, name=i)
-        perframe_stats = perframe_stats.append(row) 
-
-    perframe_stats.loc[:,'centroidRotation'] = get_centroid_rotation(perframe_stats, TRACK_DIR,  ARENA_WIDTH)
-
+        perframe_stats = perframe_stats.append(row)
+        rotations[i] = np.array(rotationOrder)
         
+    return perframe_stats, rotations
+
+
+def calculate_perframe_stats(fbf, TRACK_DIR):
+
+    # SETUP PARALLEL PROCESSING
+    nCores = 8
+    ppe = ProcessPoolExecutor(nCores)
+    futures = []
+    statResults = []
+    rotResults = []
+    
+
+    # PREPARE DATAFRAME
+    fbf = fbf.loc[fbf[XPOS].notnull(), :]
+    fbf = fbf.loc[fbf[YPOS].notnull(), :]
+    fbf.loc[:,'uVX'] = fbf.loc[:,XVEL] / fbf.loc[:,SPEED]
+    fbf.loc[:,'uVY'] = fbf.loc[:,YVEL] / fbf.loc[:,SPEED]
+    fbf = fbf.drop(columns=['header'])
+    fbf['coreGroup'] = fbf['frame']%nCores  #divide into chunks labelled range(nCores)
+    
+    # INITIATE PARALLEL PROCESSES
+    for n in range(nCores):
+        p = ppe.submit(process_chunk, fbf[fbf['coreGroup'] == n)
+        futures.append(p)
+    
+    # COLLECT PROCESSED DATA AS IT IS FINISHED    
+    for future in as_completed(futures):
+        stats, rots = future.result()
+        statResults.append(stats)
+        rotResults.append(rots)
+    
+    #CONCATENATE RESULTS
+    perframe_stats = pd.concat(statResults)
+    
+    rotationOrders = {}
+    for r in rotResults:
+        rotationOrders.update(r)
+    pick = open(TRACK_DIR + '/rotationOrders.pickle', "wb")
+    pickle.dump(rotationOrders, pick)
+    pick.close()
+    
+    perframe_stats.loc[:,'centroidRotation'] = get_centroid_rotation(perframe_stats, TRACK_DIR,  ARENA_WIDTH)
+     
     perframe_stats.to_pickle(TRACK_DIR + '/perframe_stats.pickle')
-    """
-    g = rotation_pdf_centroids.groupby('frame')
-    rotation_pdf_centroids.index = rotation_pdf_centroids['frame']
-    rotation_pdf_centroids['framemaxheight'] = g['height'].max()
-    rotation_pdf_centroids['relheight'] = rotation_pdf_centroids['height'] / rotation_pdf_centroids['framemaxheight']
-    rotation_pdf_centroids.to_pickle(TRACK_DIR + '/rotation_pdf_centroids.pickle')
-    """
+
     return perframe_stats
 
 
@@ -394,7 +435,7 @@ def run(MAIN_DIR, RESUME=True):
         fbf = getFrameByFrameData(trackdir, RESUME)
         
     if len(set(fbf.frame)) < 501:
-        print "FOUND INCOMPLETE TRACKING DATA. DELETING TRACKDIR'
+        print "FOUND INCOMPLETE TRACKING DATA. DELETING TRACKDIR"
         os.rmtree(trackdir)
         return
         
