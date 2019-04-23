@@ -433,7 +433,7 @@ def run(MAIN_DIR, RESUME=True):
     #getColumnNames('_'.join(MAIN_DIR.split('/')[-1]..split('.')[0].split('_')[-2:]))
     trackdir = slashdir(MAIN_DIR) + 'track/'
 
-    if os.path.exists(vDir + 'track/frameByFrame_complete'):
+    if os.path.exists(trackdir + 'frameByFrame_complete'):
         try:
             fbf = pd.read_pickle(trackdir + 'frameByFrameData.pickle')
         except:
@@ -448,7 +448,10 @@ def run(MAIN_DIR, RESUME=True):
         os.rmtree(trackdir)
         return
         
-    perframe_stats = calculate_perframe_stats(fbf, trackdir, args.maxthreads)
+    if os.path.exists(trackdir + 'perframe_stats.pickle'):
+        perframe_stats = pd.read_pickle(trackdir + 'perframe_stats.pickle')
+    else:
+        perframe_stats = calculate_perframe_stats(fbf, trackdir, args.maxthreads)
     
     store = imgstore.new_for_filename(slashdir(MAIN_DIR) + 'metadata.yaml')
     log = stim_handling.get_logfile(MAIN_DIR)
@@ -462,7 +465,7 @@ def run(MAIN_DIR, RESUME=True):
         ret, perframe_stats = stim_handling.synch_coherence_with_rotation(perframe_stats, log, store)
         plot_perframe_vs_time(slashdir(MAIN_DIR),  ['coherence','median_polarization','median_dRotation','centroidRotation','median_swimSpeed'], 
             ['Coherence','Pol. Order','Rot. Order','Rot. Order (centroid)','Median Speed'],
-            medians,
+            perframe_stats,
             '_median') 
     elif 'cogs' in MAIN_DIR:
         pass #FIXME 
