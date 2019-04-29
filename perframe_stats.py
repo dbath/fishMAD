@@ -1,5 +1,6 @@
 import argparse
 import pandas as pd
+pd.options.mode.chained_assignment = 'raise'
 import pickle
 import numpy as np
 import time
@@ -490,8 +491,6 @@ if __name__ == "__main__":
     
     DIRECTORIES = args.dir.split(',')
 
-    print SPEED
-    print XPOS
         
     fileList = []
     for term in HANDLE:

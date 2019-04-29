@@ -70,6 +70,22 @@ def get_frame_metadata(df, store):
     foo = df.merge(framelist, left_index=True, right_index=True)
     return foo    
 
+
+def sync_data(r,log,store):
+    foo = get_frame_metadata(r, store)
+    bar = foo.merge(log, how='outer') 
+    bar = bar.sort_values('Timestamp') 
+    bar = bar.fillna(method='ffill')
+    if 'speed' in bar.columns:
+        bar['speed'] = bar['speed'].fillna(0)
+    if 'dir' in bar.columns:
+        bar['dir'] = bar['dir'].fillna(0)
+    bar.loc[:,'Time'] = (bar.loc[:,'Timestamp'] - bar.loc[0,'Timestamp'])
+    if bar.iloc[5].Timestamp - bar.iloc[0].Timestamp > 10: #check if log overlaps with track data
+        return 0, bar
+    else:    
+        return 1, bar  
+
 def sync_reversals(r, log, store):
     """
     pass: r - any df with frame number (0>N) as index
