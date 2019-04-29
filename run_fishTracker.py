@@ -258,19 +258,21 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG=False):
         try:
             task = subprocess.Popen([launch_tracker],stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True )#
             PID = task.pid
+            """
             while task.stdout is not None:
-                try:
-                    line = task.stdout.readline().decode()
-                    if ('frame' in line) and (') filter_blobs' in line)and ('eta ' in line): #read only progress report lines
-                        framenum = int(line.split('% frame ')[1].split('/')[0])
-                        eta = line.split('eta ')[1].split(')')[0]
-                        printProgressBar(framenum, nFrames, prefix='Tracking:  ('+PID+')', suffix='ETA: ' + eta)
-                    if not line:
-                        print("\n")
-                        task.stdout.flush()
-                        break
-                except:
-                    pass
+                #try:
+                line = task.stdout.readline().decode()
+                if ('frame' in line) and (') filter_blobs' in line)and ('eta ' in line): #read only progress report lines
+                    framenum = int(line.split('% frame ')[1].split('/')[0])
+                    eta = line.split('eta ')[1].split(')')[0]
+                    printProgressBar(framenum, nFrames, prefix='Tracking:  ('+PID+')', suffix='ETA: ' + eta)
+                if not line:
+                    print("\n")
+                    task.stdout.flush()
+                    break
+                #except:
+                #    pass
+            """
             OUT, ERROR = task.communicate()
             if task.returncode != 0:
                 #if task.returncode == None:

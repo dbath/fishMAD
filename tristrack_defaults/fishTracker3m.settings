@@ -16,5 +16,4 @@ gui_max_path_time = 1
 matching_probability_threshold = 0.2
 gui_auto_quit = true
 
-output_graphs = [["frame",[]], ["time",[]], ["X",["RAW","WCENTROID"]], ["Y",["RAW","WCENTROID"]],["SPEED",["SMOOTH","WCENTROID"]], ["VX",["SMOOTH","WCENTROID"]], ["VY",["SMOOTH","WCENTROID"]],["ACCELERATION",["SMOOTH","WCENTROID"]], ["AX",["SMOOTH","WCENTROID"]],["AY",["SMOOTH","WCENTROID"]],["ANGULAR_V",["RAW","WCENTROID"]], ["ANGULAR_A",["RAW","WCENTROID"]],["BORDER_DISTANCE",["RAW","WCENTROID"]]]
-
+output_graphs = [["frame",[]],["time",[]],["X",["RAW","WCENTROID"]],["Y",["RAW","WCENTROID"]],["SPEED",["SMOOTH","WCENTROID"]],["VX",["SMOOTH","WCENTROID"]],["VY",["SMOOTH","WCENTROID"]],["ACCELERATION",["SMOOTH","WCENTROID"]],["AX",["SMOOTH","WCENTROID"]],["AY",["SMOOTH","WCENTROID"]],["ANGULAR_V",["RAW","WCENTROID"]],["ANGULAR_A",["RAW","WCENTROID"]],["BORDER_DISTANCE",["RAW","WCENTROID"]]]

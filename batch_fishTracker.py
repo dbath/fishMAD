@@ -138,12 +138,12 @@ if __name__ == "__main__":
                 if (not os.path.exists(vDir + 'track/converted.results')) and (os.path.exists(vDir + 'track/converted.pv')):
                     run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
                 elif (os.path.exists(vDir + 'track/converted.results')) and (os.path.exists(vDir + 'track/converted.pv') and (args.exportNewData)):
-                    if not os.path.exists(vDir + 'track/fishTracker.settings'):
-                        run_fishTracker.setup_tristrack(vDir, _fishnum)
-                        run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
-                    elif getModTime(vDir + 'track/fishTracker.settings') < getTimeFromTimeString('20190315_130000'):
-                        run_fishTracker.setup_tristrack(vDir, _fishnum)
-                        run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
+                    #if not os.path.exists(vDir + 'track/fishTracker.settings'):
+                    run_fishTracker.setup_tristrack(vDir, _fishnum)
+                    run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
+                elif getModTime(vDir + 'track/converted.results') < getTimeFromTimeString('20190315_130000'):
+                    run_fishTracker.setup_tristrack(vDir, _fishnum)
+                    run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
                 """    
                 if (not os.path.exists(vDir + '/track/frameByFrame_complete')):
                     try:

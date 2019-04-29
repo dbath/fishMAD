@@ -14,4 +14,4 @@ output_min_frames = 40
 gui_max_path_time = 1
 matching_probability_threshold = 0.4
 gui_auto_quit = true
-output_graphs = [["frame"],["X",["CENTROID"]],["Y",["CENTROID"]],["VX",["CENTROID"]],["VY",["CENTROID"]],["SPEED",["CENTROID","SMOOTH"]],["ANGLE",["CENTROID"]],["BORDER_DISTANCE",["CENTROID"]]]
+output_graphs = [["frame",[]],["time",[]],["X",["RAW","WCENTROID"]],["Y",["RAW","WCENTROID"]],["SPEED",["SMOOTH","WCENTROID"]],["VX",["SMOOTH","WCENTROID"]],["VY",["SMOOTH","WCENTROID"]],["ACCELERATION",["SMOOTH","WCENTROID"]],["AX",["SMOOTH","WCENTROID"]],["AY",["SMOOTH","WCENTROID"]],["ANGULAR_V",["RAW","WCENTROID"]],["ANGULAR_A",["RAW","WCENTROID"]],["BORDER_DISTANCE",["RAW","WCENTROID"]]]
