@@ -13,6 +13,8 @@ from motifapi import MotifApi as Motif
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed #for multiprocessing
 import joblib
+import traceback
+import shutil
 
 """
 def getColumnNames(dateString):
@@ -227,15 +229,21 @@ def getFrameByFrameData(DIRECTORY, RESUME=True, nCores=8):
     
         
     if os.path.exists(DIRECTORY + 'frameByFrameData.pickle') and RESUME:
-    
-        df = joblib.load(DIRECTORY + 'frameByFrameData.pickle')
-        if not XPOS in df.columns:
-            print(XPOS, "not found in columns. removing tracked data.", DIRECTORY)
-            print(df.columns)
-            #os.remove(DIRECTORY + 'frameByFrameData.pickle')
-            #os.rmtree(DIRECTORY + 'fishdata')
-            if os.path.exists(DIRECTORY + 'frameByFrame_complete'):
-                os.remove(DIRECTORY + 'frameByFrame_complete')
+        try:
+            df = joblib.load(DIRECTORY + 'frameByFrameData.pickle')
+            
+            if not XPOS in df.columns:
+                print(XPOS, "not found in columns. removing tracked data.", DIRECTORY)
+                print(df.columns)
+                os.remove(DIRECTORY + 'frameByFrameData.pickle') #do not remove fishdata dir here. 
+                df = pd.DataFrame() #start fresh
+                if os.path.exists(DIRECTORY + 'frameByFrame_complete'):
+                    os.remove(DIRECTORY + 'frameByFrame_complete')
+                
+        except:
+            print("Failed to load fbf at getFrameByFrameData()")
+            traceback.print_exc()
+            os.remove(DIRECTORY + 'frameByFrameData.pickle')
             return
     
     else:
