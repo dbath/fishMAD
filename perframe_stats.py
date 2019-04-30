@@ -3,6 +3,7 @@ import pandas as pd
 pd.options.mode.chained_assignment = 'raise'
 import pickle
 import numpy as np
+np.warnings.filterwarnings('ignore')
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed #for multiprocessing
 from utilities import *
