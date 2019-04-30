@@ -302,6 +302,37 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG=False):
     
     return
 
+def fixTimestamps(fn, camserial='21990449'):
+    """
+    fixes timestamps of "0 0 0 ...", which sometimes occurs during stitching. Pass the filename of a stitched video (/full/path/to/video_XXXXXX_XXXXXX.stitch'), and this function takes timestamps from one of the constituent videos (camserial) and assigns them to the stitched video. It also removes converted.pv.
+    """
+    cornervid = imgstore.new_for_filename(fn.split('.')[0] + '.'+camserial+'/metadata.yaml')
+    
+    timestamps = cornervid.get_frame_metadata().items()[1][1]
+    
+    fileList = []
+    for i in glob.glob(fn + '/*.npz'):
+        fileList.append(i)
+        
+    fileList = sorted(fileList)
+    cumsum = 0
+    
+    for f in fileList:
+        d = np.load(f)
+        keys = [key for key in d.files]
+        nf = {}    
+        for name in keys:
+            nf[name] = d[name]
+        nFrames = len(d['frame_time'])
+        nf['frame_time'] = timestamps[cumsum:cumsum+nFrames]
+        np.savez(f, **nf)
+        cumsum += nFrames
+    
+    #need to generate a new converted.pv with timestamps.
+    if os.path.exists(slashdir(fn) + 'track/converted.pv'):
+        os.remove(slashdir(fn) + 'track/converted.pv')
+
+    return
 
 if __name__ == "__main__":
 
