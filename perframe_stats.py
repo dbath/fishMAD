@@ -69,76 +69,77 @@ def process_chunk(df):
     rotations = {}
 
     for i, data in f:
-        
-        #angular momentum of fish
-        points = np.array(zip(data.loc[:,XPOS], data.loc[:,YPOS]))
-        
-        if len(points) < 0:
-            print "low tracking quality: ", TRACK_DIR.rsplit('/', 3)[1], str(i), str(len(points))
-        centroid = get_centroid(points)   
-        
-        data.loc[:,'CX'] = data.loc[:,XPOS].copy() - centroid[0] # component vector to centroid, X
-        data.loc[:,'CY'] = data.loc[:,YPOS].copy() - centroid[1] # component vector to centroid, Y
-        data.loc[:,'radius'] = np.sqrt(data.loc[:,'CX'].copy()**2 + data.loc[:,'CY'].copy()**2)  #radius to centroid
-        data.loc[:,'uCX'] = data.loc[:,'CX'].copy() / data.loc[:,'radius'].copy() # X component of unit vector R
-        data.loc[:,'uCY'] = data.loc[:,'CY'].copy() / data.loc[:,'radius'].copy() # Y component of unit vector R
-        data = data.dropna()
-        
-        rotationOrder = np.cross(data[['uCX','uCY']], data[['uVX','uVY']])
-        
-        #Find centroid of PDF of rotation scores fit to gaussian
-        peaks, peakParams = scipy.signal.find_peaks(scipy.stats.gaussian_kde(rotationOrder).pdf(gaussian_X),0)
-        
-        """
-        for j in range(len(peaks)):
-            rotation_pdf_centroids = rotation_pdf_centroids.append({'frame':i, 
-                                        'centroid':gaussian_X[peaks[j]], 
-                                        'height':peakParams['peak_heights'][j]}, 
-                                        ignore_index=True)
-        """
-        if len(peaks) < 2:
-            Peak_1 = gaussian_X[peaks[peakParams['peak_heights'].argmax()]]
-            PeakHeight_1 = peakParams['peak_heights'].max()
-            Peak_2 = np.nan
-            PeakHeight_2 = np.nan
-        else:
-            first, second = pd.DataFrame(peakParams)['peak_heights'].nlargest(2).index
-            Peak_1 = gaussian_X[peaks[first]]
-            PeakHeight_1 = peakParams['peak_heights'][first]
-            Peak_2 = gaussian_X[peaks[second]]
-            PeakHeight_2 = peakParams['peak_heights'][second]
-        #compile mean stats:
-        
-        m = data.mean().copy()
-        med = data.median().copy()
-        std = data.std().copy()
-        row = pd.Series({'cx':centroid[0],
-                         'cy':centroid[1],
-                         'mean_radius':m['radius'],
-                         'mean_polarization':np.sqrt(m['uVX']**2 + m['uVY']**2),
-                         'mean_dRotation':rotationOrder.mean(),
-                         'mean_swimSpeed':m[SPEED],
-                         'mean_borderDistance':m['BORDER_DISTANCE#wcentroid'],
-                         'median_radius':med['radius'],
-                         'median_polarization':np.sqrt(med['uVX']**2 + med['uVY']**2),
-                         'median_dRotation':np.median(rotationOrder),
-                         'median_swimSpeed':med[SPEED],
-                         'median_borderDistance':med['BORDER_DISTANCE#wcentroid'],
-                         'std_radius':std['radius'],
-                         'std_polarization':np.sqrt(std['uVX']**2 + std['uVY']**2),
-                         'std_dRotation':rotationOrder.std(),
-                         'std_swimSpeed':std[SPEED],
-                         'std_borderDistance':std['BORDER_DISTANCE#wcentroid'],
-                         'pdfPeak1':Peak_1,
-                         'pdfPeak2':Peak_2,
-                         'pdfPeak1_height':Peak_1,
-                         'pdfPeak2_height':Peak_2
-                         }, name=i)
-        perframe_stats = perframe_stats.append(row)
-        rotations[i] = np.array(rotationOrder)
-        if progressbar == True:
-            printProgressBar(i,maxFrame, prefix='Frame by frame processing: ') 
-        
+        try:
+            #angular momentum of fish
+            points = np.array(zip(data.loc[:,XPOS], data.loc[:,YPOS]))
+            
+            if len(points) < 0:
+                print "low tracking quality: ", TRACK_DIR.rsplit('/', 3)[1], str(i), str(len(points))
+            centroid = get_centroid(points)   
+            
+            CX = data.loc[:,XPOS] - centroid[0] # component vector to centroid, X
+            CY = data.loc[:,YPOS] - centroid[1] # component vector to centroid, Y
+            radius = np.sqrt(CX**2 + CY**2)  #radius to centroid
+            uCX = CX / radius # X component of unit vector R
+            uCY = CY / radius # Y component of unit vector R
+            #data = data.dropna()
+            
+            rotationOrder = np.cross(pd.DataFrame({'uCX':uCX,'uCY':uCY}), data[['uVX','uVY']])
+            rotationOrder = rotationOrder[np.isfinite(rotationOrder)]
+            #Find centroid of PDF of rotation scores fit to gaussian
+            peaks, peakParams = scipy.signal.find_peaks(scipy.stats.gaussian_kde(rotationOrder).pdf(gaussian_X),0)
+            
+            """
+            for j in range(len(peaks)):
+                rotation_pdf_centroids = rotation_pdf_centroids.append({'frame':i, 
+                                            'centroid':gaussian_X[peaks[j]], 
+                                            'height':peakParams['peak_heights'][j]}, 
+                                            ignore_index=True)
+            """
+            if len(peaks) < 2:
+                Peak_1 = gaussian_X[peaks[peakParams['peak_heights'].argmax()]]
+                PeakHeight_1 = peakParams['peak_heights'].max()
+                Peak_2 = np.nan
+                PeakHeight_2 = np.nan
+            else:
+                first, second = pd.DataFrame(peakParams)['peak_heights'].nlargest(2).index
+                Peak_1 = gaussian_X[peaks[first]]
+                PeakHeight_1 = peakParams['peak_heights'][first]
+                Peak_2 = gaussian_X[peaks[second]]
+                PeakHeight_2 = peakParams['peak_heights'][second]
+            #compile mean stats:
+            
+            m = data.mean().copy()
+            med = data.median().copy()
+            std = data.std().copy()
+            row = pd.Series({'cx':centroid[0],
+                             'cy':centroid[1],
+                             'mean_radius':radius.mean(),
+                             'mean_polarization':np.sqrt(m['uVX']**2 + m['uVY']**2),
+                             'mean_dRotation':rotationOrder.mean(),
+                             'mean_swimSpeed':m[SPEED],
+                             'mean_borderDistance':m['BORDER_DISTANCE#wcentroid'],
+                             'median_radius':radius.median(),
+                             'median_polarization':np.sqrt(med['uVX']**2 + med['uVY']**2),
+                             'median_dRotation':np.median(rotationOrder),
+                             'median_swimSpeed':med[SPEED],
+                             'median_borderDistance':med['BORDER_DISTANCE#wcentroid'],
+                             'std_radius':radius.std(),
+                             'std_polarization':np.sqrt(std['uVX']**2 + std['uVY']**2),
+                             'std_dRotation':rotationOrder.std(),
+                             'std_swimSpeed':std[SPEED],
+                             'std_borderDistance':std['BORDER_DISTANCE#wcentroid'],
+                             'pdfPeak1':Peak_1,
+                             'pdfPeak2':Peak_2,
+                             'pdfPeak1_height':PeakHeight_1,
+                             'pdfPeak2_height':PeakHeight_2
+                             }, name=i)
+            perframe_stats = perframe_stats.append(row)
+            rotations[i] = np.array(rotationOrder)
+            if progressbar == True:
+                printProgressBar(i,maxFrame, prefix='Frame by frame processing: ') 
+        except:
+            traceback.print_exc()
     return perframe_stats, rotations
 
 
