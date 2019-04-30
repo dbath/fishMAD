@@ -384,7 +384,7 @@ def plot_perframe_vs_time(DIR, subs, ylabs, df=pd.DataFrame(), fn=''):
     if len(df) < 1:
         df = pd.read_pickle(DIR + 'track/frame_means_rotation_polarization.pickle')
 
-    df = df[df['FrameNumber'].notnull()]
+    df.dropna(subset=['FrameNumber'], inplace=True)
     if 'dir' in df.columns:
         df.loc[:,'dir'] = -1.0*df.loc[:,'dir']
     fig  = plt.figure(figsize=(4, 2*len(subs)))
