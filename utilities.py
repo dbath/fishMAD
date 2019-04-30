@@ -11,6 +11,8 @@ import time
 import datetime
 from motifapi import MotifApi as Motif
 import sys
+from concurrent.futures import ProcessPoolExecutor, as_completed #for multiprocessing
+import joblib
 
 """
 def getColumnNames(dateString):
@@ -195,8 +197,30 @@ def slashdir(string):
         return string + '/'
     else:
         return string
-    
-def getFrameByFrameData(DIRECTORY, RESUME=True):
+
+
+def process_tracks(list_of_files):
+    i = 1
+    df = pd.DataFrame()
+    for fn in list_of_files:
+        ID = fn.split('fish')[-1].split('.')[0]
+        d = np.load(fn)
+        f =  pd.DataFrame([d[x] for x in d.iterkeys()]).T
+        f.columns = d.keys()
+        f['trackid'] = ID
+        if len(df) == 0:
+            df = f.copy()
+        else:
+            df = pd.concat([df,f], sort=False)
+        i += 1    
+    return df
+
+def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in xrange(0, len(l), n):
+        yield l[i:i + n]    
+        
+def getFrameByFrameData(DIRECTORY, RESUME=True, nCores=8):
 
     if DIRECTORY[-1] != '/':
         DIRECTORY = DIRECTORY + '/'
@@ -204,7 +228,7 @@ def getFrameByFrameData(DIRECTORY, RESUME=True):
         
     if os.path.exists(DIRECTORY + 'frameByFrameData.pickle') and RESUME:
     
-        df = pd.read_pickle(DIRECTORY + 'frameByFrameData.pickle')
+        df = joblib.load(DIRECTORY + 'frameByFrameData.pickle')
         if not XPOS in df.columns:
             print(XPOS, "not found in columns. removing tracked data.", DIRECTORY)
             print(df.columns)
@@ -223,7 +247,7 @@ def getFrameByFrameData(DIRECTORY, RESUME=True):
             if not (ID in df['trackid'].values):
                 f = pd.read_csv(fn)
                 f['trackid'] = ID
-                df = pd.concat([df, f])
+                df = pd.concat([df, f], sort=False)
         else:
             f = pd.read_csv(fn)
             f['trackid'] = ID
@@ -233,32 +257,47 @@ def getFrameByFrameData(DIRECTORY, RESUME=True):
             df.to_pickle(DIRECTORY + 'frameByFrameData.pickle')
         i +=1
     
+    fileList = []
     for fn in glob.glob(DIRECTORY + 'fishdata/*.npz'):
-        ID = fn.split('fish')[-1].split('.')[0]
-        d = np.load(fn)
-        f =  pd.DataFrame([d[x] for x in d.iterkeys()]).T
-        f.columns = d.keys()
-        if (len(df) >0):
-            if not (ID in df['trackid'].values):
-                f['trackid'] = ID
-                df = pd.concat([df, f])
-        else:
-            f['trackid'] = ID
-            df = f#pd.concat([df, f])
-        if i%500 == 0:
-            #print "processed track number :", i
-            df.to_pickle(DIRECTORY + 'frameByFrameData.pickle')
-        i +=1
+        fileList.append(fn)
+        
+    # SETUP PARALLEL PROCESSING
+
+    ppe = ProcessPoolExecutor(nCores)
+    futures = []
+    Results = []
+    
+    # INITIATE PARALLEL PROCESSES
+    chunksize = int(len(fileList)/nCores)
+    for files in list(chunks(fileList, chunksize)):
+        p = ppe.submit(process_tracks, files)
+        futures.append(p)
+    
+    # COLLECT PROCESSED DATA AS IT IS FINISHED    
+    for future in as_completed(futures):
+        data = future.result()
+        Results.append(data)
+    
+    #CONCATENATE RESULTS
+    df = pd.concat(Results, sort=False)
+            
+
+    df = df.loc[df['frame'].notnull() == True, :]
+    df['frame'] = df['frame'].astype(int)
+    df.replace(to_replace=np.inf, value=np.nan, inplace=True)
+    joblib.dump(df, DIRECTORY + 'frameByFrameData.pickle')
+    """
     try:
-        df['frame'] = df['frame'].astype(int)
-        df.replace(to_replace=np.inf, value=np.nan, inplace=True)
         df.to_pickle(DIRECTORY + 'frameByFrameData.pickle')
-        FINISHED = open(DIRECTORY + 'frameByFrame_complete','w')
-        FINISHED.write(getTimeStringFromTime())
-        FINISHED.close()
     except Exception as e:
-        print("ERROR: problem compiling:", DIRECTORY + "frameByFrameData.pickle", df.shape)
+        print("ERROR: problem compiling:", DIRECTORY + "frameByFrameData.pickle. trying joblib")
         print(e)
+    """    
+        
+    FINISHED = open(DIRECTORY + 'frameByFrame_complete','w')
+    FINISHED.write(getTimeStringFromTime())
+    FINISHED.close()
+
     return df
 
 def crop_stitched_img(img):

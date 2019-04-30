@@ -14,6 +14,9 @@ from multiprocessing import Process
 import scipy
 from scipy.signal import find_peaks
 import imgstore
+import shutil
+import traceback
+import joblib
 
 
 def plot_density(DIR, df, colx, coly, fn=''):
@@ -433,25 +436,23 @@ def run(MAIN_DIR, RESUME=True):
     print "processing: ", MAIN_DIR
     #getColumnNames('_'.join(MAIN_DIR.split('/')[-1]..split('.')[0].split('_')[-2:]))
     trackdir = slashdir(MAIN_DIR) + 'track/'
-
-    if os.path.exists(trackdir + 'frameByFrame_complete'):
-        try:
-            fbf = pd.read_pickle(trackdir + 'frameByFrameData.pickle')
-        except:
-            print "CORRUPTED FILE. DELETING frameByFrameData:", trackdir
-            os.remove(trackdir + 'frameByFrameData.pickle')
-            return
-    else:
-        fbf = getFrameByFrameData(trackdir, RESUME)
-        
-    if len(set(fbf.frame)) < 501:
-        print "FOUND INCOMPLETE TRACKING DATA. DELETING TRACKDIR"
-        os.rmtree(trackdir)
-        return
-        
     if os.path.exists(trackdir + 'perframe_stats.pickle'):
         perframe_stats = pd.read_pickle(trackdir + 'perframe_stats.pickle')
     else:
+        if os.path.exists(trackdir + 'frameByFrame_complete'):
+            try:
+                fbf = joblib.load(trackdir + 'frameByFrameData.pickle')
+            except:
+                print "CORRUPTED FILE. DELETING frameByFrameData:", trackdir
+                os.remove(trackdir + 'frameByFrameData.pickle')
+                return
+        else:
+            fbf = getFrameByFrameData(trackdir, RESUME, args.maxthreads)
+            
+        if len(set(fbf.frame)) < 501:
+            print "FOUND INCOMPLETE TRACKING DATA. DELETING TRACKDIR"
+            shutil.rmtree(trackdir)
+            return
         perframe_stats = calculate_perframe_stats(fbf, trackdir, args.maxthreads)
     
     store = imgstore.new_for_filename(slashdir(MAIN_DIR) + 'metadata.yaml')
@@ -469,6 +470,7 @@ def run(MAIN_DIR, RESUME=True):
             perframe_stats,
             '_median') 
     elif 'cogs' in MAIN_DIR:
+
         pass #FIXME 
     
 
@@ -508,9 +510,10 @@ if __name__ == "__main__":
             if not os.path.exists(vDir + '/track/perframe_stats.pickle'):
                 try:
                     run(vDir, args.resume)
-                except Exception as e:
+                except:# Exception as e:
                     print "ERROR: ", vDir
-                    print e
+                    traceback.print_exc()
+                    #print e
                 """
                 #try:
                 p = Process(target=run, args=(vDir,args.resume))
