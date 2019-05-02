@@ -3,6 +3,7 @@ import pandas as pd
 pd.options.mode.chained_assignment = 'raise'
 import pickle
 import numpy as np
+np.warnings.filterwarnings('ignore')
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed #for multiprocessing
 from utilities import *
@@ -445,11 +446,19 @@ def run(MAIN_DIR, RESUME=True):
                 fbf = joblib.load(trackdir + 'frameByFrameData.pickle')
             except:
                 print "CORRUPTED FILE. DELETING frameByFrameData:", trackdir
-                os.remove(trackdir + 'frameByFrameData.pickle')
+                #os.remove(trackdir + 'frameByFrameData.pickle')
                 return
         else:
             fbf = getFrameByFrameData(trackdir, RESUME, args.maxthreads)
-            
+        
+        if not 'VX#smooth#wcentroid' in fbf.columns:
+            print('VX#smooth#wcentroid', "not found in columns.", MAIN_DIR)
+            print(fbf.columns)
+            os.remove(DIRECTORY + 'frameByFrameData.pickle')
+            #shutil.rmtree(DIRECTORY + 'fishdata')
+            if os.path.exists(DIRECTORY + 'frameByFrame_complete'):
+                os.remove(DIRECTORY + 'frameByFrame_complete')    
+        
         if len(set(fbf.frame)) < 501:
             print "FOUND INCOMPLETE TRACKING DATA. DELETING TRACKDIR"
             shutil.rmtree(trackdir)
