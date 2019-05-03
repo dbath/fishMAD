@@ -90,91 +90,27 @@ if __name__ == "__main__":
         mkBkg = True
     
     numFish=0
-    """
-    # GET ALL FILES THAT ARE NOT CONVERTED
-    fileList = []
-    for term in HANDLE:
-        for DIR in DIRECTORIES:
-            for vDir in glob.glob(DIR + '*' + term + '*'):
-                if (not os.path.exists(vDir + '/track/converted.results')):
-                    fileList.append(vDir)
-       
-    # CONVERT MP4 TO PV IN PARALLEL (UP TO 32 ) #FIXME should detect number of processors
-    threadcount = 0
-    for filenum in np.arange(len(fileList)):
-        vDir = fileList[filenum]
-        try:
-            
-            try:
-                numFish = count.count_from_vid(vDir + '/000000.mp4')
-            except:
-                numFish = 0
-            print 'processing', vDir, 'fishcount: ', numFish
-            
-            p = Process(target=run_fishTracker.convert, args=(vDir,mkBkg, args.newonly, numFish))
-            print "processing: ", vDir
-            p.start()
-            threadcount += 1
-            
-            if p.is_alive():
-                if (threadcount >= 32) or (filenum == len(fileList)):
-                    threadcount = 0
-                    p.join()
-        except Exception, e:
-            errorLogIt(e)
-            pass 
-    """
+
     # TRACK, THEN RUN BASIC ANALYSIS
+
+    
     for term in HANDLE:
-        for DIR in DIRECTORIES:
-            for vDir in glob.glob(DIR + '*' + term + '*' + '.stitched'):
+        for DIR in DIRECTORIES:    
+            if '2mfish' in DIR:
+                searchterm = DIR + '*' + term + '*' + '.stitched'
+            else:
+                searchterm = DIR + '*' + term + '*'
+            for vDir in glob.glob(searchterm):
                 vDir = slashdir(vDir)
                 _fishnum = int(vDir.split('/')[-2].split('_')[1])
+                
+                
                 if not os.path.exists(vDir + 'track/converted.pv'):
                     if os.path.getsize(vDir + '000000.mp4') > 1000: #skip blank files...
                         run_fishTracker.setup_tristrack(vDir, _fishnum)
                         run_fishTracker.convert(vDir, mkBkg, args.newonly, _fishnum, args.debug)
-                    
-                if (not os.path.exists(vDir + 'track/converted.results')) and (os.path.exists(vDir + 'track/converted.pv')):
-                    run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
-                elif (os.path.exists(vDir + 'track/converted.results')) and (os.path.exists(vDir + 'track/converted.pv') and (args.exportNewData)):
-                    #if not os.path.exists(vDir + 'track/fishTracker.settings'):
-                    run_fishTracker.setup_tristrack(vDir, _fishnum)
-                    run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
-                elif getModTime(vDir + 'track/converted.results') < getTimeFromTimeString('20190315_130000'):
-                    run_fishTracker.setup_tristrack(vDir, _fishnum)
-                    run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
-                """    
-                if (not os.path.exists(vDir + '/track/frameByFrame_complete')):
-                    try:
-                        fbf = getFrameByFrameData(vDir + '/track', RESUME=False)
-                        print ".got frame by frame data", vDir
-                    except Exception, e:
-                        errorLogIt(e)
-                        continue
-                if (not os.path.exists(vDir + '/track/positions.png')):
-                    try:
-                        plot_positions.plot_positions(vDir)
-                        print "..got position plots", vDir
-                    except Exception, e:
-                        errorLogIt(e)
-                        pass
-                                
-                if (not os.path.exists(vDir + '/track/density_meandRotation-x_polarization-y.png')):
-                    try:
-                        polarization_rotation.run(vDir)
-                        print "...got rotation & polarization data", vDir
-                    except Exception, e:
-                        errorLogIt(e)
-                        pass
-                """    
-
-    
-    
-    
-    
-    
-
-
-            
-            
+  
+                if (not os.path.exists(vDir + 'track/converted.results')):
+                    if (os.path.exists(vDir + 'track/converted.pv')):
+                        run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
+              

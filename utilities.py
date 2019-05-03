@@ -12,7 +12,7 @@ import datetime
 from motifapi import MotifApi as Motif
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed #for multiprocessing
-import joblib
+
 import traceback
 import shutil
 
@@ -223,7 +223,7 @@ def chunks(l, n):
         yield l[i:i + n]    
         
 def getFrameByFrameData(DIRECTORY, RESUME=True, nCores=8):
-
+    import joblib
     if DIRECTORY[-1] != '/':
         DIRECTORY = DIRECTORY + '/'
     

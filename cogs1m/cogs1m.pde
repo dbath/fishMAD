@@ -7,6 +7,7 @@ import java.text.DecimalFormat;
 import java.time.Instant;
 import java.sql.Timestamp;
 import java.util.Collections;
+import java.net.*;
 import ketai.net.KetaiNet;
 //import spout.*;
 //Spout spout;
@@ -29,10 +30,10 @@ DecimalFormat formatter = new DecimalFormat("###.#");
 int dotSize = 20;  // size of dots
 
 int nDots = 100;  //number of dots
-int cogRadius = 500;
-int rotationRadius = 400;
-float setSpeed = 30;
-float speed = 30;
+int cogRadius = 422;
+int rotationRadius = 338;
+float setSpeed = 20;
+float speed = 20;
 
 Dots group1 = new Dots(nDots,speed,1,100, false); // nDots, speed, direction, opacity, randomMotion
 Dots group2 = new Dots(nDots,speed,-1,100, false); // nDots, speed, direction, opacity, randomMotion
@@ -43,7 +44,7 @@ int tLoop;
 int loopnum = 0;
 float alpha = 100;
 int currentEpoch = 0;
-int hideMode = 0;
+int hideMode = 1;
 float stopgo = 1.0;
 float DIRECTION = pow(-1.0,int(random(0,100)));
 float fadeLength = 3;
@@ -59,7 +60,20 @@ int [] IPinfo;
 boolean ANDROID = true;
 
 void setup(){
-  myIP = KetaiNet.getIP();
+  try
+  {
+    Enumeration<NetworkInterface> iter = NetworkInterface.getNetworkInterfaces();
+    while( iter.hasMoreElements() )
+    {
+      println( iter.nextElement() );
+    }
+    myIP = InetAddress.getLocalHost().getHostAddress();//. //"10.126.18.115";//KetaiNet.getIP();
+  }
+  catch( Exception e )
+  {
+    myIP = "0.0.0.0";
+    println( e.getMessage() );
+  }  
   IPinfo = int(split(myIP, "."));
   IPVal = IPinfo[3] - 100;
   
@@ -67,12 +81,13 @@ void setup(){
   
   //randomSeed(10);
   //colorMode(HSB, 100,100,100,100);
-  size(1280, 1280, P3D);//fullScreen();
-  //data = createGraphics(_height, _height);
+  fullScreen();
+  println(width, height);
+  //data = createGraphics(height, height);
   //spout = new Spout(this);
   //spout.createSender("dotbot Processing");
   ellipseMode(CENTER);
-  sqBar = 0;//(width - height) /2;
+  sqBar = (width - height) /2;
 
                     
 
@@ -169,13 +184,13 @@ public String RTFN(){
 
 void squareFrame(){
   fill(0,0,0,255);
-  rect(0,0,sqBar, _height);
-  rect(_height - sqBar,0,sqBar, _height);
+  rect(0,0,sqBar, height);
+  rect(width - sqBar,0,sqBar, height);
 }
 
 void hideFrame(float alpha){
   fill(255,255,255,2.55*alpha);
-  rect(0,0,_height, _height);
+  rect(0,0,width, height);
 }
 
 
@@ -190,7 +205,7 @@ public class Dots {
   float CX;
   float CY;
   float ROTATION;
-  float rotationVelocity = 0.001;
+  float rotationVelocity = 0;//0.001;
   Dot[] DotList;
   
   public Dots(int numDots, float _vel,  float _dir, int colour, boolean _RAND) { 
@@ -205,8 +220,8 @@ public class Dots {
   
   private void Init(float ROTATION) {
     this.ROTATION = ROTATION;
-    this.CX = (_height/2) + cos(ROTATION)*rotationRadius;
-    this.CY = (_height/2) + sin(ROTATION)*rotationRadius;
+    this.CX = (width/2) + cos(ROTATION)*rotationRadius;
+    this.CY = (height/2) + sin(ROTATION)*rotationRadius;
     
     //ArrayList<Dot> DotList = new ArrayList<Dot>(NUMBER_OF_THINGS);
     DotList = new Dot[nDots];
@@ -218,12 +233,12 @@ public class Dots {
   void update() { 
     
     this.ROTATION = this.ROTATION + this.rotationVelocity;
-    this.CX = (cos(this.ROTATION)*rotationRadius) + _height/2 ;
-    this.CY = (sin(this.ROTATION)*rotationRadius) + _height/2  ;
+    this.CX = (cos(this.ROTATION)*rotationRadius) + width/2 ;
+    this.CY = (sin(this.ROTATION)*rotationRadius) + height/2  ;
     for(int i=0; i < this.NUMBER_OF_THINGS; i++){           //DotList.length; i++){  //for (Dot dot : DotList){
       Dot dot = DotList[i];
       if (RAND == true){ dot.randomMotion();}
-      else {//dot.reCentre(this.CX, this.CY);  // 
+      else {dot.reCentre(this.CX, this.CY);  // 
             dot.renew(); }
       fill(0,0,0,2.55*this.COLOUR);
       ellipse(dot.X1, dot.Y1, dot.SIZE, dot.SIZE);
@@ -274,14 +289,14 @@ class Dot{
     else {
     this.VEL = this.VEL + (this.setVEL - this.VEL)/(fadeLength*100);
     }
-    this.RAD = sqrt(sq((this.X1 - _height/2)) + sq((this.Y1-_height/2)));
+    this.RAD = sqrt(sq((this.X1 - width/2)) + sq((this.Y1-height/2)));
     this.X1 = this.X1 + this.XDIR*this.VEL*this.RAD + random(-0.5,0.5);
     this.Y1 = this.Y1 + this.YDIR*this.VEL*this.RAD + random(-0.5,0.5);
     
-    if (this.X1 > (_height + this.SIZE + sqBar)) { this.X1 = (0 - this.SIZE + sqBar);}
-    else if (this.X1 < (sqBar-this.SIZE)) { this.X1 = (_height + this.SIZE + sqBar);}
-    if (this.Y1 > _height + this.SIZE) { this.Y1 = (0 - this.SIZE);}
-    else if (this.Y1 < (0-this.SIZE)) { this.Y1 = (_height + this.SIZE);}
+    if (this.X1 > (width + this.SIZE + sqBar)) { this.X1 = (0 - this.SIZE + sqBar);}
+    else if (this.X1 < (sqBar-this.SIZE)) { this.X1 = (width + this.SIZE + sqBar);}
+    if (this.Y1 > height + this.SIZE) { this.Y1 = (0 - this.SIZE);}
+    else if (this.Y1 < (0-this.SIZE)) { this.Y1 = (height + this.SIZE);}
   }
   
   void renew() {
@@ -308,8 +323,8 @@ class Dot{
 
 void draw(){
   //data.beginDraw();
-  background(255);
-  fill(0);
+  background(255,255,255,255);
+  fill(0,0,0,255);
   if (finished == true){
     println("Protocol complete");    
     String message = (myIP + '\t' + RTFN() + "\t--\t--\t--\t--\t--\tProtocol completed"+'\n');
@@ -319,8 +334,8 @@ void draw(){
       
     tLoop = millis();
     if (loopnum >= 6){ finished = true;
-                                            hideMode=1;
-                                            running = false;
+                      hideMode=1;
+                      running = false;
     }
     
   
@@ -359,7 +374,7 @@ void draw(){
   
 
   }
-  background(255);
+  background(255,255,255,255);
   group1.update();
   group2.update();
   group3.update();
