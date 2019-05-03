@@ -59,6 +59,7 @@ def get_logfile(MAIN_DIR):
     
 
     log = pd.read_table(LOG_FN)
+    log['Timestamp'] = pd.to_numeric(log['Timestamp'], errors='coerce')
     log.loc[:,'Timestamp'] /=  1000.0
     
     return log
