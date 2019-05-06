@@ -52,6 +52,23 @@ def get_centroid(arr):
         return (np.nan, np.nan)
 
 
+def rotationOrder(centreX, centreY, posX, posY, velX, velY):
+    """
+    centre - a single point marking the axis of rotation
+    pos - position of agents (1 per agent)
+    vel - velocity of agents (1 per agent)
+    
+    Returns: 1d array of rotation order values
+    """
+    CX = posX - centreX
+    CY = posY - centreY
+    radius = np.sqrt(CX**2 + CY**2)
+    uCX = CX / radius # X component of unit vector R
+    uCY = CY / radius # Y component of unit vector R        
+    rotationOrder = np.cross(pd.DataFrame({'uCX':uCX,'uCY':uCY}), pd.DataFrame({'velX':velX, 'velY':velY}))
+
+    return rotationOrder[np.isfinite(rotationOrder)]
+
 
 def process_chunk(df):
 
@@ -67,7 +84,8 @@ def process_chunk(df):
     
     gaussian_X = np.linspace(-1,1,201)  #FIXME move to global?
 
-    rotations = {}
+    rotations_cMass = {}
+    rotations_cArea = {}
 
     for i, data in f:
         try:
@@ -77,26 +95,21 @@ def process_chunk(df):
             if len(points) < 0:
                 print "low tracking quality: ", TRACK_DIR.rsplit('/', 3)[1], str(i), str(len(points))
             centroid = get_centroid(points)   
+
             
-            CX = data.loc[:,XPOS] - centroid[0] # component vector to centroid, X
-            CY = data.loc[:,YPOS] - centroid[1] # component vector to centroid, Y
-            radius = np.sqrt(CX**2 + CY**2)  #radius to centroid
-            uCX = CX / radius # X component of unit vector R
-            uCY = CY / radius # Y component of unit vector R
-            #data = data.dropna()
+            rotationOrder_cMass = rotationOrder(centroid[0], centroid[1], 
+                                                data.loc[:,XPOS], data.loc[:,YPOS], 
+                                                data.loc[:,'uVX'], data.loc[:,'uVY'])
             
-            rotationOrder = np.cross(pd.DataFrame({'uCX':uCX,'uCY':uCY}), data[['uVX','uVY']])
-            rotationOrder = rotationOrder[np.isfinite(rotationOrder)]
+            rotationOrder_cArea = rotationOrder(160.0, 160.0, 
+                                                data.loc[:,XPOS], data.loc[:,YPOS], 
+                                                data.loc[:,'uVX'], data.loc[:,'uVY'])
+            
+            
             #Find centroid of PDF of rotation scores fit to gaussian
-            peaks, peakParams = scipy.signal.find_peaks(scipy.stats.gaussian_kde(rotationOrder).pdf(gaussian_X),0)
+            peaks, peakParams = scipy.signal.find_peaks(scipy.stats.gaussian_kde(rotationOrder_cMass).pdf(gaussian_X),0)
             
-            """
-            for j in range(len(peaks)):
-                rotation_pdf_centroids = rotation_pdf_centroids.append({'frame':i, 
-                                            'centroid':gaussian_X[peaks[j]], 
-                                            'height':peakParams['peak_heights'][j]}, 
-                                            ignore_index=True)
-            """
+
             if len(peaks) < 2:
                 Peak_1 = gaussian_X[peaks[peakParams['peak_heights'].argmax()]]
                 PeakHeight_1 = peakParams['peak_heights'].max()
@@ -117,17 +130,20 @@ def process_chunk(df):
                              'cy':centroid[1],
                              'mean_radius':radius.mean(),
                              'mean_polarization':np.sqrt(m['uVX']**2 + m['uVY']**2),
-                             'mean_dRotation':rotationOrder.mean(),
+                             'mean_dRotation_cMass':rotationOrder_cMass.mean(),
+                             'mean_dRotation_cArea':rotationOrder_cArea.mean(),
                              'mean_swimSpeed':m[SPEED],
                              'mean_borderDistance':m['BORDER_DISTANCE#wcentroid'],
                              'median_radius':radius.median(),
                              'median_polarization':np.sqrt(med['uVX']**2 + med['uVY']**2),
-                             'median_dRotation':np.median(rotationOrder),
+                             'median_dRotation_cMass':np.median(rotationOrder_cMass),
+                             'median_dRotation_cArea':np.median(rotationOrder_cArea),
                              'median_swimSpeed':med[SPEED],
                              'median_borderDistance':med['BORDER_DISTANCE#wcentroid'],
                              'std_radius':radius.std(),
                              'std_polarization':np.sqrt(std['uVX']**2 + std['uVY']**2),
-                             'std_dRotation':rotationOrder.std(),
+                             'std_dRotation_cMass':rotationOrder_cMass.std(),
+                             'std_dRotation_cArea':rotationOrder_cArea.std(),
                              'std_swimSpeed':std[SPEED],
                              'std_borderDistance':std['BORDER_DISTANCE#wcentroid'],
                              'pdfPeak1':Peak_1,
@@ -136,12 +152,13 @@ def process_chunk(df):
                              'pdfPeak2_height':PeakHeight_2
                              }, name=i)
             perframe_stats = perframe_stats.append(row)
-            rotations[i] = np.array(rotationOrder)
+            rotations_cMass[i] = np.array(rotationOrder_cMass)
+            rotations_cArea[i] = np.array(rotationOrder_cArea)
             if progressbar == True:
                 printProgressBar(i,maxFrame, prefix='Frame by frame processing: ') 
         except:
             traceback.print_exc()
-    return perframe_stats, rotations
+    return perframe_stats, rotation_cMass, rotation_cArea
 
 
 def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
@@ -151,7 +168,8 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
     ppe = ProcessPoolExecutor(nCores)
     futures = []
     statResults = []
-    rotResults = []
+    rotMResults = []
+    rotAResults = []
     
     # PREPARE DATAFRAME
     fbf = fbf.loc[fbf[XPOS].notnull(), :]
@@ -168,18 +186,26 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
     
     # COLLECT PROCESSED DATA AS IT IS FINISHED    
     for future in as_completed(futures):
-        stats, rots = future.result()
+        stats, rotM, rotA = future.result()
         statResults.append(stats)
-        rotResults.append(rots)
+        rotMResults.append(rotM)
+        rotAResults.append(rotA)
     
     #CONCATENATE RESULTS
     perframe_stats = pd.concat(statResults)
     
-    rotationOrders = {}
-    for r in rotResults:
-        rotationOrders.update(r)
-    pick = open(TRACK_DIR + '/rotationOrders.pickle', "wb")
-    pickle.dump(rotationOrders, pick)
+    rotationOrders_cMass = {}
+    for r in rotMResults:
+        rotationOrders_cMass.update(r)
+    pick = open(TRACK_DIR + '/rotationOrders_cMass.pickle', "wb")
+    pickle.dump(rotationOrders_cMass, pick)
+    pick.close()
+    
+    rotationOrders_cArea = {}
+    for r in rotAResults:
+        rotationOrders_cArea.update(r)
+    pick = open(TRACK_DIR + '/rotationOrders_cArea.pickle', "wb")
+    pickle.dump(rotationOrders_cArea, pick)
     pick.close()
     
 
@@ -454,10 +480,10 @@ def run(MAIN_DIR, RESUME=True):
         if not 'VX#smooth#wcentroid' in fbf.columns:
             print('VX#smooth#wcentroid', "not found in columns.", MAIN_DIR)
             print(fbf.columns)
-            os.remove(DIRECTORY + 'frameByFrameData.pickle')
-            #shutil.rmtree(DIRECTORY + 'fishdata')
-            if os.path.exists(DIRECTORY + 'frameByFrame_complete'):
-                os.remove(DIRECTORY + 'frameByFrame_complete')    
+            os.remove(trackdir + 'frameByFrameData.pickle')
+            shutil.rmtree(trackdir + 'fishdata')
+            if os.path.exists(trackdir + 'frameByFrame_complete'):
+                os.remove(trackdir + 'frameByFrame_complete')    
         
         if len(set(fbf.frame)) < 501:
             print "FOUND INCOMPLETE TRACKING DATA. DELETING TRACKDIR"
@@ -469,8 +495,8 @@ def run(MAIN_DIR, RESUME=True):
     log = stim_handling.get_logfile(MAIN_DIR)
     if 'reversals' in MAIN_DIR:
         ret, perframe_stats = stim_handling.sync_reversals(perframe_stats, log, store)
-        plot_perframe_vs_time(slashdir(MAIN_DIR),         ['dir','median_polarization','median_dRotation','centroidRotation','median_swimSpeed'], 
-            ['Direction','Pol. Order','Rot. Order','Rot. Order (centroid)','Median Speed'],
+        plot_perframe_vs_time(slashdir(MAIN_DIR),         ['dir','median_polarization','median_dRotation_cMass','median_dRotation_cArea','median_swimSpeed'], 
+            ['Direction','Pol. Order','Rot. Order (CofM)','Rot. Order (Area)','Median Speed'],
             perframe_stats,
             '_median') 
     elif 'coherence' in MAIN_DIR:
@@ -517,7 +543,7 @@ if __name__ == "__main__":
     for filenum in np.arange(len(fileList)):
         vDir = fileList[filenum]
         if os.path.exists(vDir + '/track/converted.results'):
-            if not os.path.exists(vDir + '/track/perframe_stats.pickle'):
+            if not os.path.exists(vDir + '/track/perframe_Xstats.pickle'):#FIXME
                 try:
                     run(vDir, args.resume)
                 except:# Exception as e:
