@@ -96,6 +96,9 @@ def process_chunk(df):
                 print "low tracking quality: ", TRACK_DIR.rsplit('/', 3)[1], str(i), str(len(points))
             centroid = get_centroid(points)   
 
+            CX = data.loc[:,XPOS]- centroid[0]
+            CY = data.loc[:,YPOS] - centroid[1]
+            radius = np.sqrt(CX**2 + CY**2)
             
             rotationOrder_cMass = rotationOrder(centroid[0], centroid[1], 
                                                 data.loc[:,XPOS], data.loc[:,YPOS], 
@@ -158,7 +161,7 @@ def process_chunk(df):
                 printProgressBar(i,maxFrame, prefix='Frame by frame processing: ') 
         except:
             traceback.print_exc()
-    return perframe_stats, rotation_cMass, rotation_cArea
+    return perframe_stats, rotations_cMass, rotations_cArea
 
 
 def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
@@ -464,7 +467,7 @@ def run(MAIN_DIR, RESUME=True):
     print "processing: ", MAIN_DIR
     #getColumnNames('_'.join(MAIN_DIR.split('/')[-1]..split('.')[0].split('_')[-2:]))
     trackdir = slashdir(MAIN_DIR) + 'track/'
-    if os.path.exists(trackdir + 'perframe_stats.pickle'):
+    if os.path.exists(trackdir + 'perfrXXXXXXXame_stats.pickle'): #FIXME
         perframe_stats = pd.read_pickle(trackdir + 'perframe_stats.pickle')
     else:
         if os.path.exists(trackdir + 'frameByFrame_complete'):
