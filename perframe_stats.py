@@ -412,7 +412,7 @@ def get_centroid_rotation(df, trackdir, ARENA_WIDTH=None):
 
 def plot_perframe_vs_time(DIR, subs, ylabs, df=pd.DataFrame(), fn=''):
     if len(df) < 1:
-        df = pd.read_pickle(DIR + 'track/frame_means_rotation_polarization.pickle')
+        df = pd.read_pickle(DIR + 'track/perframe_stats.pickle')
 
     df.dropna(subset=['FrameNumber'], inplace=True)
     if 'dir' in df.columns:
@@ -504,8 +504,8 @@ def run(MAIN_DIR, RESUME=True):
             '_median') 
     elif 'coherence' in MAIN_DIR:
         ret, perframe_stats = stim_handling.synch_coherence_with_rotation(perframe_stats, log, store)
-        plot_perframe_vs_time(slashdir(MAIN_DIR),  ['coherence','median_polarization','median_dRotation','centroidRotation','median_swimSpeed'], 
-            ['Coherence','Pol. Order','Rot. Order','Rot. Order (centroid)','Median Speed'],
+        plot_perframe_vs_time(slashdir(MAIN_DIR),  ['coherence','median_polarization','median_dRotation_cMass','median_dRotation_cArea','median_swimSpeed'], 
+            ['Coherence','Pol. Order','Rot. Order (CofM)','Rot. Order (Area)','Median Speed'],
             perframe_stats,
             '_median') 
     elif 'cogs' in MAIN_DIR:
