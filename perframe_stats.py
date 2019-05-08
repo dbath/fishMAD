@@ -467,7 +467,7 @@ def run(MAIN_DIR, RESUME=True):
     print "processing: ", MAIN_DIR
     #getColumnNames('_'.join(MAIN_DIR.split('/')[-1]..split('.')[0].split('_')[-2:]))
     trackdir = slashdir(MAIN_DIR) + 'track/'
-    if os.path.exists(trackdir + 'perfrXXXXXXXame_stats.pickle'): #FIXME
+    if os.path.exists(trackdir + 'perframe_stats.pickle'): 
         perframe_stats = pd.read_pickle(trackdir + 'perframe_stats.pickle')
     else:
         if os.path.exists(trackdir + 'frameByFrame_complete'):
@@ -546,7 +546,7 @@ if __name__ == "__main__":
     for filenum in np.arange(len(fileList)):
         vDir = fileList[filenum]
         if os.path.exists(vDir + '/track/converted.results'):
-            if not os.path.exists(vDir + '/track/perframe_Xstats.pickle'):#FIXME
+            if not os.path.exists(vDir + '/track/perframe_stats.pickle'):
                 try:
                     run(vDir, args.resume)
                 except:# Exception as e:

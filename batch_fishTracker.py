@@ -82,7 +82,7 @@ if __name__ == "__main__":
     
     if os.path.exists(BKG_RULE):
         from . import utilities
-        utilities.createBackgroundImage(BKG_RULE, method='mean') #FIXME when tristan updates
+        utilities.createBackgroundImage(BKG_RULE, method='mode') 
         mkBkg=False
     elif BKG_RULE == '0':
         mkBkg = False
@@ -104,13 +104,17 @@ if __name__ == "__main__":
                 vDir = slashdir(vDir)
                 _fishnum = int(vDir.split('/')[-2].split('_')[1])
                 
-                
+                #catch all that have not been converted
                 if not os.path.exists(vDir + 'track/converted.pv'):
                     if os.path.getsize(vDir + '000000.mp4') > 1000: #skip blank files...
                         run_fishTracker.setup_tristrack(vDir, _fishnum)
                         run_fishTracker.convert(vDir, mkBkg, args.newonly, _fishnum, args.debug)
-  
+                #catch all that have been converted but not tracked
                 if (not os.path.exists(vDir + 'track/converted.results')):
                     if (os.path.exists(vDir + 'track/converted.pv')):
                         run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
-              
+                #catch all that have been converted and tracked but data is gone (ex for re-export)
+                if os.path.exists(vDir + 'track/fishdata'):
+                    if len(os.listdir(vDir + 'track/fishdata') ) == 0: #tracking data was deleted for re-export
+                        run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
+                
