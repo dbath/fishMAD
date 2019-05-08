@@ -105,7 +105,7 @@ if __name__ == "__main__":
                 try:
                     _fishnum = int(vDir.split('/')[-2].split('_')[1])
                 except:
-                    print vDIR, "does not match naming convention. skipping file."
+                    print(vDir, "does not match naming convention. skipping file.")
                     continue
                 #catch all that have not been converted
                 if not os.path.exists(vDir + 'track/converted.pv'):
