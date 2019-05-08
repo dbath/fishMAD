@@ -102,8 +102,11 @@ if __name__ == "__main__":
                 searchterm = DIR + '*' + term + '*'
             for vDir in glob.glob(searchterm):
                 vDir = slashdir(vDir)
-                _fishnum = int(vDir.split('/')[-2].split('_')[1])
-                
+                try:
+                    _fishnum = int(vDir.split('/')[-2].split('_')[1])
+                except:
+                    print vDIR, "does not match naming convention. skipping file."
+                    continue
                 #catch all that have not been converted
                 if not os.path.exists(vDir + 'track/converted.pv'):
                     if os.path.getsize(vDir + '000000.mp4') > 1000: #skip blank files...
