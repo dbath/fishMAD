@@ -14,3 +14,4 @@ meta_real_width = 128
 meta_species = "Sunbleak"
 
 image_invert = false
+averaging_method = "mode"
