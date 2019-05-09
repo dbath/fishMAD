@@ -98,6 +98,9 @@ def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', p
 groupsizes = [64,128,256,512,1024]
 
 allData = pd.DataFrame()
+prestim_meanvals = pd.DataFrame()
+meanvals = pd.DataFrame()
+
 for groupsize in groupsizes:
     print groupsize
     groupData = pd.DataFrame()
@@ -105,6 +108,15 @@ for groupsize in groupsizes:
         print fn
         ret, pf = stims.sync_reversals(pd.read_pickle(fn), stims.get_logfile(fn.rsplit('/',2)[0]), imgstore.new_for_filename(fn.rsplit('/',2)[0] + '/metadata.yaml'))
         pf['dir'] = pd.to_numeric(pf['dir'], errors='coerce')
+        prestim_mean = pf.loc[pf['Time'] < pf[pf['dir'] !=0]['Time'].min(), :].mean()
+        prestim_mean['ID'] = fn.split('/')[-3].split('_',3)[-1].split('.')[0]
+        prestim_mean['groupsize'] = groupsize
+        prestim_meanvals = pd.concat([prestim_meanvals, prestim_mean], axis=1)
+        _mean = pf.mean()
+        _mean['ID'] = fn.split('/')[-3].split('_',3)[-1].split('.')[0]
+        _mean['groupsize'] = groupsize
+        meanvals = pd.concat([meanvals, _mean], axis=1)
+        
         pf = sync_by_reversal(pf)
         fileID = fn.split('/')[-3].split('.')[0].split('_',3)[-1]
         reversals = align_by_stim(pf, fileID)
@@ -114,11 +126,16 @@ for groupsize in groupsizes:
     plot_many_trials(groupData, col='median_dRotation_cArea', grouping='byday')
     plt.savefig('/media/recnodes/Dan_storage/190503_reversal_' + str(groupsize) + '.svg')
     plt.close('all')
+    if groupsize == 64:
+        plot_many_trials(groupData, col='median_dRotation_cArea')
+        plt.savefig('/media/recnodes/Dan_storage/190508_reversal_' + str(groupsize) + '_debug.svg')
+        plt.close('all')
     allData = pd.concat([allData, groupData], axis=0)
 plot_many_trials(allData, plotMean=False, grouping='groupsize')
 plt.savefig('/media/recnodes/Dan_storage/190503_reversal_means.svg')
 allData.to_pickle('/media/recnodes/Dan_storage/190503_reversal_data_compiled_full.pickle')
-        
+prestim_meanvals.to_pickle('/media/recnodes/Dan_storage/190503_reversal_data_mean_prestim.pickle')
+meanvals.to_pickle('/media/recnodes/Dan_storage/190503_reversal_data_mean.pickle')
 
 
     
