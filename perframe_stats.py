@@ -473,7 +473,7 @@ def run(MAIN_DIR, RESUME=True):
         if 'median_dRotation_cArea' in perframe_stats.columns:
             PF_DONE = True
     if PF_DONE == False:
-        if os.path.exists(trackdir + 'frameByFrame_complete'):
+        if os.path.exists(trackdir + 'frameByFrameData.pickle'):
             try:
                 fbf = joblib.load(trackdir + 'frameByFrameData.pickle')
             except:
