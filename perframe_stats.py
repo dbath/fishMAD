@@ -86,7 +86,6 @@ def process_chunk(df):
 
     rotations_cMass = {}
     rotations_cArea = {}
-
     for i, data in f:
         try:
             #angular momentum of fish
@@ -104,7 +103,7 @@ def process_chunk(df):
                                                 data.loc[:,XPOS], data.loc[:,YPOS], 
                                                 data.loc[:,'uVX'], data.loc[:,'uVY'])
             
-            rotationOrder_cArea = rotationOrder(160.0, 160.0, 
+            rotationOrder_cArea = rotationOrder(ARENA_WIDTH/2.0, ARENA_WIDTH/2.0, 
                                                 data.loc[:,XPOS], data.loc[:,YPOS], 
                                                 data.loc[:,'uVX'], data.loc[:,'uVY'])
             
@@ -552,6 +551,8 @@ if __name__ == "__main__":
         if os.path.exists(vDir + '/track/converted.results'):
             if not os.path.exists(vDir + '/track/rotationOrders_cArea.pickle'):
                 try:
+                
+                    ARENA_WIDTH = get_arena_width(vDir)
                     run(vDir, args.resume)
                 except:# Exception as e:
                     print "ERROR: ", vDir
