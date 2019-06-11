@@ -39,8 +39,8 @@ def get_sorted(df, col1, col2):
 
 def plot_cumulative(df):
     df.loc[:,'millFrames'] = df.loc[:,'framecount']/1000000.0
-    columns = ['recorded','stitchEnd','converted','tracked']#,'pickled']
-    labels = ['recorded','stitched','converted for tracking','tracked']#,'compiled']
+    columns = ['recorded','stitchEnd','tracked']#,'pickled']
+    labels = ['recorded','stitched','tracked']#,'compiled']
     for i in range(len(columns)):
         foo = df[~np.isnat(df[columns[i]])]
         x, y = get_sorted(foo, columns[i], 'millFrames')
@@ -66,4 +66,19 @@ for fn in glob.glob('/media/recnodes/recnode_2mfish/*dotbot*.stitched'):
 
 plot_cumulative(df)
 df.to_pickle('/home/dan/Desktop/processing_report.pickle')
+print "DONE WITH LARGE TANK DATA"
+
+df = pd.DataFrame()
+for DIR in ['kn-crec05','kn-crec06','kn-crec07']:
+    for fn in glob.glob('/media/recnodes/' + DIR + '/coherencetestangular_*'):
+        try:
+            df = df.append(collectProcessingStats(fn), ignore_index=True)
+            print "appended", fn.split(',')[-1]
+        except Exception as E:
+            print "ERROR: ", fn, E
+
 plot_cumulative(df)
+df.to_pickle('/home/dan/Desktop/processing_report_smalltanks.pickle')
+
+
+print "DONE"
