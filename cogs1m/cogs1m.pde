@@ -62,12 +62,12 @@ boolean ANDROID = true;
 void setup(){
   try
   {
-    Enumeration<NetworkInterface> iter = NetworkInterface.getNetworkInterfaces();
-    while( iter.hasMoreElements() )
-    {
-      println( iter.nextElement() );
-    }
-    myIP = InetAddress.getLocalHost().getHostAddress();//. //"10.126.18.115";//KetaiNet.getIP();
+    // To work, this needs connectivity to the specified server
+    Socket socket = new Socket();
+    socket.connect(new InetSocketAddress("google.com", 80));
+    InetAddress addr = socket.getLocalAddress();
+    myIP = addr.getHostAddress();
+    socket.close();
   }
   catch( Exception e )
   {

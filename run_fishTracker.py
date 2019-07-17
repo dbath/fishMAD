@@ -54,7 +54,7 @@ def setup_tristrack(_main_dir, fishnum):
  
     #copy default settings files and make fishdata dir
 
-    if not os.path.exists(track_dir + 'fishTrXXXacker.settings'):
+    if not os.path.exists(track_dir + 'fishTracker.settings'):
         if 'stitched' in MAIN_DIR:
             shutil.copyfile(os.path.expanduser('~/fishMAD/tristrack_defaults/fishTracker3m.settings'), track_dir + '/fishTracker.settings')
             shutil.copyfile(os.path.expanduser('~/fishMAD/tristrack_defaults/3m_bkg.png'), track_dir + '/average_converted.pv.png')
@@ -242,11 +242,11 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG=False):
     # Launch tracker
     FNULL = open(os.devnull, 'w')    
     if 1:#not (os.path.exists(track_dir + '/converted.results')):  #FIXME
-        shutil.rmtree(track_dir + '/fishdata')
+        os.rmdir(track_dir + '/fishdata')
         os.makedirs(track_dir + '/fishdata')
         pv_file = track_dir + '/converted.pv'
         launch_tracker = "~/FishTracker/Application/build/tracker -d '" + track_dir + "' -i '" + pv_file + "' -settings '" + track_dir + "/fishTracker.settings'"
-        if  (os.path.exists(track_dir + '/converted.results')): #FIXME
+        if  (os.path.exists(track_dir + '/converted.results')): 
             launch_tracker += " -load -gui_save_npy_quit true"
         if DEBUG==False:
             launch_tracker += " -nowindow"
@@ -256,23 +256,24 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG=False):
         store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
         nFrames = store.frame_count
         try:
+            
             task = subprocess.Popen([launch_tracker],stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True )#
             PID = task.pid
-            """
-            while task.stdout is not None:
-                #try:
-                line = task.stdout.readline().decode()
-                if ('frame' in line) and (') filter_blobs' in line)and ('eta ' in line): #read only progress report lines
-                    framenum = int(line.split('% frame ')[1].split('/')[0])
-                    eta = line.split('eta ')[1].split(')')[0]
-                    printProgressBar(framenum, nFrames, prefix='Tracking:  ('+PID+')', suffix='ETA: ' + eta)
-                if not line:
-                    print("\n")
-                    task.stdout.flush()
-                    break
-                #except:
-                #    pass
-            """
+            
+            while task.returncode == None:
+                try:
+                    line = task.stdout.readline().decode()
+                    if ('frame' in line) and (') filter_blobs' in line)and ('eta ' in line): #read only progress report lines
+                        framenum = int(line.split('% frame ')[1].split('/')[0])
+                        eta = line.split('eta ')[1].split(')')[0]
+                        printProgressBar(framenum, nFrames, prefix='Tracking:  ('+PID+')', suffix='ETA: ' + eta)
+                    if not line:
+                        print("\n")
+                        task.stdout.flush()
+                        break
+                except:
+                    pass
+            
             OUT, ERROR = task.communicate()
             if task.returncode != 0:
                 #if task.returncode == None:
@@ -294,6 +295,13 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG=False):
             errorLog.write(str(ERROR) + '\n\n\n')
             #errorLog.write(str(OUT) + '\n\n\n')
             errorLog.close()
+            
+            
+            commandlist = open(os.path.expanduser('~/FishTracker/Application/build/tracking_cmds.txt'), 'a')
+           
+            commandlist.write('wait; ' + launch_tracker + ' & \n')
+            commandlist.close()
+            
             FNULL.close()
             print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),'\t' ,"ERROR tracking file: ", track_dir )
         

@@ -467,7 +467,7 @@ def run(MAIN_DIR, RESUME=True):
     #getColumnNames('_'.join(MAIN_DIR.split('/')[-1]..split('.')[0].split('_')[-2:]))
     trackdir = slashdir(MAIN_DIR) + 'track/'
     PF_DONE = False
-    if os.path.exists(trackdir + 'perframe_stats.pickle'): 
+    if os.path.exists(trackdir + 'perframe_stats.pickle'):  
         perframe_stats = pd.read_pickle(trackdir + 'perframe_stats.pickle')
         if 'median_dRotation_cArea' in perframe_stats.columns:
             PF_DONE = True
@@ -549,7 +549,7 @@ if __name__ == "__main__":
     for filenum in np.arange(len(fileList)):
         vDir = fileList[filenum]
         if os.path.exists(vDir + '/track/converted.results'):
-            if not os.path.exists(vDir + '/track/rotationOrders_cArea.pickle'):
+            if not os.path.exists(vDir + '/track/rotationOrders_cArea.pickle'): 
                 try:
                 
                     ARENA_WIDTH = get_arena_width(vDir)

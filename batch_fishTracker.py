@@ -91,15 +91,20 @@ if __name__ == "__main__":
     
     numFish=0
 
+
+    if os.path.exists(os.path.expanduser('~/FishTracker/Application/build/tracking_cmds.txt')):
+        os.remove(os.path.expanduser('~/FishTracker/Application/build/tracking_cmds.txt'))
+
+
     # TRACK, THEN RUN BASIC ANALYSIS
 
-    
     for term in HANDLE:
-        for DIR in DIRECTORIES:    
+        for DIR in DIRECTORIES:
             if '2mfish' in DIR:
                 searchterm = DIR + '*' + term + '*' + '.stitched'
             else:
                 searchterm = DIR + '*' + term + '*'
+
             for vDir in glob.glob(searchterm):
                 vDir = slashdir(vDir)
                 try:
@@ -107,17 +112,23 @@ if __name__ == "__main__":
                 except:
                     print(vDir, "does not match naming convention. skipping file.")
                     continue
+
                 #catch all that have not been converted
                 if not os.path.exists(vDir + 'track/converted.pv'):
                     if os.path.getsize(vDir + '000000.mp4') > 1000: #skip blank files...
                         run_fishTracker.setup_tristrack(vDir, _fishnum)
                         run_fishTracker.convert(vDir, mkBkg, args.newonly, _fishnum, args.debug)
+                
                 #catch all that have been converted but not tracked
                 if (not os.path.exists(vDir + 'track/converted.results')):
                     if (os.path.exists(vDir + 'track/converted.pv')):
                         run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
+                
                 #catch all that have been converted and tracked but data is gone (ex for re-export)
-                if os.path.exists(vDir + 'track/fishdata'):
-                    if len(os.listdir(vDir + 'track/fishdata') ) == 0: #tracking data was deleted for re-export
-                        run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
+                if not os.path.exists(vDir + 'track/fishdata'):
+                    os.makedirs(vDir + 'track/fishdata')
+                if len(os.listdir(vDir + 'track/fishdata') ) == 0: #tracking data was deleted for re-export
+                    run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
+                elif args.exportNewData == True:
+                    run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
                 
