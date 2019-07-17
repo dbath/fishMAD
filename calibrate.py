@@ -15,6 +15,7 @@ import cv2
 import yaml
 import matplotlib.pyplot as plt
 import pandas as pd
+import imgstore
 
 
 
@@ -124,16 +125,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--dir', type=str, required=False, default='/media/recnodes/recnode_2mfish/',
 			 help='path to directory containing checker vids')
-    parser.add_argument('--timestamp', type=str, required=True, help='unique identifier that marks the files to use for calibration. Ideally use the timestamp of the recording, ie "20180808_153229".'
+    parser.add_argument('--timestamp', type=str, required=True, help='unique identifier that marks the files to use for calibration. Ideally use the timestamp of the recording, ie "20180808_153229".')
     parser.add_argument('--checkersize', type=str, required=False, default='6x6', help='size of checkerboard, default is 6x6')
-    parser.add_argument('--saveas', type=str, required=False, default='notDefined', help='name for calibration, including date time string, ex: 20180404_123456')
+    parser.add_argument('--saveas', type=str, required=False, default='/home/dan/fishMAD/camera_calibrations/notDefined', help='name for calibration, including date time string, ex: 20180404_123456')
 
                 
     args = parser.parse_args()
     
     CHECKERSIZE = tuple([int(k) for k in args.checkersize.split('x')])
 
-    for vid in glob.glob(slashdir(args.dir) + '*' + args.handle + '*/metadata.yaml'):
+    for vid in glob.glob(slashdir(args.dir) + '*' + args.timestamp + '*/metadata.yaml'):
         inStore = imgstore.new_for_filename(vid)    
     
         if args.saveas == 'notDefined':
@@ -143,7 +144,7 @@ if __name__ == "__main__":
         else:
             SAVE_AS = '_'.join([args.saveas, vid.split('.')[-2]])
 
-        calibrate(inStore, CHECKERSIZE, '/home/dan/fishMAD/camera_calibrations/'+SAVE_AS+'.yaml') 
+        calibrate(inStore, CHECKERSIZE, SAVE_AS+'.yaml') 
 
 
 
