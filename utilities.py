@@ -316,17 +316,17 @@ def crop_stitched_img(img):
         h, w, _ = img.shape
         return img[100:h-100,100:w-100,:]
 
-def plotnice(plotType='standard'):
-    plt.gca().spines['top'].set_visible(False)
-    plt.gca().spines['right'].set_visible(False)
+def plotnice(plotType='standard', ax=plt.gca()):
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     if plotType == 'hist':
-        plt.gca().spines['left'].set_visible(False)
-        plt.gca().set_yticks([])
+        ax.spines['left'].set_visible(False)
+        ax.set_yticks([])
     elif plotType=='img':
-        plt.gca().spines['left'].set_visible(False)
-        plt.gca().spines['bottom'].set_visible(False)
-        plt.gca().set_xticks([])
-        plt.gca().set_yticks([])
+        ax.spines['left'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
         plt.axis('off')
     return
         

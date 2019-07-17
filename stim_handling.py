@@ -42,7 +42,7 @@ def synch_coherence_with_rotation(r, log, store):
     bar['coh'] = bar['coh'].fillna(method='ffill')
     bar['coherence'] = bar['coh']#silly lazy hack
     bar['speed'] = bar['speed'].fillna(method='ffill').fillna(0)
-    bar['dir'] = bar['dir'].fillna(method='ffill').fillna(0)
+    bar['dir'] = log.loc[0, 'dir'] #first row represents coherent stim dir
     bar.loc[:,'Time'] = (bar.loc[:,'Timestamp'] - bar.loc[0,'Timestamp'])
     if bar.iloc[5].Timestamp - bar.iloc[0].Timestamp > 10: #check if log overlaps with track data
         return 0, bar
