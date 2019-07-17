@@ -82,3 +82,54 @@ df.to_pickle('/home/dan/Desktop/processing_report_smalltanks.pickle')
 
 
 print "DONE"
+
+
+def plotnice(plotType='standard', ax=plt.gca()):
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    if plotType == 'hist':
+        ax.spines['left'].set_visible(False)
+        ax.set_yticks([])
+    elif plotType=='img':
+        ax.spines['left'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        plt.axis('off')
+    return
+
+def getTrackingStats(fn):
+    d = np.load(fn)
+    f =  pd.DataFrame([d[x] for x in d.iterkeys()]).T   
+    f.columns = d.keys()
+    N = []
+    T = []
+    for i in range(len(f['stats'][0])):
+        N.append(f['stats'][0][i][2])
+        data = f['stats'][0][i]
+        T.append(data[0] + data[1] + data[3] + data[4])
+    return pd.DataFrame({'N':N,'T': T})
+        
+df = pd.DataFrame()
+nFish = []
+tTrack = []
+for DIR in ['kn-crec05','kn-crec06','kn-crec07','recnode_2mfish']:
+    for fn in glob.glob('/media/recnodes/'+DIR+'/*dotbot*/track/fishdata/converted_statistics.npz'):
+        try:
+            newdf = getTrackingStats(fn)
+            newdf['groupsize'] = int(fn.split('/')[-4].split('_')[-4])
+            df = pd.concat([df, newdf], axis=0)
+            print "appended", fn.split('/')[-4]
+        except Exception as E:
+            print "ERROR: ", fn, E
+
+df['FPS'] = 1.0/df['T']
+g = df.groupby('groupsize')            
+plt.plot(g['N'].mean(), g['FPS'].mean())
+
+plt.errorbar(g['N'].mean(), g['FPS'].mean(), 
+             xerr=g['N'].std(), yerr=g['FPS'].std(), 
+             capsize=4, linestyle='None')
+plotnice()             
+plt.xlabel('Group size')
+plt.ylabel('Tracking rate (frames/second)')
