@@ -1,47 +1,21 @@
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 from shapely.ops import polygonize,unary_union
 from shapely.geometry import LineString, MultiPolygon, MultiPoint, Point
 from scipy.spatial import Voronoi
 
-
-
-points = [[-30.0, 30.370371], [-27.777777, 35.925926], [-34.444443, 58.51852], [-2.9629631, 57.777779], [-17.777779, 75.185181], [-29.25926, 58.148151], [-11.111112, 33.703705], [-11.481482, 40.0], [-27.037037, 40.0], [-7.7777777, 94.444443], [-2.2222223, 122.22222], [-20.370371, 106.66667], [1.1111112, 125.18518], [-6.2962961, 128.88889], [6.666667, 133.7037], [11.851852, 136.2963], [8.5185184, 140.74074], [20.370371, 92.962959], [17.777779, 114.81482], [12.962962, 97.037041], [13.333334, 127.77778], [22.592592, 120.37037], [16.296295, 127.77778], [11.851852, 50.740742], [20.370371, 54.814816], [19.25926, 47.40741], [32.59259, 122.96296], [20.74074, 130.0], [24.814816, 84.814819], [26.296295, 91.111107], [56.296295, 131.48149], [60.0, 141.85185], [32.222221, 136.66667], [53.703705, 147.03703], [87.40741, 196.2963], [34.074074, 159.62964], [34.444443, -2.5925925], [36.666668, -1.8518518], [34.074074, -7.4074073], [35.555557, -18.888889], [76.666664, -39.629627], [35.185184, -37.777779], [25.185184, 14.074074], [42.962959, 32.962963], [35.925926, 9.2592592], [52.222221, 77.777779], [57.777779, 92.222221], [47.037041, 92.59259], [82.222221, 54.074074], [48.888889, 24.444445], [35.925926, 47.777779], [50.740742, 69.259254], [51.111111, 51.851849], [56.666664, -12.222222], [117.40741, -4.4444447], [59.629631, -5.9259262], [66.666664, 134.07408], [91.481483, 127.40741], [66.666664, 141.48149], [53.703705, 4.0740738], [85.185181, 11.851852], [69.629631, 0.37037039], [68.518517, 99.259262], [75.185181, 100.0], [70.370369, 113.7037], [74.444443, 82.59259], [82.222221, 93.703697], [72.222221, 84.444443], [77.777779, 167.03703], [88.888893, 168.88889], [73.703705, 178.88889], [87.037041, 123.7037], [78.518517, 97.037041], [95.555557, 52.962959], [85.555557, 57.037041], [90.370369, 23.333332], [100.0, 28.51852], [88.888893, 37.037037], [87.037041, -42.962959], [89.259262, -24.814816], [93.333328, 7.4074073], [98.518517, 5.185185], [92.59259, 1.4814816], [85.925919, 153.7037], [95.555557, 154.44444], [92.962959, 150.0], [97.037041, 95.925919], [106.66667, 115.55556], [92.962959, 114.81482], [108.88889, 56.296295], [97.777779, 50.740742], [94.074081, 89.259262], [96.666672, 91.851852], [102.22222, 77.777779], [107.40741, 40.370369], [105.92592, 29.629629], [105.55556, -46.296295], [118.51852, -47.777779], [112.22222, -43.333336], [112.59259, 25.185184], [115.92592, 27.777777], [112.59259, 31.851852], [107.03704, -36.666668], [118.88889, -32.59259], [114.07408, -25.555555], [115.92592, 85.185181], [105.92592, 18.888889], [121.11111, 14.444445], [129.25926, -28.51852], [127.03704, -18.518518], [139.25926, -12.222222], [141.48149, 3.7037036], [137.03703, -4.814815], [153.7037, -26.666668], [-2.2222223, 5.5555558], [0.0, 9.6296301], [10.74074, 20.74074], [2.2222223, 54.074074], [4.0740738, 50.740742], [34.444443, 46.296295], [11.481482, 1.4814816], [24.074076, -2.9629631], [74.814819, 79.259254], [67.777779, 152.22223], [57.037041, 127.03704], [89.259262, 12.222222]]
-
-
-
-points = np.array(points)
-
-
-
-vor = Voronoi(points)
-
-
-lines = [
-    LineString(vor.vertices[line])
-    for line in vor.ridge_vertices if -1 not in line
-]
-
-convex_hull = MultiPoint([Point(i) for i in points]).convex_hull.buffer(2)
-result = MultiPolygon(
-    [poly.intersection(convex_hull) for poly in polygonize(lines)])
-result = MultiPolygon(
-    [p for p in result]
-    + [p for p in convex_hull.difference(unary_union(result))])
-
-plt.plot(points[:,0], points[:,1], 'ko')
-for r in result:
-    plt.fill(*zip(*np.array(list(
-        zip(r.boundary.coords.xy[0][:-1], r.boundary.coords.xy[1][:-1])))),
-        alpha=0.4)
-plt.show()
-
+"""
 ###############################################################################
 
 #find all points that share an edge:
 from scipy.spatial import Delaunay
 from collections import defaultdict
 import itertools
+from utilities import *
+import stim_handling
+import imgstore
+import joblib
 
 def distance(A, B):
     return np.sqrt((A[0]-B[0])**2 + (A[1]-B[1])**2)
@@ -82,21 +56,30 @@ def rotation_and_polarization(centreX, centreY, posX, posY, velX, velY):
 
 
 
-def plot_delaunay(tri, points, trackIDs, xlim=(0,400), ylim=(0,400), fig=None, ax=None):
+def plot_delaunay(tri, points, trackIDs, xlim=(7,312), ylim=(8,327), fig=None, ax=None, img='not_defined',
+                  _alpha=1.0):
     """
     tri: an object of scipy.spatial.Delaunay made from points eg (tri = Delaunay(points))
     points: x and y positions to plot in format: np.array(zip(data[XPOS],data[YPOS]))
     trackIDs: string values to label points, in same order as 'points'
     """
     if fig==None:
-        fig = plt.figure()
+        fig = plt.figure(frameon=False)
+        fig.set_size_inches(4,4)
     if ax== None:
         ax = fig.add_subplot(111)
-    plt.triplot(points[:,0], points[:,1], tri.simplices, color='#00FF00FF')
-    plt.plot(points[:,0], points[:,1], 'o', color='#FFFF00FF')
+    if img == 'not_defined':
+        pass
+    else:
+        plt.imshow(crop_stitched_img(img), extent=[xlim[0], xlim[1],ylim[0],ylim[1]], origin='lower')#Axes(fig, [0., 0., 1., 1.]) 
+    plt.triplot(points[:,0], points[:,1], tri.simplices, color='#00FF00FF', linewidth=0.5, alpha=0.5*_alpha)
+    plt.plot(points[:,0], points[:,1], 'o', color='#FFFF00FF', markersize=1, alpha=0.3*_alpha)
     for i,p in enumerate(points):
-        plt.text(p[0], p[1], trackIDs.iloc[i], ha='center')
-    
+        plt.text(p[0], p[1], trackIDs.iloc[i], ha='center', fontsize=3, fontstyle='italic', fontweight='light', alpha=_alpha)
+    plt.gca().set_aspect(1.0)
+    plt.gca().set_axis_off()
+    plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, 
+            hspace = 0, wspace = 0)    
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
     
@@ -173,8 +156,6 @@ def delaunayNeighbours(data, CENTRE=(160,160)):
     GROUP_CENTROID = get_centroid(points)
     data['grpRadius'] = [distance(list(i[[XPOS,YPOS]].values), GROUP_CENTROID) for _,i in data.iterrows()]
 
-
-
     tri = Delaunay(points)
     neiList=defaultdict(set)
 
@@ -183,21 +164,79 @@ def delaunayNeighbours(data, CENTRE=(160,160)):
             neiList[i].add(j)
             neiList[j].add(i)
 
-    for key in sorted(neiList.iterkeys()):
-        neighbourhoodWatch(data.iloc[key], data.iloc[list(neiList[key])].reset_index())
-        
-    return 
+
+    return tri, neiList, data
 
 
 
-def doit(fbf):
+def doit(MAIN_DIR, saveas="Not_defined"):
+    MAIN_DIR = slashdir(MAIN_DIR) #sometimes people call dirs without a trailing slash
+    if saveas == 'Not_defined':
+        saveas = MAIN_DIR + 'voronoi_overlay'
+    if not os.path.exists(saveas):
+        os.makedirs(saveas)
+    fbf = joblib.load(MAIN_DIR + 'track/frameByFrameData.pickle')
     
+    store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
+    
+    ret, fbf = stim_handling.sync_data(fbf, stim_handling.get_logfile(MAIN_DIR), store)
+        
+    xlim=(7,312)
+    ylim=(8,327)
     f = fbf.groupby(['frame'])
     for i, data in f:
         data = data.replace(to_replace=np.inf, value=np.nan)
+        data = data[data[XPOS].notnull()]
+        data = data[data[YPOS].notnull()]
+        data = data[(data[XPOS].between(xlim[0], xlim[1])) * (data[YPOS].between(ylim[0], ylim[1]))]
+        points = np.array(zip(data[XPOS],data[YPOS]))
+        TRIANGULATION, NEIGHBOURS, DATA = delaunayNeighbours(data)
         
+        if 0: #FIXME put some actual data analysis here.
+            for key in sorted(NEIGHBOURS.iterkeys()):
+                neighbourhoodWatch(data.iloc[key], data.iloc[list(NEIGHBOURS[key])].reset_index())
+            
+        
+        IMG, (fn, ts) = store.get_image(data.iloc[-1]['FrameNumber'])
+        if i < 300:
+            FIG = plot_delaunay(TRIANGULATION, points,  DATA['trackid'], img=IMG, _alpha=(float(i/300.0)))
+        elif i < 600:
+            FIG = plot_delaunay(TRIANGULATION, points,  DATA['trackid'], img=IMG, _alpha=1.0)
+        elif i < 900:
+            FIG = plot_delaunay(TRIANGULATION, points,  DATA['trackid'], _alpha=1.0)
+        else:
+            FIG = plot_delaunay(TRIANGULATION, points,  DATA['trackid'], img=IMG, _alpha=1.0)
+
+        plt.savefig(saveas + "/%06d.png"%i, dpi=300)
+        plt.close('all')
+    
+    
+    return
 
 
+if __name__ == "__main__":
+    import argparse
+    import glob
+    
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--dir', type=str, required=False, default='/media/recnodes/recnode_2mfish/',
+			 help='path to directory containing checker vids')
+    parser.add_argument('--handle', type=str, required=True, help='unique identifier that marks the files to process. Ideally use the timestamp of the recording, ie "20180808_153229".')
+    
+    args = parser.parse_args()
+    HANDLE = args.handle.split(',')
+    DIRECTORIES = args.dir.split(',')
+    for x in range(len(DIRECTORIES)):
+        if DIRECTORIES[x][-1] != '/':
+            DIRECTORIES[x] += '/'
+            
+    for term in HANDLE:
+        for DIR in DIRECTORIES:
+            for vDir in glob.glob(DIR + '*' + term + '*.stitched'):
+                doit(vDir)
+                
+                
+"""
 from scipy.spatial import Voronoi, voronoi_plot_2d
 import matplotlib.pyplot as plt
 vor = Voronoi(points)
@@ -205,6 +244,6 @@ voronoi_plot_2d(vor)
 for i,p in enumerate(points):
     plt.text(p[0], p[1], '#%d' % i, ha='center')
 plt.show()
-
+"""
 
 
