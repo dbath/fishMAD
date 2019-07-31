@@ -176,7 +176,13 @@ def doit(MAIN_DIR, saveas="Not_defined"):
     if not os.path.exists(saveas):
         os.makedirs(saveas)
     fbf = joblib.load(MAIN_DIR + 'track/frameByFrameData.pickle')
+    fbf = fbf.replace(to_replace=np.inf, value=np.nan)
     
+
+    #filter out tracked reflections by removing tracks that are always near the border
+    foo = fbf.groupby('trackid').median()['BORDER_DISTANCE#wcentroid']
+    fbf = fbf[~(fbf.trackid.isin(foo[foo<40].index))]
+
     store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
     
     ret, fbf = stim_handling.sync_data(fbf, stim_handling.get_logfile(MAIN_DIR), store)
