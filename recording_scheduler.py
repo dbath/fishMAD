@@ -139,6 +139,11 @@ class Experiment(object):
         print "copied: ", self.destfile
         return
 
+def set_scheduling_times(ID_int, PERIOD):
+    len_repeats = 60/PERIOD
+    starts = np.array([(ID_int + PERIOD*i) for i in range(len_repeats)])
+    starts[starts >=60] -= 60
+    return ','.join([str(i) for i in starts])
 
 
 if __name__ == "__main__":
@@ -153,6 +158,9 @@ if __name__ == "__main__":
                         help='start time, in format "HHMMSS" or "YYYYMMDD_HHMMSS" default=Now.')
     parser.add_argument('--number_of_sessions', type=int, required=False, default=12,
                         help='number of repeats, 20min each')
+    parser.add_argument('--repeat_period', type=int, required=False, default=20,
+                        help='number of minutes between repeated trials.')
+
     args = parser.parse_args()
 
     logging.basicConfig()
@@ -176,8 +184,8 @@ if __name__ == "__main__":
     for item in range(len(RIG_IDs)):
         meta={'expID':args.expID, 'Rig': RIG_IDs[item]}
         SCHEDULE_OFFSET = int(RIG_IDs[item][-2:])    #returns a unique number between 11 and 18 based on IP
-        recstarts = ','.join([str(SCHEDULE_OFFSET),str(SCHEDULE_OFFSET + 20),str(SCHEDULE_OFFSET + 40)])
-        logmovetimes = ','.join([str(SCHEDULE_OFFSET+12),str(SCHEDULE_OFFSET + 32),str(SCHEDULE_OFFSET -8)])
+        recstarts = set_scheduling_times(SCHEDULE_OFFSET, args.repeat_period)
+        logmovetimes = set_scheduling_times(SCHEDULE_OFFSET + 4, args.repeat_period)
         E = Experiment(RIG_IDs[item], meta, expIDs[item], args.video_duration, recstarts, logmovetimes)
         
         job_def = {}
