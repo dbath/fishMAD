@@ -543,6 +543,8 @@ if __name__ == "__main__":
                 #select only stitched files from 3m tank, not quadrants.
                 if ('3m_' in x or '3M_'  in x) and '.stitched' in x:
                     fileList.append(x)
+                elif ('3m_' in x or '3M_'  in x) and '.partial_stitch' in x:
+                    fileList.append(x)
                 elif not ('3m_' in x or '3M_' in x):
                     fileList.append(x)
     threadcount = 0

@@ -55,13 +55,13 @@ def setup_tristrack(_main_dir, fishnum):
     #copy default settings files and make fishdata dir
 
     if not os.path.exists(track_dir + 'fishTracker.settings'):
-        if 'stitched' in MAIN_DIR:
+        if 'stitch' in MAIN_DIR:
             shutil.copyfile(os.path.expanduser('~/fishMAD/tristrack_defaults/fishTracker3m.settings'), track_dir + '/fishTracker.settings')
             shutil.copyfile(os.path.expanduser('~/fishMAD/tristrack_defaults/3m_bkg.png'), track_dir + '/average_converted.pv.png')
         else:
             shutil.copyfile(os.path.expanduser('~/fishMAD/tristrack_defaults/fishTracker.settings'), track_dir + '/fishTracker.settings')
     if not os.path.exists(track_dir + 'conversion.settings'):
-        if 'stitched' in MAIN_DIR:
+        if 'stitch' in MAIN_DIR:
             shutil.copyfile(os.path.expanduser('~/fishMAD/tristrack_defaults/conversion3m.settings'), track_dir + '/conversion.settings')
         else:
             shutil.copyfile(os.path.expanduser('~/fishMAD/tristrack_defaults/conversion.settings'), track_dir + '/conversion.settings')

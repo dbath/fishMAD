@@ -53,9 +53,9 @@ def get_logfile(MAIN_DIR):
 
     MAIN_DIR = slashdir(MAIN_DIR)
     if 'stitched' in MAIN_DIR:
-        LOG_FN = '/media/recnodes/recnode_jolle2/dotbot_logs/dotbotLog_' + MAIN_DIR.split('/')[-2].rsplit('.',1)[0] + '.txt'
+        LOG_FN = '/media/recnodes/Dan_storage/dotbot_logs/dotbotLog_' + MAIN_DIR.split('/')[-2].rsplit('.',1)[0] + '.txt'
     else:
-        LOG_FN = '/media/recnodes/recnode_jolle2/dotbot_logs/dotbotLog_' + MAIN_DIR.split('/')[-2] + '.txt'
+        LOG_FN = '/media/recnodes/Dan_storage/dotbot_logs/dotbotLog_' + MAIN_DIR.split('/')[-2] + '.txt'
     
 
     log = pd.read_table(LOG_FN)
@@ -111,7 +111,7 @@ def sync_reversals(r, log, store):
 def synch_reversals(MAIN_DIR, r=None):
     MAIN_DIR = slashdir(MAIN_DIR)
     TRACK_DIR = MAIN_DIR + 'track/'
-    LOG_FN = '/media/recnodes/recnode_jolle2/dotbot_logs/dotbotLog_' + MAIN_DIR.split('/')[-2] + '.txt'
+    LOG_FN = '/media/recnodes/Dan_storage/dotbot_logs/dotbotLog_' + MAIN_DIR.split('/')[-2] + '.txt'
     
     if r == None:
         r = pd.read_pickle(TRACK_DIR + 'frame_means_rotation_polarization.pickle')

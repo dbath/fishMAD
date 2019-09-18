@@ -101,7 +101,7 @@ if __name__ == "__main__":
     for term in HANDLE:
         for DIR in DIRECTORIES:
             if '2mfish' in DIR:
-                searchterm = DIR + '*' + term + '*' + '.stitched'
+                searchterm = DIR + '*' + term + '*' + 'stitch'
             else:
                 searchterm = DIR + '*' + term + '*'
 
