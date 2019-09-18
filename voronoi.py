@@ -88,7 +88,7 @@ def plot_delaunay(tri, points, trackIDs, xlim=(7,312), ylim=(8,327), fig=None, a
 
 
 
-def neighbourhoodWatch(focal, neighbours):
+def neighbourhoodWatch(_focal, neighbours):
     """
     pass dfs representing the focal indiv and neighbours, returns:
     
@@ -102,7 +102,7 @@ def neighbourhoodWatch(focal, neighbours):
                 
     
     """
-
+    focal = _focal.copy()
     # calculate distance for all neighbours
     neighbours.loc[:,'distance'] = [distance(list(focal[[XPOS,YPOS]].values), list(i[[XPOS,YPOS]].values)) for _,i in neighbours.iterrows()]
     
@@ -124,31 +124,40 @@ def neighbourhoodWatch(focal, neighbours):
     
     # calculate dTheta, the difference in heading of all neighbours relative to focal
     neighbours.loc[:,'dTheta'] =  np.cross(focal[['uVX','uVY']],neighbours[['uVX','uVY']])
-    dTHETA = np.mean(neighbours['dTheta'])
+    dTHETA = np.median(neighbours['dTheta'])
     # compare dTheta on the inside vs outside (relative to arena centre)
     #TORSION = np.mean(neighbours['dTheta'] / neighbours['dRad_arena']) #FIXME does this even make sense?
     
-    ACCEL_A = np.mean(neighbours['ANGULAR_A#wcentroid'])
-    dACCEL_A = np.mean(focal['ANGULAR_A#wcentroid'] - neighbours['ANGULAR_A#wcentroid'])
+    ACCEL_A = np.median(neighbours['ANGULAR_A#wcentroid'])
+    dACCEL_A = np.median(focal['ANGULAR_A#wcentroid'] - neighbours['ANGULAR_A#wcentroid'])
     
-    
-    
-    
-    
-    return
+    NN = {'trackID': focal.trackid,
+              'N_neighbours': len(neighbours),
+              'nn_distance': neighbours.distance.median(),
+              'nn_distance_std': neighbours.distance.std(),
+              'local_speed': neighbours[SPEED].median(),
+              'local_speed_std': neighbours[SPEED].std(),
+              'dSpeed': neighbours.deltaSpeed.median(),
+              'local_dRad_arena': neighbours.dRad_arena.median(),
+              'local_dRad_group': neighbours.dRad_group.median(),
+              'local_polarization': POLARIZATION,
+              'local_rotation': ROTATION
+              }
+             
+              
+    return NN
 
 
 
     
 
-def delaunayNeighbours(data, CENTRE=(160,160)):
+def delaunayNeighbours(data, CENTRE=(160,160)): #FIXME hardcoding arena centre is a bad idea
     """ 
     get neighbours based on Delaunay triangulation (similar to Voronoi tesselation,
     but the math is more straightforward...)
     """
     #data = pd.read_pickle('/home/dan/Desktop/temp_data.pickle')
     points = np.array(zip(data[XPOS],data[YPOS]))
-    
     # radius to arena centre
     data['posRadius'] = [distance(list(i[[XPOS,YPOS]].values), CENTRE) for _,i in data.iterrows()]
     
@@ -168,41 +177,26 @@ def delaunayNeighbours(data, CENTRE=(160,160)):
     return tri, neiList, data
 
 
-
-def doit(MAIN_DIR, saveas="Not_defined"):
-    MAIN_DIR = slashdir(MAIN_DIR) #sometimes people call dirs without a trailing slash
-    if saveas == 'Not_defined':
-        saveas = MAIN_DIR + 'voronoi_overlay'
-    if not os.path.exists(saveas):
-        os.makedirs(saveas)
-    fbf = joblib.load(MAIN_DIR + 'track/frameByFrameData.pickle')
-    fbf = fbf.replace(to_replace=np.inf, value=np.nan)
-    
-
-    #filter out tracked reflections by removing tracks that are always near the border
-    foo = fbf.groupby('trackid').median()['BORDER_DISTANCE#wcentroid']
-    fbf = fbf[~(fbf.trackid.isin(foo[foo<40].index))]
-
-    store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
-    
-    ret, fbf = stim_handling.sync_data(fbf, stim_handling.get_logfile(MAIN_DIR), store)
-        
+def process_chunk(fbf):
+      
     xlim=(7,312)
     ylim=(8,327)
     f = fbf.groupby(['frame'])
+    newfbf = pd.DataFrame()
     for i, data in f:
+        NN = pd.DataFrame()
         data = data.replace(to_replace=np.inf, value=np.nan)
-        data = data[data[XPOS].notnull()]
-        data = data[data[YPOS].notnull()]
-        data = data[(data[XPOS].between(xlim[0], xlim[1])) * (data[YPOS].between(ylim[0], ylim[1]))]
+        data = data[(data[XPOS].between(xlim[0], xlim[1])) & (data[YPOS].between(ylim[0], ylim[1]))]
         points = np.array(zip(data[XPOS],data[YPOS]))
         TRIANGULATION, NEIGHBOURS, DATA = delaunayNeighbours(data)
         
-        if 0: #FIXME put some actual data analysis here.
-            for key in sorted(NEIGHBOURS.iterkeys()):
-                neighbourhoodWatch(data.iloc[key], data.iloc[list(NEIGHBOURS[key])].reset_index())
-            
+        for key in sorted(NEIGHBOURS.iterkeys()):
+            m = neighbourhoodWatch(data.iloc[key], data.iloc[list(NEIGHBOURS[key])].reset_index())
+            NN = NN.append(m, ignore_index=True)
         
+        newfbf = pd.concat([newfbf, data.merge(NN, how='inner', left_on='trackid', right_on='trackID')], axis=0)
+ 
+        """
         IMG, (fn, ts) = store.get_image(data.iloc[-1]['FrameNumber'])
         if i < 300:
             FIG = plot_delaunay(TRIANGULATION, points,  DATA['trackid'], img=IMG, _alpha=(float(i/300.0)))
@@ -215,7 +209,58 @@ def doit(MAIN_DIR, saveas="Not_defined"):
 
         plt.savefig(saveas + "/%06d.png"%i, dpi=300)
         plt.close('all')
+        """   
+    return newfbf
+
+
+def doit(MAIN_DIR, saveas="Not_defined", nCores=16):
+ 
+    # SETUP PARALLEL PROCESSING
+
+    ppe = ProcessPoolExecutor(nCores)
+    futures = []
+    Results = []
+
     
+    MAIN_DIR = slashdir(MAIN_DIR) #sometimes people call dirs without a trailing slash
+    print "Processing: ", MAIN_DIR
+    if saveas == 'Not_defined':
+        saveas = MAIN_DIR + 'voronoi_overlay'
+    if not os.path.exists(saveas):
+        os.makedirs(saveas)
+    fbf = joblib.load(MAIN_DIR + 'track/frameByFrameData.pickle')
+    fbf = fbf.replace(to_replace=np.inf, value=np.nan)
+
+    
+    # PREPARE DATAFRAME
+    fbf = fbf.loc[fbf[XPOS].notnull(), :]
+    fbf = fbf.loc[fbf[YPOS].notnull(), :]
+    fbf.loc[:,'uVX'] = fbf.loc[:,XVEL] / fbf.loc[:,SPEED]
+    fbf.loc[:,'uVY'] = fbf.loc[:,YVEL] / fbf.loc[:,SPEED]
+    
+    #filter out tracked reflections by removing tracks that are always near the border
+    foo = fbf.groupby('trackid').max()['BORDER_DISTANCE#wcentroid']
+    fbf = fbf[~(fbf.trackid.isin(foo[foo<50].index))]
+
+    fbf = fbf.drop(columns=['header'])
+    fbf['coreGroup'] = fbf['frame']%nCores  #divide into chunks labelled range(nCores)
+    store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
+    
+    ret, fbf = stim_handling.sync_data(fbf, stim_handling.get_logfile(MAIN_DIR), store)
+     
+    # INITIATE PARALLEL PROCESSES
+    for n in range(nCores):
+        p = ppe.submit(process_chunk, fbf[fbf['coreGroup'] == n])
+        futures.append(p)
+
+    # COLLECT PROCESSED DATA AS IT IS FINISHED    
+    for future in as_completed(futures):
+        stats = future.result()
+        Results.append(stats)
+    NN = pd.concat(Results)
+    joblib.dump(NN, MAIN_DIR + 'track/nearest_neighbours_FBF.pickle')
+                
+
     
     return
 
@@ -228,6 +273,8 @@ if __name__ == "__main__":
     parser.add_argument('--dir', type=str, required=False, default='/media/recnodes/recnode_2mfish/',
 			 help='path to directory containing checker vids')
     parser.add_argument('--handle', type=str, required=True, help='unique identifier that marks the files to process. Ideally use the timestamp of the recording, ie "20180808_153229".')
+    parser.add_argument('--ncores', type=int, required=False, default=8, 
+             help='provide an integer indicating the number of core processors to use for this task')
     
     args = parser.parse_args()
     HANDLE = args.handle.split(',')
@@ -239,7 +286,9 @@ if __name__ == "__main__":
     for term in HANDLE:
         for DIR in DIRECTORIES:
             for vDir in glob.glob(DIR + '*' + term + '*.stitched'):
-                doit(vDir)
+                if os.path.exists(vDir + '/track/frameByFrameData.pickle'):
+                    if not os.path.exists(vDir + '/track/nearest_neighbours_FBF.pickle'):
+                        doit(vDir, nCores=args.ncores)
                 
                 
 """
