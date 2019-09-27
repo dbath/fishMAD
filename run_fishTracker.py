@@ -97,15 +97,11 @@ def setup_tristrack(_main_dir, fishnum):
         #Get number of fish from MAIN_DIR filename.
         fishnum = int(MAIN_DIR.split('/')[-2].split('_')[1])
     if fishnum <= 5:
-        fishnum += 2
+        fishnum += 1
     elif fishnum <= 15:
-        fishnum += 4
-    elif fishnum <= 55:
-        fishnum += 6
-    elif fishnum <= 100:
-        fishnum += 10
-    elif fishnum <= 200:
-        fishnum += 15
+        fishnum += 2
+    elif fishnum <= 30:
+        fishnum += 3
     else:
         fishnum = int(1.1*fishnum)
 
