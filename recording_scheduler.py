@@ -63,7 +63,7 @@ class Experiment(object):
         self._metadata = metadata
         self._FN = FN
         self._DURATION = DURATION
-        self.BASE_DIRECTORY = '/media/recnodes/recnode_jolle2/'
+        self.BASE_DIRECTORY = '/media/recnodes/Dan_storage/'
         self.destfile = self.BASE_DIRECTORY + 'dotbot_logs/dotbotLog_archive_' + rigID[-3:] +'_'+ getTimeStringFromTime() + '.txt'
         self.api = self.setupAPI()
     
@@ -185,7 +185,7 @@ if __name__ == "__main__":
         meta={'expID':args.expID, 'Rig': RIG_IDs[item]}
         SCHEDULE_OFFSET = int(RIG_IDs[item][-2:])    #returns a unique number between 11 and 18 based on IP
         recstarts = set_scheduling_times(SCHEDULE_OFFSET, args.repeat_period)
-        logmovetimes = set_scheduling_times(SCHEDULE_OFFSET + 4, args.repeat_period)
+        logmovetimes = set_scheduling_times(SCHEDULE_OFFSET + 9, args.repeat_period)
         E = Experiment(RIG_IDs[item], meta, expIDs[item], args.video_duration, recstarts, logmovetimes)
         
         job_def = {}
