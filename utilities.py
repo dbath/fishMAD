@@ -270,7 +270,8 @@ def getFrameByFrameData(DIRECTORY, RESUME=True, nCores=8):
         fileList.append(fn)
         
     # SETUP PARALLEL PROCESSING
-
+    if nCores > len(fileList):
+        nCores = len(fileList)
     ppe = ProcessPoolExecutor(nCores)
     futures = []
     Results = []
@@ -360,15 +361,19 @@ def getFramelessValues(myDict):
 def reportExperimentalSessions():
     df = pd.DataFrame() 
     for x in glob.glob('/media/recnodes/recnode_2mfish/*dotbot*'):
-         expID, groupsize, _ , date, time = x.split('/')[-1].split('.')[0].split('_')[:5]
-         f = {'expID':expID, 'groupsize':groupsize, 'date':date, 'time':time}
-         df = df.append(f, ignore_index=True)
-    g = df.groupby(['date', 'expID'])
+        try:
+             expID, groupsize, _ , date, time = x.split('/')[-1].split('.')[0].split('_')[:5]
+             f = {'expID':expID, 'groupsize':groupsize, 'date':date, 'time':time}
+             df = df.append(f, ignore_index=True)
+        except:
+            print("failed for:", x)
+            continue
+    g = df.groupby(['date', 'expID', 'groupsize'])
 
     foo = pd.merge(g.min(), g.max(), left_index=True, right_index=True)
-    foo.columns = ['groupsize','firstExp','groupsize2','lastExp']
-    print(foo[['groupsize','firstExp','lastExp']])
-    return foo[['groupsize','firstExp','lastExp']]
+    foo.columns = ['firstExp','lastExp']
+    print(foo)
+    return foo
 
 def reportExperimentGroups(fileList):
     df = pd.DataFrame({'names':fileList})
