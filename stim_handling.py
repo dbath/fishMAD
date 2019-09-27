@@ -49,10 +49,35 @@ def synch_coherence_with_rotation(r, log, store):
     else:    
         return 1, bar  
 
+def correct_timestamps(stitched_store_fn):
+    """
+    gets timestamps from master machine and transfers them to the stitched store. this is to correct timestamps of videos taken in september 2019 when the slave clock was fast by 338 seconds.
+    """
+    master_store = imgstore.new_for_filename(stitched_store_fn.rsplit('.',1)[0] + '.21990449/metadata.yaml')
+    
+    md = pd.DataFrame(master_store.get_frame_metadata())
+    
+    try:
+        for z in glob.glob(stitched_store_fn + '/*.npz'):
+            f = np.load(z)
+            keys = [key for key in f.files]
+            nf = {}
+            for name in keys:
+                nf[name] = f[name]
+            frames = nf['frame_number']
+            nf['frame_time'] = [md.loc[(md['frame_number']-i).abs().argsort()[0],'frame_time'] for i in frames]
+
+            np.savez(z.split('.npz')[0], **nf)
+
+        return 1
+    except:
+        print "FAILED FOR:", stitched_store_fn
+        return 0
+
 def get_logfile(MAIN_DIR):
 
     MAIN_DIR = slashdir(MAIN_DIR)
-    if 'stitched' in MAIN_DIR:
+    if 'stitch' in MAIN_DIR:
         LOG_FN = '/media/recnodes/Dan_storage/dotbot_logs/dotbotLog_' + MAIN_DIR.split('/')[-2].rsplit('.',1)[0] + '.txt'
     else:
         LOG_FN = '/media/recnodes/Dan_storage/dotbot_logs/dotbotLog_' + MAIN_DIR.split('/')[-2] + '.txt'
