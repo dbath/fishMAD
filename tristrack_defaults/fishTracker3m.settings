@@ -1,7 +1,7 @@
 calculate_posture = false
 cam_limit_exposure = 3500
 fish_max_speed = 80
-fish_minmax_size = [0.3,6]
+fish_minmax_size = [0.3,7]
 fish_speed_decay = 0.1
 fixed_count = true
 frame_rate = 40
