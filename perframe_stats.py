@@ -109,10 +109,18 @@ def process_chunk(df):
             
             
             #Find centroid of PDF of rotation scores fit to gaussian
-            peaks, peakParams = scipy.signal.find_peaks(scipy.stats.gaussian_kde(rotationOrder_cMass).pdf(gaussian_X),0)
-            
-
-            if len(peaks) < 2:
+            try:
+                peaks, peakParams = scipy.signal.find_peaks(scipy.stats.gaussian_kde(rotationOrder_cArea).pdf(gaussian_X),0)
+            except:
+                peaks = []
+                peakParams = []
+                
+            if len(peaks) == 0:
+                Peak_1 = np.nan
+                PeakHeight_1 = np.nan
+                Peak_2 = np.nan
+                PeakHeight_2 = np.nan
+            elif len(peaks) < 2:
                 Peak_1 = gaussian_X[peaks[peakParams['peak_heights'].argmax()]]
                 PeakHeight_1 = peakParams['peak_heights'].max()
                 Peak_2 = np.nan
@@ -551,7 +559,7 @@ if __name__ == "__main__":
     for filenum in np.arange(len(fileList)):
         vDir = fileList[filenum]
         if os.path.exists(vDir + '/track/converted.results'):
-            if not os.path.exists(vDir + '/track/rotationOrders_cArea.pickle'): 
+            if not os.path.exists(vDir + '/track/rotationOrders_cXXXArea.pickle'): #FIXME
                 try:
                 
                     ARENA_WIDTH = get_arena_width(vDir)
