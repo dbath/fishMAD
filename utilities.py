@@ -315,7 +315,7 @@ def crop_stitched_img(img):
     elif len(img.shape)==3:
         h, w, _ = img.shape
         return img[100:h-100,100:w-100,:]
-
+"""
 def plotnice(plotType='standard', ax=plt.gca()):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -329,7 +329,7 @@ def plotnice(plotType='standard', ax=plt.gca()):
         ax.set_yticks([])
         plt.axis('off')
     return
-        
+"""        
    
 def angle_from_vertical(point1, point2):
     """
