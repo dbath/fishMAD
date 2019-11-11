@@ -95,6 +95,15 @@ def get_bouts(df, col='correct'):
     for col in ['IBI','duration','offTime','onTime']:
         bouts[col] = bouts[col].values.astype(np.float64)/1000000000.0
     return bouts
+
+def get_tau(df, col='correct'):
+    """
+    pass time series data of post-stimulus only, only if t0 (at stim end) is positive for col
+    returns time required for col to drop
+    """
+    
+    return
+
     
 def plot_reaction_times(gd, _bins=_bins, col='correct', PRE_THRESH=0, title='correct responses', XLIM=(0,60)):
 
@@ -112,7 +121,7 @@ def plot_reaction_times(gd, _bins=_bins, col='correct', PRE_THRESH=0, title='cor
         trials = []
         RT = []
         
-        ax1 = fig.add_subplot(gs[0,:])
+        ax1 = fig.add_subplot(gs[0,:]) 
         ax2 = fig.add_subplot(gs[1,0])
         ax3 = fig.add_subplot(gs[1,1])
         ax4 = fig.add_subplot(gs[2,0])
@@ -413,28 +422,34 @@ for THRESHOLD in THRESHOLDS:
         correctCount = 0
         for trial, data in g:
             trialCount +=1
-            post = data.loc[data['syncTime'] > np.timedelta64(0)]
-            post = post.loc[post['syncTime'] < np.timedelta64(300, 's')] #FIXME hardcoded stim duration
-            _RT.append(post.loc[post['correct'].idxmax(), 'syncTime'].total_seconds())
-            bout = get_bouts(data)
+            stim_period = data.loc[data['syncTime'] > np.timedelta64(0)]
+            stim_period = stim_period.loc[stim_period['syncTime'] < np.timedelta64(300, 's')] #FIXME hardcoded stim duration
+            _RT.append(stim_period.loc[stim_period['correct'].idxmax(), 'syncTime'].total_seconds())
+            post_stim = data.loc[data['syncTime'] > np.timedelta64(300,'s')] #FIXME hardcoded time
+
+            bout = get_bouts(stim_period)
             md = data.iloc[0] #metadata
             bout['trialID'] = md.trialID
             bout['coh'] = md.coh
             bout['groupsize'] = md.groupsize
-            if post['correct'].mean() > minDur: #FIXME so much thresholding
-                bout['correctTrial'] = 1.0
-                bout['RT'] = post.loc[post['correct'].idxmax(), 'syncTime'].total_seconds()
-            else:
-                bout['correctTrial'] = 0.0
-                bout['RT'] = np.nan
-            bouts = pd.concat([bouts, bout], axis=0)
-
+            try:
+                if stim_period['correct'].mean() > minDur: #FIXME so much thresholding
+                    bout['correctTrial'] = 1.0
+                    bout['RT'] = stim_period.loc[stim_period['correct'].idxmax(), 'syncTime'].total_seconds()
+                    bout['DecayTime'] = post_stim.loc[post_stim['correct'].idxmin(), 'syncTime'].total_seconds()
+                else:
+                    bout['correctTrial'] = 0.0
+                    bout['RT'] = np.nan
+                    bout['DecayTime'] = np.nan
+                bouts = pd.concat([bouts, bout], axis=0)
+            except:
+                print "FAILED AT RT AND DECAY TIME", md.trialID
         bouts = bouts.loc[(10.0*bouts['coh'])%2 ==0, :]
         bouts['groupsize'] = bouts['groupsize'].astype(int)
         bouts['coh'] = bouts['coh'].astype(np.float64)
 
             
-        bouts.to_pickle('/media/recnodes/Dan_storage/190902_bouts_t'+ str(minDur) + '_C' + str(THRESHOLD)+ '.pickle')
+        bouts.to_pickle('/media/recnodes/Dan_storage/191023_bouts_t'+ str(minDur) + '_C' + str(THRESHOLD)+ '.pickle')
 
         n = bouts.groupby('trialID').mean()
         n['coh'] = np.around(n['coh'], 1)

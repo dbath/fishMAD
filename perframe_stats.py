@@ -159,7 +159,9 @@ def process_chunk(df):
                              'pdfPeak1':Peak_1,
                              'pdfPeak2':Peak_2,
                              'pdfPeak1_height':PeakHeight_1,
-                             'pdfPeak2_height':PeakHeight_2
+                             'pdfPeak2_height':PeakHeight_2,
+                             'entropy_Ra':scipy.stats.entropy(np.histogram(rotationOrder_cArea, bins=100)[0]),
+                             'entropy_Rc':scipy.stats.entropy(np.histogram(rotationOrder_cMass, bins=100)[0])
                              }, name=i)
             perframe_stats = perframe_stats.append(row)
             rotations_cMass[i] = np.array(rotationOrder_cMass)
@@ -227,6 +229,8 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
     return perframe_stats
 
 
+    
+    
 def get_rotation(data):
     """
     pass a df from a single video frame (a product of groupby('frame'))
@@ -477,7 +481,7 @@ def run(MAIN_DIR, RESUME=True):
     PF_DONE = False
     if os.path.exists(trackdir + 'perframe_stats.pickle'):  
         perframe_stats = pd.read_pickle(trackdir + 'perframe_stats.pickle')
-        if 'median_dRotation_cArea' in perframe_stats.columns:
+        if 'entropy_Ra' in perframe_stats.columns:
             PF_DONE = True
     if PF_DONE == False:
         if os.path.exists(trackdir + 'frameByFrameData.pickle'):
@@ -509,14 +513,14 @@ def run(MAIN_DIR, RESUME=True):
     log = stim_handling.get_logfile(MAIN_DIR)
     if 'reversals' in MAIN_DIR:
         ret, perframe_stats = stim_handling.sync_reversals(perframe_stats, log, store)
-        plot_perframe_vs_time(slashdir(MAIN_DIR),         ['dir','median_polarization','median_dRotation_cMass','median_dRotation_cArea','median_swimSpeed'], 
-            ['Direction','Pol. Order','Rot. Order (CofM)','Rot. Order (Area)','Median Speed'],
+        plot_perframe_vs_time(slashdir(MAIN_DIR),         ['dir','median_polarization','median_dRotation_cMass','median_dRotation_cArea','median_swimSpeed','entropy_Ra'], 
+            ['Direction','Pol. Order','Rot. Order (CofM)','Rot. Order (Area)','Median Speed', 'Entropy'],
             perframe_stats,
             '_median') 
     elif 'coherence' in MAIN_DIR:
         ret, perframe_stats = stim_handling.synch_coherence_with_rotation(perframe_stats, log, store)
-        plot_perframe_vs_time(slashdir(MAIN_DIR),  ['coherence','median_polarization','median_dRotation_cMass','median_dRotation_cArea','median_swimSpeed'], 
-            ['Coherence','Pol. Order','Rot. Order (CofM)','Rot. Order (Area)','Median Speed'],
+        plot_perframe_vs_time(slashdir(MAIN_DIR),  ['coherence','median_polarization','median_dRotation_cMass','median_dRotation_cArea','median_swimSpeed', 'entropy_Ra'], 
+            ['Coherence','Pol. Order','Rot. Order (CofM)','Rot. Order (Area)','Median Speed','Entropy'],
             perframe_stats,
             '_median') 
     elif 'cogs' in MAIN_DIR:

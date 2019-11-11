@@ -132,17 +132,17 @@ def neighbourhoodWatch(_focal, neighbours):
     dACCEL_A = np.median(focal['ANGULAR_A#wcentroid'] - neighbours['ANGULAR_A#wcentroid'])
     
     NN = {'trackID': focal.trackid,
-              'N_neighbours': len(neighbours),
-              'nn_distance': neighbours.distance.median(),
-              'nn_distance_std': neighbours.distance.std(),
-              'local_speed': neighbours[SPEED].median(),
-              'local_speed_std': neighbours[SPEED].std(),
-              'dSpeed': neighbours.deltaSpeed.median(),
-              'local_dRad_arena': neighbours.dRad_arena.median(),
-              'local_dRad_group': neighbours.dRad_group.median(),
-              'local_polarization': POLARIZATION,
-              'local_rotation': ROTATION
-              }
+          'N_neighbours': len(neighbours),
+          'nn_distance': neighbours.distance.median(),
+          'nn_distance_std': neighbours.distance.std(),
+          'local_speed': neighbours[SPEED].median(),
+          'local_speed_std': neighbours[SPEED].std(),
+          'dSpeed': neighbours.deltaSpeed.median(),
+          'local_dRad_arena': neighbours.dRad_arena.median(),
+          'local_dRad_group': neighbours.dRad_group.median(),
+          'local_polarization': POLARIZATION,
+          'local_rotation': ROTATION
+          }
              
               
     return NN
