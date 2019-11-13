@@ -96,19 +96,21 @@ if __name__ == "__main__":
         if os.path.exists(newdir):
             shutil.rmtree(newdir)
         os.mkdir(newdir)
-        outStore = imgstore.new_for_format('jpg', mode='w', 
-                    basedir=newdir, 
-                    imgshape=img.shape, 
-                    imgdtype=img.dtype,
+        outStore = imgstore.new_for_format( 'avc1/mp4', mode='w', 
+
+                    basedir=newdir,
+                    imgshape=inStore.image_shape, 
+                    imgdtype='uint8',
                     chunksize=500)
         
         for i in range(inStore.frame_count-1):
             try:
-                outStore.add_image(UND.undistort(img), frame_number, frame_timestamp) 
                 img, (frame_number, frame_timestamp) = inStore.get_next_image()
+                outStore.add_image(UND.undistort(img), frame_number, frame_timestamp) 
             except:
                 print "failed at frame: ", i , "of", inStore.frame_count, inStore.frame_max   
-    
+
+        outStore.close()
     
           
             
