@@ -644,12 +644,17 @@ def serialDistanceMeasures(chunk, distance_measures):
         G0 = check_networks(chunk[gi])
         G1 = check_networks(chunk[gi+1])
         distances = [] 
-        if gi%200==0:
+        if gi%20000==0:
             print(gi)
         for fxn in distance_measures:
-            distances.append(distance_measures[fxn](G0, G1))
+            try:
+                distances.append(distance_measures[fxn](G0, G1))
+            except Exception as e:
+                distances.append(np.nan)
+                print("ERROR DURING DISTANCE", e)
+                ERROR_COUNT +=1
         results = results.append(pd.Series(distances, index=distance_measures.keys(), name=gi))  
-    return results              
+    return results.sort_index()              
  
  
 def parallelProcessMyDictAsSerial(FXN, NETS, nCores, **KWARGS): 
@@ -715,8 +720,9 @@ def plot_network_distances(fish_dict, fish_distance):
     comms = np.array([partition[i] for i in G_f.nodes()])
     node_colors_co = [colors[i] for i in comms]
 
-    ginds = np.arange(0, len(fish_dict), len(fish_dict)/ncols) + min(fish_dict.keys())
+    ginds = np.arange(min(fish_dict.keys()), len(fish_dict), int(len(fish_dict)/ncols)) + min(fish_dict.keys())
     #ginds = [1950, 1975, 2000, 2025, 2049]
+
 
 
     for i in range(ncols):
@@ -850,7 +856,7 @@ good_dists = {'JaccardDistance':distances['JaccardDistance'],
 #              'ResistancePerturbation':distances['ResistancePerturbation'], #requires constant network size
               'NetLSD':distances['NetLSD'],
               'IpsenMikhailov':distances['IpsenMikhailov'],
-              'NonBacktrackingDistance':distances['NonBacktrackingDistance'], #slow processing
+#              'NonBacktrackingDistance':distances['NonBacktrackingDistance'], #slow processing
 #              'D-measure':distances['D-measure'] #requires constant network size
              }
 
@@ -875,7 +881,7 @@ np.random.shuffle(colors)
 
 
 
-
+ERROR_COUNT = 0
 
 
 
@@ -905,7 +911,9 @@ if __name__ == "__main__":
     for term in HANDLE:
         for DIR in DIRECTORIES:
             for vDir in glob.glob(DIR + '*' + term + '*.stitched'):
-                if os.path.exists(vDir + '/track/graphs/000000.graphml'):    
+                if os.path.exists(vDir + '/track/graphs/000000.graphml'):   
+                    if os.path.exists(vDir + '/track/dynamic_network_distances.svg'):
+                        continue
 
                     #get data
 
@@ -925,7 +933,7 @@ if __name__ == "__main__":
                     print("...Processing: ", vDir)
                     print("....loading network graphs")
                     for i in range(START, END):#1,len(filelist)): #FIXME
-                        if i%1000==0:
+                        if i%10000==0:
                             print(i)
                         DICT_OF_NETWORKS[i] = nx.read_graphml(filelist[i])
                     """
@@ -942,16 +950,15 @@ if __name__ == "__main__":
                                                               args.ncores, 
                                                               **{'distance_measures':good_dists})   
                     #distances = doit(DICT_OF_NETWORKS, nCores=args.ncores) 
-                    try:
-                        print("......saving to pickle")
-                        distances.to_pickle( vDir + '/track/dynamic_network_distances.pickle')
-                    except:
-                        joblib.dump(distances, vDir + '/track/dynamic_network_distances.joblib')
-                        print("saved with joblib")
+                    #try:
+                    #    print("......saving to pickle")
+                    distances.to_pickle( vDir + '/track/dynamic_network_distances.pickle')
+                    joblib.dump(distances, vDir + '/track/dynamic_network_distances.joblib')
                     #now we plot it  
                     print(".......plotting results")
                     fig = plot_network_distances(DICT_OF_NETWORKS, distances)
                     plt.savefig(vDir + '/track/dynamic_network_distances.svg', dpi=425, bbox_inches='tight')
+                    print("finished with ", str(ERROR_COUNT), "errors.")
                     print("DONE. Find results at ", vDir + '/track')
                     #plt.show()
     
