@@ -14,7 +14,7 @@ import numpy as np
 import cv2
 import glob
 import yaml
-from utilities import *
+#from utilities import *
 import imgstore
 import os
 import shutil
@@ -25,7 +25,7 @@ class Undistort:
         self.vidfile = store.filename
         self.video_timestamp = '_'.join(self.vidfile.split('/')[-1].split('.')[0].rsplit('_',2)[1:])
         self.startTime = getTimeFromTimeString(self.video_timestamp)
-        self.camSerial = store.filename.split('.')[1]
+        self.camSerial = store.user_metadata['camera_serial']
         self.calibrationFile = self.selectCalibrationFile()
         
         k, d = self.loadCameraConfig(self.calibrationFile)
@@ -44,7 +44,7 @@ class Undistort:
         """
         fileList = []
         times = []
-        for x in glob.glob(os.path.expanduser('~/fishMAD/camera_calibrations/*.yaml')):
+        for x in glob.glob(os.path.expanduser('~/fishMAD/camera_calibrations/*' + self.camSerial + '.yaml')):
             fileList.append(x)
             times.append(getTimeFromTimeString(x.split('/')[-1].split('.')[0].rsplit('_',1)[0]))
         df = pd.DataFrame({'filename':fileList, 'times':times})
@@ -68,6 +68,15 @@ class Undistort:
             self.newcamera = self.newcamera#UMAT
         
         return cv2.undistort(img, self.cameraMatrix, self.cameraDistortion, None, self.newcamera)#.get() downloads it from the graphics card #UMAT
+
+
+def getTimeFromTimeString(string=None):
+    if string == None:
+        return datetime.datetime.now()
+    elif '_' in string:
+        return datetime.datetime.strptime(string, "%Y%m%d_%H%M%S")
+    else:
+        return datetime.datetime.strptime(time.strftime("%Y%m%d", time.localtime()) + '_' + string, "%Y%m%d_%H%M%S")
 
 
 if __name__ == "__main__":
