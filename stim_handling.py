@@ -1,3 +1,4 @@
+from __future__ import print_function
 import pandas as pd
 import numpy as np
 import imgstore
@@ -71,7 +72,7 @@ def correct_timestamps(stitched_store_fn):
 
         return 1
     except:
-        print "FAILED FOR:", stitched_store_fn
+        print("FAILED FOR:", stitched_store_fn)
         return 0
 
 def get_logfile(MAIN_DIR):

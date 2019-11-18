@@ -142,7 +142,7 @@ def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', p
     return fig
     
 groupsizes = [64,128,256,512,1024]
-"""
+
 allData = pd.DataFrame()
 
 for groupsize in groupsizes:
@@ -152,7 +152,11 @@ for groupsize in groupsizes:
         if '20181026' in fn:#
             continue
         print fn
-        ret, pf = stims.sync_reversals(pd.read_pickle(fn), stims.get_logfile(fn.rsplit('/',2)[0]), imgstore.new_for_filename(fn.rsplit('/',2)[0] + '/metadata.yaml'))
+        try:
+            ret, pf = stims.sync_reversals(pd.read_pickle(fn), stims.get_logfile(fn.rsplit('/',2)[0]), imgstore.new_for_filename(fn.rsplit('/',2)[0] + '/metadata.yaml'))
+        except:
+            print "failed for ", fn
+            continue
         pf['dir'] = pd.to_numeric(pf['dir'], errors='coerce')
 
         
@@ -171,22 +175,32 @@ for groupsize in groupsizes:
         groupData = pd.concat([groupData, reversals], axis=0)
     groupData.to_pickle('/media/recnodes/Dan_storage/190606_reversal_data_compiled_' + str(groupsize) + '.pickle')
     
-    plot_many_trials(groupData, col='median_dRotation_cArea', grouping='byday')
-    plt.savefig('/media/recnodes/Dan_storage/190606_reversal_cArea_' + str(groupsize) + '.svg')
+    plot_many_trials(groupData, col='entropy_Ra', grouping='byday')
+    plt.savefig('/media/recnodes/Dan_storage/191118_reversal_entropy_' + str(groupsize) + '.svg')
     plt.close('all')
-    plot_many_trials(groupData, col='median_dRotation_cMass', grouping='byday')
-    plt.savefig('/media/recnodes/Dan_storage/190606_reversal_cMass_' + str(groupsize) + '.svg')
-    plt.close('all')
-    plot_many_trials(groupData, col='pdfPeak1', grouping='byday')
-    plt.savefig('/media/recnodes/Dan_storage/190606_reversal_pdfPeak1_' + str(groupsize) + '.svg')
-    plt.close('all')
+    #plot_many_trials(groupData, col='median_dRotation_cArea', grouping='byday')
+    #plt.savefig('/media/recnodes/Dan_storage/190606_reversal_cArea_' + str(groupsize) + '.svg')
+    #plt.close('all')
+    #plot_many_trials(groupData, col='median_dRotation_cMass', grouping='byday')
+    #plt.savefig('/media/recnodes/Dan_storage/190606_reversal_cMass_' + str(groupsize) + '.svg')
+    #plt.close('all')
+    #plot_many_trials(groupData, col='pdfPeak1', grouping='byday')
+    #plt.savefig('/media/recnodes/Dan_storage/190606_reversal_pdfPeak1_' + str(groupsize) + '.svg')
+    #plt.close('all')
     
     allData = pd.concat([allData, groupData], axis=0)
-allData.to_pickle('/media/recnodes/Dan_storage/190606_reversal_data_compiled_full.pickle')
+allData.to_pickle('/media/recnodes/Dan_storage/191118_reversal_data_compiled_full.pickle')
 """
 allData = pd.read_pickle('/media/recnodes/Dan_storage/190606_reversal_data_compiled_full.pickle')
+"""
 
-
+plot_many_trials(allData, col='entropy_Ra', grouping='groupsize', plotTrials=False)
+plt.savefig('/media/recnodes/Dan_storage/191118_reversals_entropy_vs_time_by_groupsize.svg')
+plt.close('all')
+plot_many_trials(allData, col='entropy_Ra', grouping='groupsize', plotTrials=False, XLIM=(-5,15), RESAMPLE='25ms', NORMALIZE_PRESTIM=False)
+plt.savefig('/media/recnodes/Dan_storage/191118_reversals_entropy_vs_time_by_groupsize_onset.svg')
+plt.close('all')
+"""
 plot_many_trials(allData, col='median_dRotation_cArea', grouping='groupsize', plotTrials=False)
 plt.savefig('/media/recnodes/Dan_storage/190606_reversals_dRotationArea_vs_time_by_groupsize.svg')
 plt.close('all')
@@ -211,5 +225,5 @@ plt.close('all')
 plot_many_trials(allData, col='dO_by_dt2',grouping='groupsize', plotTrials=False, XLIM=(-5,15), YLIM=(-0.2,0.2), RESAMPLE='25ms', NORMALIZE_PRESTIM=False, YLABEL='dO_by_dt2')
 plt.savefig('/media/recnodes/Dan_storage/190606_reversals_dO_by_dt2_vs_time_by_groupsize_onset.svg')
 plt.close('all')
-
+"""
     

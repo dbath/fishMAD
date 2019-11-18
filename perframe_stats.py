@@ -430,7 +430,11 @@ def plot_perframe_vs_time(DIR, subs, ylabs, df=pd.DataFrame(), fn=''):
         df.loc[:,'dir'] = -1.0*df.loc[:,'dir']
     fig  = plt.figure(figsize=(4, 2*len(subs)))
     fig.suptitle(DIR.split('/')[-2])
-    colourlist = ['black','red','blue', 'orange','purple','green','yellow']
+    colourlist = ["#91b43f","#7463cd","#54bc5b","#c560c7","#49925d","#cf4085","#49bfba",
+          "#cf4d2b","#6f8bce","#dd862f","#98558b",
+          "#c7a745","#dd85a8", "#777d35","#c64855",
+          "#9b5e2f","#e0906e"]
+    #colourlist = ['black','red','blue', 'orange','purple','green','brown']
     axes = []
     for x in range(len(subs)):
         ax = fig.add_subplot(len(subs), 1, 1+x)
@@ -555,7 +559,7 @@ if __name__ == "__main__":
                 #select only stitched files from 3m tank, not quadrants.
                 if ('3m_' in x or '3M_'  in x) and '.stitched' in x:
                     fileList.append(x)
-                elif ('3m_' in x or '3M_'  in x) and '.partial_stitch' in x:
+                elif ('3m_' in x or '3M_'  in x) and '.partial_XXXstitch' in x: #FIXME
                     fileList.append(x)
                 elif not ('3m_' in x or '3M_' in x):
                     fileList.append(x)
