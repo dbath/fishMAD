@@ -113,8 +113,8 @@ groupsizes = [64,128,256,512,1024]
 from scipy.interpolate import splrep, splev
 
 def align_by_stim(df, ID, stimAligner='stimStart', col='median_dRotation_cArea'):
-    df = df[df[col].isnull() == False]
     alignPoints = list(df[df[stimAligner] == 1]['Timestamp'].values)
+    df = df[df[col].isnull() == False]
     trials = pd.DataFrame()
     trialID = 0        
     i = alignPoints[0]#for i in alignPoints:
@@ -168,23 +168,27 @@ for fn in glob.glob('/media/recnodes/recnode_2mfish/coherencetestangular3m_*_dot
     pf['dir'] = pd.to_numeric(pf['dir'], errors='coerce')
     pf['coh'] = pf['coh'].fillna(method='pad').fillna(method='backfill')
     try:
-        pf = sync_by_stimStart(pf)
-        pf = align_by_stim(pf, trialID)
-        
-    
-    #slope = pd.Series(np.gradient(pf['median_dRotation_cArea'].values), pf['Timestamp'], name='slope')
-        s = splrep(pf.Timestamp, pf.median_dRotation_cArea, k=5, s=17)
-        newdf = pd.DataFrame({'syncTime':pf['syncTime'],
-                              'Orotation':pf['median_dRotation_cArea'], 
-                              'smoothedOrotation':splev(pf.Timestamp, s), 
-                              'dO_by_dt':splev(pf.Timestamp, s, der=1), 
-                              'dO_by_dt2':splev(pf.Timestamp, s, der=2)})
-        newdf['groupsize'] = groupsize
-        newdf['coh'] = pf['coh'].dropna().mean()
-        newdf['trialID'] = trialID
-        allData = pd.concat([groupData,newdf], axis=0)
-    except:
-        print "FAILED"
+	pf = sync_by_stimStart(pf)
+	pf = align_by_stim(pf, trialID)
+
+
+	#slope = pd.Series(np.gradient(pf['median_dRotation_cArea'].values), pf['Timestamp'], name='slope')
+	s = splrep(pf.Timestamp, pf.median_dRotation_cArea, k=5, s=17)
+	newdf = pd.DataFrame({'syncTime':pf['syncTime'],
+	                      'Orotation':pf['median_dRotation_cArea'], 
+	                      'smoothedOrotation':splev(pf.Timestamp, s), 
+	                      'dO_by_dt':splev(pf.Timestamp, s, der=1), 
+	                      'dO_by_dt2':splev(pf.Timestamp, s, der=2)})
+	newdf['groupsize'] = groupsize
+	newdf['coh'] = pf['coh'].dropna().mean()
+	newdf['trialID'] = trialID
+	allData = pd.concat([allData,newdf], axis=0)
+    except Exception as e:
+        import sys, traceback
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        traceback.print_exception(exc_type, exc_value, exc_traceback, limit=2, file=sys.stdout)
+        #print traceback.print_exception()
+        print e
         pass
     
 allData.to_pickle('/media/recnodes/Dan_storage/191119_groupdata_coherence_analysis_2.pickle')
