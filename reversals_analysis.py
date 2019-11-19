@@ -43,7 +43,8 @@ def align_by_stim(df, ID, stimAligner='reversal', col='median_dRotation_cArea'):
                                                                 'pdfPeak1',
                                                                 'pdfPeak1_height',
                                                                 'pdfPeak2',
-                                                                'pdfPeak2_height']]
+                                                                'pdfPeak2_height',
+                                                                'entropy_Ra']]
         data['syncTime'] = pd.to_timedelta(data['Timestamp']-i,'s') 
         data['median_dRotation_cArea'] = data['median_dRotation_cArea']*data['dir'].median()*-1.0 #make congruent and positive
         data['median_dRotation_cMass'] = data['median_dRotation_cMass']*data['dir'].median()*-1.0 #make congruent and positive
