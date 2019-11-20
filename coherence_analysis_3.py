@@ -219,7 +219,7 @@ for groupsize in groupsizes:
     
     plot_many_trials(groupData, col='entropy_Ra', grouping='coh', plotTrials=False, 
                       YLIM=(1,4.5),YLABEL='Entropy of rotation')
-    plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_vs_time_by_coherence_' + str(groupsize) + '.svg')762
+    plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_vs_time_by_coherence_' + str(groupsize) + '.svg')
     plt.close('all')
     
     
@@ -238,7 +238,7 @@ for groupsize in groupsizes:
 
 for coherence in coherences:
     data = allData.loc[allData['coh']==coherence, :]
-     plot_many_trials(data, col='entropy_Ra', grouping='groupsize', plotTrials=False, 
+    plot_many_trials(data, col='entropy_Ra', grouping='groupsize', plotTrials=False, 
                       YLIM=(1,4.5),YLABEL='Entropy of rotation')
     plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_vs_time_by_groupsize_'+str(coherence)+'.svg')
     plt.close('all')

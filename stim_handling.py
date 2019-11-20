@@ -99,12 +99,14 @@ def get_frame_metadata(df, store):
 
 
 def sync_data(r,log,store):
-    check9 = imgstore.new_for_filename(store.filename.rsplit('.',1)[0] + '.21990449')
-    if not check9.get_frame_metadata()['frame_time'][0] == store.get_frame_metadata()['frame_time'][0]:
-        print "****FOUND MISMATCHED TIMESTAMPS. REPAIRING STORE.***"
+    checkname = store.filename.rsplit('.',1)[0] + '.21990449/metadata.yaml'
+    check9 = imgstore.new_for_filename(checkname)
+    deltaT = check9.get_frame_metadata()['frame_time'][0] - store.get_frame_metadata()['frame_time'][0]
+    if abs(deltaT) > 1.0:
+        print("**********TIMESTAMP MISMATCH ", str(deltaT), "sec. REPAIRING STORE.********")
         correct_timestamps(store.filename)
-        print "*** repair successful ***"
-        store = imgstore.new_for_filename(store.filename + '/.metadata.yaml')
+        print("*** repair successful ***")
+        store = imgstore.new_for_filename(store.filename + '/metadata.yaml')
     foo = get_frame_metadata(r, store)
     bar = foo.merge(log, how='outer') 
     bar = bar.sort_values('Timestamp') 
