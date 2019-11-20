@@ -157,39 +157,7 @@ def sync_by_stimStart(df, col='speed'):
     df.loc[lastStim, 'stimEnd'] = 1
     return df
 
-allData = pd.DataFrame()
-for fn in glob.glob('/media/recnodes/recnode_2mfish/coherencetestangular3m_*_dotbot_*/track/perframe_stats.pickle'):
-    expID, groupsize, _, trialID = fn.split('/')[4].split('.')[0].split('_',3)
-    if fn.split('/track/perframe_stats')[0] in blacklist:
-        print "excluding", fn
-        continue
-    print fn
-    ret, pf = stims.sync_data(pd.read_pickle(fn), stims.get_logfile(fn.rsplit('/',2)[0]), imgstore.new_for_filename(fn.rsplit('/',2)[0] + '/metadata.yaml'))
-    pf['dir'] = pd.to_numeric(pf['dir'], errors='coerce')
-    pf['coh'] = pf['coh'].fillna(method='pad').fillna(method='backfill')
-    try:
-	pf = sync_by_stimStart(pf)
-	pf = align_by_stim(pf, trialID)
 
-
-	#slope = pd.Series(np.gradient(pf['median_dRotation_cArea'].values), pf['Timestamp'], name='slope')
-	s = splrep(pf.Timestamp, pf.median_dRotation_cArea, k=5, s=17)
-	newdf = pd.DataFrame({'syncTime':pf['syncTime'],
-	                      'Orotation':pf['median_dRotation_cArea'], 
-	                      'smoothedOrotation':splev(pf.Timestamp, s), 
-	                      'dO_by_dt':splev(pf.Timestamp, s, der=1), 
-	                      'dO_by_dt2':splev(pf.Timestamp, s, der=2)})
-	newdf['groupsize'] = groupsize
-	newdf['coh'] = pf['coh'].dropna().mean()
-	newdf['trialID'] = trialID
-	allData = pd.concat([allData,newdf], axis=0)
-    except Exception as e:
-        import sys, traceback
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        traceback.print_exception(exc_type, exc_value, exc_traceback, limit=2, file=sys.stdout)
-        #print traceback.print_exception()
-        print e
-        pass
 
 def normalize_entropy(allData):
     #normalize entropy data by dividing by ln(groupsize)
@@ -212,29 +180,31 @@ for groupsize in groupsizes:
             print "excluding", fn
             continue
         print fn
-        ret, pf = stims.sync_data(pd.read_pickle(fn), stims.get_logfile(fn.rsplit('/',2)[0]), imgstore.new_for_filename(fn.rsplit('/',2)[0] + '/metadata.yaml'))
-        pf['dir'] = pd.to_numeric(pf['dir'], errors='coerce')
-        pf['coh'] = pf['coh'].fillna(method='pad').fillna(method='backfill')
-        prestim_mean = pf.loc[pf['Time'] < pf[pf['speed'] !=0]['Time'].min(), :].mean()
-        prestim_mean['ID'] = fn.split('/')[-3].split('_',3)[-1].split('.')[0]
-        prestim_mean['groupsize'] = groupsize
-        prestim_meanvals = pd.concat([prestim_meanvals, prestim_mean], axis=1)
-        _mean = pf.mean()
-        _mean['ID'] = fn.split('/')[-3].split('_',3)[-1].split('.')[0]
-        _mean['groupsize'] = groupsize
-        meanvals = pd.concat([meanvals, _mean], axis=1)
+        try:
+            ret, pf = stims.sync_data(pd.read_pickle(fn), stims.get_logfile(fn.rsplit('/',2)[0]), imgstore.new_for_filename(fn.rsplit('/',2)[0] + '/metadata.yaml'))
+            pf['dir'] = pd.to_numeric(pf['dir'], errors='coerce')
+            pf['coh'] = pf['coh'].fillna(method='pad').fillna(method='backfill')
 
-        pf = sync_by_stimStart(pf)
-        fileID = fn.split('/')[-3].split('.')[0].split('_',3)[-1]
-        aligned = align_by_stim(pf, fileID)
-        aligned['groupsize'] = groupsize
-        groupData = pd.concat([groupData, aligned], axis=0)
+            pf = sync_by_stimStart(pf)
+            fileID = fn.split('/')[-3].split('.')[0].split('_',3)[-1]
+            aligned = align_by_stim(pf, fileID)
+            aligned['groupsize'] = groupsize
+            groupData = pd.concat([groupData, aligned], axis=0)
+        except Exception as e:
+            import sys, traceback
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_exception(exc_type, exc_value, exc_traceback, limit=2, file=sys.stdout)
+            #print traceback.print_exception()
+            print e
+            pass
+
+
     groupData = normalize_entropy(groupData)
     groupData.to_pickle('/media/recnodes/Dan_storage/191119_coherence_data_compiled_' + str(groupsize) + '.pickle')
     
     plot_many_trials(groupData, col='entropy_Ra', grouping='coh', plotTrials=False, 
                       YLIM=(1,4.5),YLABEL='Entropy of rotation')
-    plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_vs_time_by_coherence_' + str(groupsize) + '.svg')
+    plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_vs_time_by_coherence_' + str(groupsize) + '.svg')762
     plt.close('all')
     
     
@@ -249,9 +219,7 @@ for groupsize in groupsizes:
 
     allData = pd.concat([allData, groupData], axis=0)
 
-#plot_many_trials(allData, plotMean=False, grouping='groupsize')
-#plt.savefig('/media/recnodes/Dan_storage/190503_reversal_means.svg')
-allData.to_pickle('/media/recnodes/Dan_storage/191119_coherence_data_compiled_full.pickle')
+    allData.to_pickle('/media/recnodes/Dan_storage/191119_coherence_data_compiled_full.pickle')
 
 for coherence in coherences:
     data = allData.loc[allData['coh']==coherence, :]
