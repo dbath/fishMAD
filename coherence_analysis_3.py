@@ -22,6 +22,21 @@ blacklist = [
              
 
             ]
+            
+def plotnice(plotType='standard', ax=plt.gca()):
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    if plotType == 'hist':
+        ax.spines['left'].set_visible(False)
+        ax.set_yticks([])
+    elif plotType=='img':
+        ax.spines['left'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        plt.axis('off')
+    return
+                
 def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', plotTrials=True, fig= None, ax=None, colour=None, XLIM=(-10,60), YLIM=(-1.05,1.05), RESAMPLE='250ms', NORMALIZE_PRESTIM=False, YLABEL='Mean congruent rotation order $\pm$ SEM'):
     colourList = ['#EA4335','#E16D13','#FBBC05','#34A853','#4285F4','#891185',
                   '#4285F4','#FBBC05','#34A853','#EA4335','#891185','#E16D13','#0B1C2E','#347598']
@@ -105,10 +120,10 @@ def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', p
         plt.legend(title='Coherence', fontsize='xx-small')
     else:
         plt.legend(title=grouping, fontsize='xx-small')
-    #plotnice()
+    plotnice()
     return fig
     
-groupsizes = [64,128,256,512,1024]
+groupsizes = [4,8,16,32,64,128,256,512,1024]
 
 from scipy.interpolate import splrep, splev
 
