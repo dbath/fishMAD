@@ -122,7 +122,13 @@ def sho(i):
     plt.show()
     return
 
-
+def create_colourlist(N, cmap='rainbow', rev=False):
+    import matplotlib.pyplot as plt
+    if rev ==True:
+        return plt.cm.get_cmap(cmap)(np.linspace(1,0,N))
+    else:    
+        return plt.cm.get_cmap(cmap)(np.linspace(0,1,N))
+    
 
 def applyParallel(dfGrouped, func, nCores=None):
     """
