@@ -37,15 +37,16 @@ def plotnice(plotType='standard', ax=plt.gca()):
         plt.axis('off')
     return
                 
-def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', plotTrials=True, fig= None, ax=None, colour=None, XLIM=(-10,60), YLIM=(-1.05,1.05), RESAMPLE='250ms', NORMALIZE_PRESTIM=False, YLABEL='Mean congruent rotation order $\pm$ SEM'):
-    colourList = ['#EA4335','#E16D13','#FBBC05','#34A853','#4285F4','#891185',
-                  '#4285F4','#FBBC05','#34A853','#EA4335','#891185','#E16D13','#0B1C2E','#347598']
+def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', plotTrials=True, fig= None, ax=None, colour=None, XLIM=(-10,60), YLIM=None, RESAMPLE='250ms', NORMALIZE_PRESTIM=False, YLABEL='Mean congruent rotation order $\pm$ SEM'):
+    #colourList = ['#EA4335','#E16D13','#FBBC05','#34A853','#4285F4','#891185',
+    #              '#4285F4','#FBBC05','#34A853','#EA4335','#891185','#E16D13','#0B1C2E','#347598']
 
     if fig== None:
         fig = plt.figure()
         ax = fig.add_subplot(111) 
     if grouping == 'trialID': 
         g = trials.groupby(grouping)
+        colourList = create_colourlist(len(g.groups))
         LW = 0.5
         ALPHA = 0.5
         for a, data in g:
@@ -53,6 +54,7 @@ def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', p
             ax.plot(data.index, data[col], label=str(a), linewidth=LW, alpha=ALPHA)
     elif grouping == 'byday': 
         g = trials.groupby(['date'])
+        colourList = create_colourlist(len(g.groups))
         LW = 0.5
         ALPHA = 0.5
         groupCount = 0
@@ -68,6 +70,7 @@ def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', p
             groupCount += 1
     else:
         g = trials.groupby([grouping])
+        colourList = create_colourlist(len(g.groups), rev=True)
         LW = 0.5
         ALPHA = 0.5
         groupCount = 0
@@ -113,7 +116,8 @@ def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', p
         ax.set_ylabel('Normalized ' + YLABEL)#, fontsize='xx-small')
     else:
         ax.set_ylabel(YLABEL)#, fontsize='xx-small')
-    ax.set_ylim(YLIM[0], YLIM[1])
+    if not YLIM == None:
+	ax.set_ylim(YLIM[0], YLIM[1])
     #ax.set_yticks([-1.0, 0, 1.0])
     ax.set_xlim(XLIM[0], XLIM[1])
     if grouping == 'coh':
@@ -185,12 +189,17 @@ def normalize_entropy(allData):
     return allData
 
 
-
-allData = pd.DataFrame()
+if not os.path.exists('/media/recnodes/Dan_storage/191119_coherence_data_compiled_full.pickle' ):
+    allData = pd.DataFrame()
+else:
+    allData = pd.read_pickle('/media/recnodes/Dan_storage/191119_coherence_data_compiled_full.pickle' )
 for groupsize in groupsizes:
+    if len(allData) > 0:
+        if groupsize in list(set(allData['groupsize'])):
+            continue
     print groupsize
     groupData = pd.DataFrame()
-    for fn in glob.glob('/media/recnodes/recnode_2mfish/coherencetestangular3m_' + str(groupsize) + '_dotbot_*/track/perframe_stats.pickle'):
+    for fn in glob.glob('/media/recnodes/recnode_2mfish/coherencetestangular3m_' + str(groupsize) + '_dotbot_*.stitched/track/perframe_stats.pickle'):
         if fn.split('/track/perframe_stats')[0] in blacklist:
             print "excluding", fn
             continue
@@ -218,17 +227,17 @@ for groupsize in groupsizes:
     groupData.to_pickle('/media/recnodes/Dan_storage/191119_coherence_data_compiled_' + str(groupsize) + '.pickle')
     
     plot_many_trials(groupData, col='entropy_Ra', grouping='coh', plotTrials=False, 
-                      YLIM=(1,4.5),YLABEL='Entropy of rotation')
+                      YLABEL='Entropy of rotation')
     plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_vs_time_by_coherence_' + str(groupsize) + '.svg')
     plt.close('all')
     
     
     plot_many_trials(groupData, col='entropy_normed', grouping='coh', plotTrials=False, 
-                      YLIM=(0,1),YLABEL='Entropy of rotation / (ln(N)')
+                      YLIM=(0.2,1.2),YLABEL='Entropy of rotation / (ln(N)')
     plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_lnN_vs_time_by_coherence_' + str(groupsize) + '.svg')
     plt.close('all')
-    plot_many_trials(groupData, col='entropy_normed', grouping='coh', plotTrials=False, 
-                      YLIM=(-0.05,0.7),YLABEL='Entropy of rotation / (ln(N)',NORMALIZE_PRESTIM=True)
+    plot_many_trials(groupData, col='entropy_normed_base', grouping='coh', plotTrials=False, 
+                      YLIM=(0.2,-0.25),YLABEL='Normalized Entropy of rotation / (ln(N)')
     plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_lnN_normed_vs_time_by_coherence_' + str(groupsize) + '.svg')
     plt.close('all')
 
@@ -236,21 +245,19 @@ for groupsize in groupsizes:
 
     allData.to_pickle('/media/recnodes/Dan_storage/191119_coherence_data_compiled_full.pickle')
 
+coherences = [0.0,0.2,0.4,0.6,0.8,1.0]
 for coherence in coherences:
     data = allData.loc[allData['coh']==coherence, :]
-    plot_many_trials(data, col='entropy_Ra', grouping='groupsize', plotTrials=False, 
-                      YLIM=(1,4.5),YLABEL='Entropy of rotation')
-    plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_vs_time_by_groupsize_'+str(coherence)+'.svg')
-    plt.close('all')
+    #plot_many_trials(data, col='entropy_Ra', grouping='groupsize', plotTrials=False, 
+    #                  YLABEL='Entropy of rotation')
+    #plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_vs_time_by_groupsize_'+str(coherence)+'.svg')
+    #plt.close('all')
     plot_many_trials(data, col='entropy_normed', grouping='groupsize', plotTrials=False, 
-                      YLIM=(0,1),YLABEL='Entropy of rotation / (ln(N)')
+                      YLABEL='Entropy of rotation / (ln(N)')
     plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_lnN_vs_time_by_groupsize_'+str(coherence)+'.svg')
     plt.close('all')
-    plot_many_trials(data, col='entropy_normed', grouping='groupsize', plotTrials=False, YLIM=(-0.05,0.7),YLABEL='Entropy of rotation / (ln(N)',NORMALIZE_PRESTIM=True)
+    plot_many_trials(data, col='entropy_normed_base', grouping='groupsize', plotTrials=False, YLABEL='Normalized Entropy of rotation / (ln(N)')
     plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_lnN_normed_vs_time_by_groupsize_'+str(coherence)+'.svg')
-    plt.close('all')
-    plot_many_trials(data, col='median_dRotation_cMass', grouping='groupsize', plotTrials=False, XLIM=(-5,25), RESAMPLE='75ms', NORMALIZE_PRESTIM=False)
-    plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_lnN_normed_vs_time_by_groupsize_'+str(coherence)+'_onset.svg')
     plt.close('all')
     
 
