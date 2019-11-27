@@ -194,6 +194,7 @@ def delaunayNeighbours(data, CENTRE=(160,160)): #FIXME hardcoding arena centre i
     get neighbours based on Delaunay triangulation (similar to Voronoi tesselation,
     but the math is more straightforward...)
     """
+    data.index = data['trackid'].astype(int)
     #data = pd.read_pickle('/home/dan/Desktop/temp_data.pickle')
     #if args.python_version == 3:
     points = np.array([*zip(data[XPOS],data[YPOS])])
@@ -210,17 +211,20 @@ def delaunayNeighbours(data, CENTRE=(160,160)): #FIXME hardcoding arena centre i
     neiList=defaultdict(set)
     EDGES =[]
     IDS = np.array(data.trackid)
-    DISTANCES = []
+    DISTANCES = defaultdict(set)
     for p in tri.vertices:
         for i,j in itertools.combinations(p,2):
+            i = int(IDS[i])
+            j = int(IDS[j])
             neiList[i].add(j)
             neiList[j].add(i)
-            EDGES.append((int(IDS[i]),int(IDS[j])))
-            #DISTANCES.append(np.sqrt((data.loc[i, XPOS]-data.loc[j,XPOS])**2 + (data.loc[i, YPOS]-data.loc[j,YPOS])**2))
+            EDGES.append((i,j))
+            neiDistance = np.sqrt((data.loc[i, XPOS]-data.loc[j,XPOS])**2 + (data.loc[i, YPOS]-data.loc[j,YPOS])**2)
+            DISTANCES[i].add(neiDistance)
+            DISTANCES[j].add(neiDistance)
 
-    data.index = data['trackid']
 
-    DISTANCES = [np.sqrt((data.loc[str(EDGES[i][0]), XPOS]-data.loc[str(EDGES[i][1]),XPOS])**2 + (data.loc[str(EDGES[i][0]),YPOS]-data.loc[str(EDGES[i][1]),YPOS])**2) for i in range(len(EDGES))]
+    #DISTANCES = [np.sqrt((data.loc[str(EDGES[i][0]), XPOS]-data.loc[str(EDGES[i][1]),XPOS])**2 + (data.loc[str(EDGES[i][0]),YPOS]-data.loc[str(EDGES[i][1]),YPOS])**2) for i in range(len(EDGES))]
 
     return tri, neiList, EDGES, DISTANCES, data
 
@@ -267,10 +271,15 @@ def process_chunk(fbf, MAIN_DIR):
         for att in [XPOS, YPOS, XVEL, YVEL, 'R','EigenCen']:
             for node, value in DATA[att].items():
                 graph.nodes[int(node)][att] = value
-        
-        
         nx.write_graphml(graph, MAIN_DIR + 'track/graphs/%06d.graphml'%i)
-  
+        
+        NN = DATA[['frame','trackid',XPOS, YPOS, XVEL, YVEL, 'R', 'EigenCen']].copy()
+        n = pd.Series(list(NEIGHBOURS.values()), index=NEIGHBOURS.keys(), name='edgeList')
+        NN = NN.merge(n, left_index=True, right_index=True) 
+        d = pd.Series(list(DISTANCES.values()), index=DISTANCES.keys(), name='edgeLengths')
+        NN = NN.merge(d, left_index=True, right_index=True) 
+         
+        newfbf = pd.concat([newfbf, NN], axis=0)
     return newfbf
 
 
@@ -330,12 +339,12 @@ def doit(MAIN_DIR, saveas="Not_defined", nCores=16):
     for future in as_completed(futures):
         stats = future.result()
         Results.append(stats)
-    #NN = pd.concat(Results)
-    #joblib.dump(NN, MAIN_DIR + 'track/nearest_neighbours_FBF.pickle')
+    NN = pd.concat(Results)
+    joblib.dump(NN, MAIN_DIR + 'track/network_FBF.pickle')
                 
 
     
-    return
+    return NN
 
 
 if __name__ == "__main__":
@@ -367,7 +376,7 @@ if __name__ == "__main__":
                 if os.path.exists(vDir + '/track/frameByFrameData.pickle'):
                     if not os.path.exists(vDir+'/track/graphs'):
                         os.makedirs(vDir+'/track/graphs')
-                    if os.path.exists(vDir+'/track/graphs/000000.graphml'):
+                    if os.path.exists(vDir+'/track/network_FBF.pickle'):#graphs/000000.graphml'):
                         if datetime.datetime.fromtimestamp(os.path.getmtime(vDir+'/track/graphs/000000.graphml')) > DATETIME:
                             print(vDir.split('/')[-1], '...folder is already processed. skipping.')
                             continue
