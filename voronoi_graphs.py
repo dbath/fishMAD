@@ -274,9 +274,9 @@ def process_chunk(fbf, MAIN_DIR):
         nx.write_graphml(graph, MAIN_DIR + 'track/graphs/%06d.graphml'%i)
         
         NN = DATA[['frame','trackid',XPOS, YPOS, XVEL, YVEL, 'R', 'EigenCen']].copy()
-        n = pd.Series(list(NEIGHBOURS.values()), index=NEIGHBOURS.keys(), name='edgeList')
+        n = pd.Series( [np.array(list(x)) for x in NEIGHBOURS.values()], index=NEIGHBOURS.keys(), name='edgeList')
         NN = NN.merge(n, left_index=True, right_index=True) 
-        d = pd.Series(list(DISTANCES.values()), index=DISTANCES.keys(), name='edgeLengths')
+        d = pd.Series( [np.array(list(x)) for x in DISTANCES.values()], index=DISTANCES.keys(), name='edgeLengths')
         NN = NN.merge(d, left_index=True, right_index=True) 
          
         newfbf = pd.concat([newfbf, NN], axis=0)
