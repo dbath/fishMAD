@@ -255,7 +255,7 @@ def process_chunk(fbf, MAIN_DIR):
 
         #get eigen centrality
         try:
-            CENTRALITY = pd.Series(nx.algorithms.centrality.eigenvector_centrality(graph, max_iter=200), name='EigenCen')
+            CENTRALITY = pd.Series(nx.algorithms.centrality.eigenvector_centrality(graph, max_iter=(len(data)*2)-4), name='EigenCen')
         except:
             CENTRALITY = pd.Series(np.nan, index=DATA.index, name='EigenCen')
             print("CENTRALITY FAILED AT: ", i)
