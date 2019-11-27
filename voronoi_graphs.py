@@ -24,6 +24,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed #for multiproce
 #import stim_handling
 #import imgstore
 import joblib
+import utilities
+import datetime
 
 
 XPOS = 'X#wcentroid'
@@ -193,10 +195,10 @@ def delaunayNeighbours(data, CENTRE=(160,160)): #FIXME hardcoding arena centre i
     but the math is more straightforward...)
     """
     #data = pd.read_pickle('/home/dan/Desktop/temp_data.pickle')
-    if args.python_version == 3:
-        points = np.array([*zip(data[XPOS],data[YPOS])])
-    elif args.python_version == 2:
-        points = np.array(zip(data[XPOS],data[YPOS]))
+    #if args.python_version == 3:
+    points = np.array([*zip(data[XPOS],data[YPOS])])
+    #elif args.python_version == 2:
+    #    points = np.array(zip(data[XPOS],data[YPOS]))
     # radius to arena centre
     data['posRadius'] = [distance(list(i[[XPOS,YPOS]].values), CENTRE) for _,i in data.iterrows()]
     
@@ -237,14 +239,26 @@ def process_chunk(fbf, MAIN_DIR):
         data = data[(data[XPOS].between(xlim[0], xlim[1])) & (data[YPOS].between(ylim[0], ylim[1]))]
         (ROT, POL), RotationOrder = rotation_and_polarization(160, 160, data[XPOS], data[YPOS], data[XVEL], data[YVEL])
         data['R'] = RotationOrder
-        TRIANGULATION, NEIGHBOURS, EDGES, DISTANCES, DATA = delaunayNeighbours(data)
+        try:
+            TRIANGULATION, NEIGHBOURS, EDGES, DISTANCES, DATA = delaunayNeighbours(data)
+        except:
+            print('...error during network construction', i)
+            continue
 
-        DATA.index = DATA.index.astype(int)
-        DATA = DATA.merge(pd.Series(nx.algorithms.centrality.eigenvector_centrality(graph), name='EigenCen'), left_index=True, right_index=True)
-        
         graph = nx.Graph()
         #define network by delaunay edges
         graph.add_edges_from(EDGES)
+
+        #get eigen centrality
+        try:
+            CENTRALITY = pd.Series(nx.algorithms.centrality.eigenvector_centrality(graph, max_iter=200), name='EigenCen')
+        except:
+            CENTRALITY = pd.Series(np.nan, index=DATA.index, name='EigenCen')
+            print("CENTRALITY FAILED AT: ", i)
+        DATA.index = DATA.index.astype(int)
+        DATA = DATA.merge(CENTRALITY, left_index=True, right_index=True)
+        
+
         #set edge lengths
         nx.set_edge_attributes(graph, dict(zip(EDGES,DISTANCES)), 'distance')
         #set network name to frame num for syncing
@@ -260,7 +274,7 @@ def process_chunk(fbf, MAIN_DIR):
     return newfbf
 
 
-def doit(MAIN_DIR, saveas="Not_defined", nCores=16, PYTHON_VERSION=3):
+def doit(MAIN_DIR, saveas="Not_defined", nCores=16):
  
     # SETUP PARALLEL PROCESSING
 
@@ -275,17 +289,19 @@ def doit(MAIN_DIR, saveas="Not_defined", nCores=16, PYTHON_VERSION=3):
         saveas = MAIN_DIR + 'voronoi_overlay'
     if not os.path.exists(saveas):
         os.makedirs(saveas)
-    
-    if PYTHON_VERSION==3:
+    try:
         fbf = pd.read_pickle(MAIN_DIR + 'track/frameByFrameData.pickle')
-        print(fbf[0:5])
+        assert len(fbf.shape) ==2
         print('loaded pickle')
-    else:
+    except:
         print('joblib')
         fbf = joblib.load(MAIN_DIR + 'track/frameByFrameData.pickle')
     #print(fbf[0:5])    
     #fbf = fbf.replace(to_replace=np.inf, value=np.nan)
-
+    
+    if not len(fbf.shape) == 2:
+        print('ERROR: Bad frame by frame data')
+        return
     
     # PREPARE DATAFRAME
     with pd.option_context('mode.use_inf_as_na', True):
@@ -332,12 +348,15 @@ if __name__ == "__main__":
     parser.add_argument('--handle', type=str, required=True, help='unique identifier that marks the files to process. Ideally use the timestamp of the recording, ie "20180808_153229".')
     parser.add_argument('--ncores', type=int, required=False, default=8, 
              help='provide an integer indicating the number of core processors to use for this task')
-    parser.add_argument('--python_version', type=int, required=False, default=2,
-                        help='set to 2 or 3')
+    parser.add_argument('--redo_if_older_than', type=str, required=False, default='20191126_120000',
+                        help='process graphs older than this datetime again (because we are always improving)')
     
     args = parser.parse_args()
     HANDLE = args.handle.split(',')
     DIRECTORIES = args.dir.split(',')
+    
+    DATETIME = utilities.getTimeFromTimeString(args.redo_if_older_than)
+    
     for x in range(len(DIRECTORIES)):
         if DIRECTORIES[x][-1] != '/':
             DIRECTORIES[x] += '/'
@@ -348,15 +367,18 @@ if __name__ == "__main__":
                 if os.path.exists(vDir + '/track/frameByFrameData.pickle'):
                     if not os.path.exists(vDir+'/track/graphs'):
                         os.makedirs(vDir+'/track/graphs')
-                           
-                        if int(vDir.split('/')[-1].split('_')[1]) > 512:
-                            doit(vDir, nCores=4, PYTHON_VERSION=args.python_version)
-                        elif int(vDir.split('/')[-1].split('_')[1]) > 128:
-                            doit(vDir, nCores=8, PYTHON_VERSION=args.python_version)
-                        else:
-                            doit(vDir, nCores=args.ncores, PYTHON_VERSION=args.python_version)
-                        #except:
-                        #    print('failed for:', vDir)
+                    if os.path.exists(vDir+'/track/graphs/000000.graphml'):
+                        if datetime.datetime.fromtimestamp(os.path.getmtime(vDir+'/track/graphs/000000.graphml')) > DATETIME:
+                            print(vDir.split('/')[-1], '...folder is already processed. skipping.')
+                            continue
+                    if int(vDir.split('/')[-1].split('_')[1]) > 512:
+                        doit(vDir, nCores=4)
+                    elif int(vDir.split('/')[-1].split('_')[1]) > 128:
+                        doit(vDir, nCores=8)
+                    else:
+                        doit(vDir, nCores=args.ncores)
+                    #except:
+                    #    print('failed for:', vDir)
                 
 """
 from scipy.spatial import Voronoi, voronoi_plot_2d
