@@ -418,9 +418,9 @@ def dk2Distance(G1, G2):
         the distance between `G1` and `G2`.
     References
     ----------
-    .. [1] Orsini, Chiara, Marija M. Dankulov, Pol Colomer-de-Simón,
+    .. [1] Orsini, Chiara, Marija M. Dankulov, Pol Colomer-de-Simon,
            Almerima Jamakovic, Priya Mahadevan, Amin Vahdat, Kevin E.
-           Bassler, et al. 2015. “Quantifying Randomness in Real Networks.”
+           Bassler, et al. 2015. Quantifying Randomness in Real Networks.
            Nature Communications 6 (1). https://doi.org/10.1038/ncomms9627.
     """
 
@@ -899,6 +899,8 @@ if __name__ == "__main__":
              help='provide an integer indicating the number of core processors to use for this task')
     parser.add_argument('--process_frames', type=str, required=False, default='notDefined',
                         help='pass frame numbers of start and end, with a comma between eg 2000,5000')
+    parser.add_argument('--skip', type=int, required=False, default=1,
+                        help='pass number of frames to skip for divergence calculations')
     
     args = parser.parse_args()
     HANDLE = args.handle.split(',')
@@ -912,7 +914,7 @@ if __name__ == "__main__":
         for DIR in DIRECTORIES:
             for vDir in glob.glob(DIR + '*' + term + '*.stitched'):
                 if os.path.exists(vDir + '/track/graphs/000000.graphml'):   
-                    if os.path.exists(vDir + '/track/dynamic_network_distances.svg'):
+                    if os.path.exists(vDir + '/track/dynamic_network_distances_' + str(args.skip)+ '.svg'):
                         continue
 
                     #get data
@@ -921,7 +923,8 @@ if __name__ == "__main__":
                     #FN = '/media/recnodes/recnode_2mfish/reversals3m_512_dotbot_20181017_111201.stitched'
                     #FN = '/media/recnodes/recnode_2mfish/coherencetestangular3m_128_dotbot_20181009_115202.stitched'
                     for fn in glob.glob( vDir + '/track/graphs/*'):
-                        filelist.append(fn)   
+                        if int(fn.split('/')[-1].split('.')[0])%args.skip == 0:
+                            filelist.append(fn)   
                     filelist = sorted(filelist)
                     
                     if args.process_frames == 'notDefined':
@@ -933,7 +936,7 @@ if __name__ == "__main__":
                     print("...Processing: ", vDir)
                     print("....loading network graphs")
                     for i in range(START, END):#1,len(filelist)): #FIXME
-                        if i%10000==0:
+                        if i%1000==0:
                             print(i)
                         DICT_OF_NETWORKS[i] = nx.read_graphml(filelist[i])
                     """
@@ -949,15 +952,17 @@ if __name__ == "__main__":
                                                               DICT_OF_NETWORKS, 
                                                               args.ncores, 
                                                               **{'distance_measures':good_dists})   
+                    distances.sort_index(inplace=True)
+                    distances.index *= args.skip
                     #distances = doit(DICT_OF_NETWORKS, nCores=args.ncores) 
                     #try:
                     #    print("......saving to pickle")
-                    distances.to_pickle( vDir + '/track/dynamic_network_distances.pickle')
-                    joblib.dump(distances, vDir + '/track/dynamic_network_distances.joblib')
+                    distances.to_pickle( vDir + '/track/dynamic_network_distances_' + str(args.skip)+ '.pickle')
+                    joblib.dump(distances, vDir + '/track/dynamic_network_distances_' + str(args.skip)+ '.joblib')
                     #now we plot it  
                     print(".......plotting results")
                     fig = plot_network_distances(DICT_OF_NETWORKS, distances)
-                    plt.savefig(vDir + '/track/dynamic_network_distances.svg', dpi=425, bbox_inches='tight')
+                    plt.savefig(vDir + '/track/dynamic_network_distances_' + str(args.skip)+ '.svg', dpi=425, bbox_inches='tight')
                     print("finished with ", str(ERROR_COUNT), "errors.")
                     print("DONE. Find results at ", vDir + '/track')
                     #plt.show()
