@@ -161,7 +161,7 @@ def process_chunk(df):
                              'pdfPeak1_height':PeakHeight_1,
                              'pdfPeak2_height':PeakHeight_2,
                              'entropy_Ra':scipy.stats.entropy(np.histogram(rotationOrder_cArea, bins=100)[0]),
-                             'entropy_Rc':scipy.stats.entropy(np.histogram(rotationOrder_cMass, bins=100)[0])
+                             'entropy_Ra_nBins':scipy.stats.entropy(np.histogram(rotationOrder_cMass, bins=len(data))[0])
                              }, name=i)
             perframe_stats = perframe_stats.append(row)
             rotations_cMass[i] = np.array(rotationOrder_cMass)
@@ -485,7 +485,7 @@ def run(MAIN_DIR, RESUME=True):
     PF_DONE = False
     if os.path.exists(trackdir + 'perframe_stats.pickle'):  
         perframe_stats = pd.read_pickle(trackdir + 'perframe_stats.pickle')
-        if 'entropy_Ra' in perframe_stats.columns:
+        if 'entropy_Ra_nBins' in perframe_stats.columns:
             PF_DONE = True
     if PF_DONE == False:
         if os.path.exists(trackdir + 'frameByFrameData.pickle'):
