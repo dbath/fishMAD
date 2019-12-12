@@ -231,7 +231,8 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
 
     ARENA_WIDTH = get_arena_width(TRACK_DIR.split('/track')[0])
     perframe_stats.loc[:,'centroidRotation'] = get_centroid_rotation(perframe_stats, TRACK_DIR,  ARENA_WIDTH)
-    
+    log = stim_handling.get_logfile(TRACK_DIR.rsplit('/',1)[0])
+    store = imgstore.new_for_filename(TRACK_DIR.rsplit('/',1)[0] + '/metadata.yaml')
     ret, perframe_stats = stim_handling.sync_data(perframe_stats, log, store) 
     perframe_stats.to_pickle(TRACK_DIR + '/perframe_stats.pickle')
     rotationDF.to_pickle(TRACK_DIR + '/frameByFrameData.pickle')
@@ -526,13 +527,13 @@ def run(MAIN_DIR, RESUME=True):
     store = imgstore.new_for_filename(slashdir(MAIN_DIR) + 'metadata.yaml')
     log = stim_handling.get_logfile(MAIN_DIR)
     if 'reversals' in MAIN_DIR:
-        ret, perframe_stats = stim_handling.sync_reversals(perframe_stats, log, store)
+        #ret, perframe_stats = stim_handling.sync_reversals(perframe_stats, log, store)
         plot_perframe_vs_time(slashdir(MAIN_DIR),         ['dir','median_polarization','median_dRotation_cMass','median_dRotation_cArea','median_swimSpeed','entropy_Ra'], 
             ['Direction','Pol. Order','Rot. Order (CofM)','Rot. Order (Area)','Median Speed', 'Entropy'],
             perframe_stats,
             '_median') 
     elif 'coherence' in MAIN_DIR:
-        ret, perframe_stats = stim_handling.synch_coherence_with_rotation(perframe_stats, log, store)
+        #ret, perframe_stats = stim_handling.synch_coherence_with_rotation(perframe_stats, log, store)
         plot_perframe_vs_time(slashdir(MAIN_DIR),  ['coherence','median_polarization','median_dRotation_cMass','median_dRotation_cArea','median_swimSpeed', 'entropy_Ra'], 
             ['Coherence','Pol. Order','Rot. Order (CofM)','Rot. Order (Area)','Median Speed','Entropy'],
             perframe_stats,
