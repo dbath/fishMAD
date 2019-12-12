@@ -112,6 +112,9 @@ def sync_data(r,log,store):
     bar = foo.merge(log, how='outer') 
     bar = bar.sort_values('Timestamp') 
     bar = bar.fillna(method='ffill')
+    if 'coh' in bar.columns:
+        bar['coh'] = bar['coh'].fillna(method='ffill')
+        bar['coherence'] = bar['coh'].copy()
     if 'speed' in bar.columns:
         bar['speed'] = bar['speed'].fillna(0)
     if 'dir' in bar.columns:

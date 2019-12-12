@@ -231,11 +231,12 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
 
     ARENA_WIDTH = get_arena_width(TRACK_DIR.split('/track')[0])
     perframe_stats.loc[:,'centroidRotation'] = get_centroid_rotation(perframe_stats, TRACK_DIR,  ARENA_WIDTH)
+    perframe_stats['frame'] = perframe_stats.index
     log = stim_handling.get_logfile(TRACK_DIR.rsplit('/',2)[0])
     store = imgstore.new_for_filename(TRACK_DIR.rsplit('/',2)[0] + '/metadata.yaml')
     ret, perframe_stats = stim_handling.sync_data(perframe_stats, log, store) 
     perframe_stats.to_pickle(TRACK_DIR + '/perframe_stats.pickle')
-    rotationDF.to_pickle(TRACK_DIR + '/frameByFrameData.pickle')
+    rotationDf.to_pickle(TRACK_DIR + '/frameByFrameData.pickle')
 
     return perframe_stats
 
