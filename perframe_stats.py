@@ -65,9 +65,9 @@ def rotationOrder(centreX, centreY, posX, posY, velX, velY):
     radius = np.sqrt(CX**2 + CY**2)
     uCX = CX / radius # X component of unit vector R
     uCY = CY / radius # Y component of unit vector R        
-    rotationOrder = np.cross(pd.DataFrame({'uCX':uCX,'uCY':uCY}), pd.DataFrame({'velX':velX, 'velY':velY}))
+    rotation = np.cross(pd.DataFrame({'uCX':uCX,'uCY':uCY}), pd.DataFrame({'velX':velX, 'velY':velY}))
 
-    return rotationOrder[np.isfinite(rotationOrder)]
+    return rotation
 
 
 def process_chunk(df):
@@ -131,8 +131,11 @@ def process_chunk(df):
                 PeakHeight_1 = peakParams['peak_heights'][first]
                 Peak_2 = gaussian_X[peaks[second]]
                 PeakHeight_2 = peakParams['peak_heights'][second]
-            #compile mean stats:
+            #because some things cant handle nans :(
+            rA = rotationOrder_cArea[np.isfinite(rotationOrder_cArea)]
+            rM = rotationOrder_cMass[np.isfinite(rotationOrder_cMass)]
             
+            #compile mean stats:
             m = data.mean().copy()
             med = data.median().copy()
             std = data.std().copy()
@@ -140,37 +143,39 @@ def process_chunk(df):
                              'cy':centroid[1],
                              'mean_radius':radius.mean(),
                              'mean_polarization':np.sqrt(m['uVX']**2 + m['uVY']**2),
-                             'mean_dRotation_cMass':rotationOrder_cMass.mean(),
-                             'mean_dRotation_cArea':rotationOrder_cArea.mean(),
+                             'mean_dRotation_cMass':rM.mean(),
+                             'mean_dRotation_cArea':rA.mean(),
                              'mean_swimSpeed':m[SPEED],
                              'mean_borderDistance':m['BORDER_DISTANCE#wcentroid'],
                              'median_radius':radius.median(),
                              'median_polarization':np.sqrt(med['uVX']**2 + med['uVY']**2),
-                             'median_dRotation_cMass':np.median(rotationOrder_cMass),
-                             'median_dRotation_cArea':np.median(rotationOrder_cArea),
+                             'median_dRotation_cMass':np.median(rM),
+                             'median_dRotation_cArea':np.median(rA),
                              'median_swimSpeed':med[SPEED],
                              'median_borderDistance':med['BORDER_DISTANCE#wcentroid'],
                              'std_radius':radius.std(),
                              'std_polarization':np.sqrt(std['uVX']**2 + std['uVY']**2),
-                             'std_dRotation_cMass':rotationOrder_cMass.std(),
-                             'std_dRotation_cArea':rotationOrder_cArea.std(),
+                             'std_dRotation_cMass':rM.std(),
+                             'std_dRotation_cArea':rA.std(),
                              'std_swimSpeed':std[SPEED],
                              'std_borderDistance':std['BORDER_DISTANCE#wcentroid'],
                              'pdfPeak1':Peak_1,
                              'pdfPeak2':Peak_2,
                              'pdfPeak1_height':PeakHeight_1,
                              'pdfPeak2_height':PeakHeight_2,
-                             'entropy_Ra':scipy.stats.entropy(np.histogram(rotationOrder_cArea, bins=100)[0]),
-                             'entropy_Ra_nBins':scipy.stats.entropy(np.histogram(rotationOrder_cMass, bins=len(data))[0])
+                             'entropy_Ra':scipy.stats.entropy(np.histogram(rA, bins=100)[0]),
+                             'entropy_Ra_nBins':scipy.stats.entropy(np.histogram(rA, bins=len(data))[0])
                              }, name=i)
             perframe_stats = perframe_stats.append(row)
-            rotations_cMass[i] = np.array(rotationOrder_cMass)
-            rotations_cArea[i] = np.array(rotationOrder_cArea)
+            rotations_cMass[i] = np.array(rM) #excludes nans
+            df.loc[data.index, 'rotation_cMass'] = rotationOrder_cMass
+            rotations_cArea[i] = np.array(rA) #excludes nans
+            df.loc[data.index, 'rotation_cArea'] = rotationOrder_cArea
             if progressbar == True:
                 printProgressBar(i,maxFrame, prefix='Frame by frame processing: ') 
         except:
             traceback.print_exc()
-    return perframe_stats, rotations_cMass, rotations_cArea
+    return perframe_stats, rotations_cMass, rotations_cArea, df
 
 
 def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
@@ -182,6 +187,7 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
     statResults = []
     rotMResults = []
     rotAResults = []
+    fishR = []
     
     # PREPARE DATAFRAME
     fbf = fbf.loc[fbf[XPOS].notnull(), :]
@@ -198,13 +204,15 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
     
     # COLLECT PROCESSED DATA AS IT IS FINISHED    
     for future in as_completed(futures):
-        stats, rotM, rotA = future.result()
+        stats, rotM, rotA, fish = future.result()
         statResults.append(stats)
         rotMResults.append(rotM)
         rotAResults.append(rotA)
+        fishR.append(fish)
     
     #CONCATENATE RESULTS
     perframe_stats = pd.concat(statResults)
+    rotationDf = pd.concat(fishR)
     
     rotationOrders_cMass = {}
     for r in rotMResults:
@@ -223,8 +231,10 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
 
     ARENA_WIDTH = get_arena_width(TRACK_DIR.split('/track')[0])
     perframe_stats.loc[:,'centroidRotation'] = get_centroid_rotation(perframe_stats, TRACK_DIR,  ARENA_WIDTH)
-     
+    
+    ret, perframe_stats = stim_handling.sync_data(perframe_stats, log, store) 
     perframe_stats.to_pickle(TRACK_DIR + '/perframe_stats.pickle')
+    rotationDF.to_pickle(TRACK_DIR + '/frameByFrameData.pickle')
 
     return perframe_stats
 
@@ -485,7 +495,7 @@ def run(MAIN_DIR, RESUME=True):
     PF_DONE = False
     if os.path.exists(trackdir + 'perframe_stats.pickle'):  
         perframe_stats = pd.read_pickle(trackdir + 'perframe_stats.pickle')
-        if 'entropy_Ra_nBins' in perframe_stats.columns:
+        if 'dir' in perframe_stats.columns: 
             PF_DONE = True
     if PF_DONE == False:
         if os.path.exists(trackdir + 'frameByFrameData.pickle'):
@@ -558,6 +568,8 @@ if __name__ == "__main__":
             for x in glob.glob(slashdir(DIR) + '*' + term + '*'):
                 #select only stitched files from 3m tank, not quadrants.
                 if ('3m_' in x or '3M_'  in x) and '.stitched' in x:
+                    if '.stitchedx' in x:
+                        continue
                     fileList.append(x)
                 elif ('3m_' in x or '3M_'  in x) and '.partial_XXXstitch' in x: #FIXME
                     fileList.append(x)
