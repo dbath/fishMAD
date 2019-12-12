@@ -95,9 +95,9 @@ def process_chunk(df):
                 print("low tracking quality: ", TRACK_DIR.rsplit('/', 3)[1], str(i), str(len(points)))
             centroid = get_centroid(points)   
 
-            #CX = data.loc[:,XPOS]- centroid[0]
-            #CY = data.loc[:,YPOS] - centroid[1]
-            #radius = np.sqrt(CX**2 + CY**2)
+            CX = data.loc[:,XPOS]- centroid[0]
+            CY = data.loc[:,YPOS] - centroid[1]
+            radius = np.sqrt(CX**2 + CY**2)
             
             rotationOrder_cMass = rotationOrder(centroid[0], centroid[1], 
                                                 data.loc[:,XPOS], data.loc[:,YPOS], 
