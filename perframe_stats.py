@@ -72,7 +72,7 @@ def rotationOrder(centreX, centreY, posX, posY, velX, velY):
 
 def process_chunk(df):
 
-
+    df = df.copy()
     f = df.groupby('frame')
     maxFrame = df.frame.max()
     if maxFrame%args.maxthreads == 0:
@@ -92,7 +92,7 @@ def process_chunk(df):
             points = np.array(zip(data.loc[:,XPOS], data.loc[:,YPOS]))
             
             if len(points) < 0:
-                print "low tracking quality: ", TRACK_DIR.rsplit('/', 3)[1], str(i), str(len(points))
+                print("low tracking quality: ", TRACK_DIR.rsplit('/', 3)[1], str(i), str(len(points)))
             centroid = get_centroid(points)   
 
             CX = data.loc[:,XPOS]- centroid[0]
@@ -489,7 +489,7 @@ def plot_perframe_vs_time(DIR, subs, ylabs, df=pd.DataFrame(), fn=''):
 
     
 def run(MAIN_DIR, RESUME=True):
-    print "processing: ", MAIN_DIR
+    print("processing: ", MAIN_DIR)
     #getColumnNames('_'.join(MAIN_DIR.split('/')[-1]..split('.')[0].split('_')[-2:]))
     trackdir = slashdir(MAIN_DIR) + 'track/'
     PF_DONE = False
@@ -502,7 +502,7 @@ def run(MAIN_DIR, RESUME=True):
             try:
                 fbf = joblib.load(trackdir + 'frameByFrameData.pickle')
             except:
-                print "CORRUPTED FILE. DELETING frameByFrameData:", trackdir
+                print("CORRUPTED FILE. DELETING frameByFrameData:", trackdir)
                 os.remove(trackdir + 'frameByFrameData.pickle')
                 return
         else:
@@ -518,7 +518,7 @@ def run(MAIN_DIR, RESUME=True):
             return
         
         if len(set(fbf.frame)) < 501:
-            print "FOUND INCOMPLETE TRACKING DATA. DELETING TRACKDIR"
+            print("FOUND INCOMPLETE TRACKING DATA. DELETING TRACKDIR")
             shutil.rmtree(trackdir)
             return
         perframe_stats = calculate_perframe_stats(fbf, trackdir, args.maxthreads)
@@ -585,7 +585,7 @@ if __name__ == "__main__":
                     ARENA_WIDTH = get_arena_width(vDir)
                     run(vDir, args.resume)
                 except:# Exception as e:
-                    print "ERROR: ", vDir
+                    print("ERROR: ", vDir)
                     traceback.print_exc()
                     #print e
                 """
