@@ -196,7 +196,7 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
     fbf.loc[:,'uVY'] = fbf.loc[:,YVEL] / fbf.loc[:,SPEED]
     fbf = fbf.drop(columns=['header'])
     fbf['coreGroup'] = fbf['frame']%nCores  #divide into chunks labelled range(nCores)
-    fbf.reset_index(inplace=True)
+    fbf.reset_index(inplace=True, drop=True)
     # INITIATE PARALLEL PROCESSES
     for n in range(nCores):
         p = ppe.submit(process_chunk, fbf.loc[fbf['coreGroup'] == n, :])
@@ -498,7 +498,7 @@ def run(MAIN_DIR, RESUME=True):
     PF_DONE = False
     if os.path.exists(trackdir + 'perframe_stats.pickle'):  
         perframe_stats = pd.read_pickle(trackdir + 'perframe_stats.pickle')
-        if 'dir' in perframe_stats.columns: 
+        if 'diXr' in perframe_stats.columns: #FIXME
             PF_DONE = True
     if PF_DONE == False:
         if os.path.exists(trackdir + 'frameByFrameData.pickle'):
