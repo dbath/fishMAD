@@ -168,6 +168,7 @@ def process_chunk(df):
                              }, name=i)
             perframe_stats = perframe_stats.append(row)
             rotations_cMass[i] = np.array(rM) #excludes nans
+            df['frame'] = df.index
             df.loc[data.index, 'rotation_cMass'] = rotationOrder_cMass
             rotations_cArea[i] = np.array(rA) #excludes nans
             df.loc[data.index, 'rotation_cArea'] = rotationOrder_cArea
