@@ -95,9 +95,9 @@ def process_chunk(df):
                 print("low tracking quality: ", TRACK_DIR.rsplit('/', 3)[1], str(i), str(len(points)))
             centroid = get_centroid(points)   
 
-            CX = data.loc[:,XPOS]- centroid[0]
-            CY = data.loc[:,YPOS] - centroid[1]
-            radius = np.sqrt(CX**2 + CY**2)
+            #CX = data.loc[:,XPOS]- centroid[0]
+            #CY = data.loc[:,YPOS] - centroid[1]
+            #radius = np.sqrt(CX**2 + CY**2)
             
             rotationOrder_cMass = rotationOrder(centroid[0], centroid[1], 
                                                 data.loc[:,XPOS], data.loc[:,YPOS], 
@@ -196,10 +196,10 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
     fbf.loc[:,'uVY'] = fbf.loc[:,YVEL] / fbf.loc[:,SPEED]
     fbf = fbf.drop(columns=['header'])
     fbf['coreGroup'] = fbf['frame']%nCores  #divide into chunks labelled range(nCores)
-    
+    fbf.reset_index(inplace=True)
     # INITIATE PARALLEL PROCESSES
     for n in range(nCores):
-        p = ppe.submit(process_chunk, fbf[fbf['coreGroup'] == n])
+        p = ppe.submit(process_chunk, fbf.loc[fbf['coreGroup'] == n, :])
         futures.append(p)
     
     # COLLECT PROCESSED DATA AS IT IS FINISHED    

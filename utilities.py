@@ -91,6 +91,32 @@ def loopbio_record(IP, KEY, FN, DUR, META, SN):
             record_to_store=True, 
             metadata=META)
     return foo  
+
+def drop_bad_tracks(fbf, arena_centre=(160.0,160.0)):
+    """
+    pass tracking data, returns dataframe excluding tracks that don't move or are outside the arena
+    """
+    fbf['radius'] = np.sqrt((fbf[XPOS]-arena_centre[0])**2 + (fbf[YPOS]-arena_centre[1])**2) 
+    nFrames = len(set(fbf['frame']))
+    #drop points that arent moving cuz fakenews    
+    dropem = fbf.loc[(fbf['SPEED#smooth#wcentroid'] <= 0.1) & (fbf['BORDER_DISTANCE#wcentroid'] < 5), :]  
+    for ID in list(set(dropem['trackid'])):
+        if len(dropem['trackid'] == ID) > 0.75*nFrames:
+            fbf = fbf.loc[fbf['trackid'] != ID, :]
+    #drop points that are outside the arena cuz nobody got time for that
+    
+    dropem = fbf.loc[fbf['radius'] >215, :]     
+    for ID in list(set(dropem['trackid'])):
+        if len(dropem['trackid'] == ID) > 0.75*nFrames:
+            fbf = fbf.loc[fbf['trackid'] != ID, :]
+    return fbf
+
+def drop_bad_points(fbf, arena_centre=(160.0,160.0)):
+    fbf['radius'] = np.sqrt((fbf[XPOS]-arena_centre[0])**2 + (fbf[YPOS]-arena_centre[1])**2) 
+    fbf = fbf.loc[fbf['radius'] <215, :]
+    fbf = fbf.loc[fbf[XPOS] < 315,:]  #FIXME hardcoding bad
+    return fbf
+
     
 def copyAndroidLog(IP, src, dst):
     from subprocess import call

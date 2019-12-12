@@ -94,7 +94,7 @@ def get_frame_metadata(df, store):
     framelist = pd.DataFrame(store.get_frame_metadata())
     framelist.columns=['FrameNumber','Timestamp'] 
 
-    foo = df.merge(framelist, left_index=True, right_index=True)
+    foo = df.merge(framelist, left_on='frame', right_index=True)
     return foo    
 
 
