@@ -194,7 +194,8 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
     fbf = fbf.loc[fbf[YPOS].notnull(), :]
     fbf.loc[:,'uVX'] = fbf.loc[:,XVEL] / fbf.loc[:,SPEED]
     fbf.loc[:,'uVY'] = fbf.loc[:,YVEL] / fbf.loc[:,SPEED]
-    fbf = fbf.drop(columns=['header'])
+    if 'header' in fbf.columns:
+        fbf = fbf.drop(columns=['header'])
     fbf['coreGroup'] = fbf['frame']%nCores  #divide into chunks labelled range(nCores)
     fbf.reset_index(inplace=True, drop=True)
     # INITIATE PARALLEL PROCESSES
@@ -236,8 +237,11 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
     store = imgstore.new_for_filename(TRACK_DIR.rsplit('/',2)[0] + '/metadata.yaml')
     ret, perframe_stats = stim_handling.sync_data(perframe_stats, log, store) 
     perframe_stats.to_pickle(TRACK_DIR + '/perframe_stats.pickle')
-    rotationDf.to_pickle(TRACK_DIR + '/frameByFrameData.pickle')
-
+    try:
+        rotationDf.to_pickle(TRACK_DIR + '/frameByFrameData.pickle')
+    except:
+        import joblib
+        joblib.dump(rotationDF, TRACK_DIR + '/frameByFrameData.jl')
     return perframe_stats
 
 
@@ -498,7 +502,7 @@ def run(MAIN_DIR, RESUME=True):
     PF_DONE = False
     if os.path.exists(trackdir + 'perframe_stats.pickle'):  
         perframe_stats = pd.read_pickle(trackdir + 'perframe_stats.pickle')
-        if 'diXr' in perframe_stats.columns: #FIXME
+        if 'dir' in perframe_stats.columns: #FIXME
             PF_DONE = True
     if PF_DONE == False:
         if os.path.exists(trackdir + 'frameByFrameData.pickle'):
