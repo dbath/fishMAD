@@ -6,7 +6,7 @@ from utilities import *
 
 
 
-def process_logfile(filename):
+def remove_log_duplicates(filename):
     log = pd.read_table(filename)
     log['Timestamp'] = log['Timestamp'] / 1000.0
     log['diff'] = (log['Timestamp'] - log['Timestamp'].shift()).fillna(1000)
@@ -83,10 +83,12 @@ def get_logfile(MAIN_DIR):
     else:
         LOG_FN = '/media/recnodes/Dan_storage/dotbot_logs/dotbotLog_' + MAIN_DIR.split('/')[-2] + '.txt'
     
-
-    log = pd.read_table(LOG_FN)
-    log['Timestamp'] = pd.to_numeric(log['Timestamp'], errors='coerce')
-    log.loc[:,'Timestamp'] /=  1000.0
+    if 'coherencetest' in MAIN_DIR: #these are special cases because two entries per stim change
+        log = remove_log_duplicates(LOG_FN)
+    else:
+        log = pd.read_table(LOG_FN)
+        log['Timestamp'] = pd.to_numeric(log['Timestamp'], errors='coerce')
+        log.loc[:,'Timestamp'] /=  1000.0
     
     return log
 
