@@ -505,9 +505,11 @@ def run(MAIN_DIR, RESUME=True):
     trackdir = slashdir(MAIN_DIR) + 'track/'
     PF_DONE = False
     if os.path.exists(trackdir + 'perframe_stats.pickle'):  
-        perframe_stats = pd.read_pickle(trackdir + 'perframe_stats.pickle')
-        if 'dir' in perframe_stats.columns: #FIXME
-            PF_DONE = True
+        if datetime.datetime.fromtimestamp(os.path.getmtime(trackdir + 'perframe_stats.pickle')) > getTimeFromTimeString('20191218_000000'):
+            PF_DONE=True
+            perframe_stats = pd.read_pickle(trackdir + 'perframe_stats.pickle')
+        #if 'dir' in perframe_stats.columns: #FIXME
+        #    PF_DONE = True
     if PF_DONE == False:
         if os.path.exists(trackdir + 'frameByFrameData.pickle'):
             try:
