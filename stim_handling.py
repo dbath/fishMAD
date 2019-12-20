@@ -112,8 +112,10 @@ def sync_data(r,log,store):
             store = imgstore.new_for_filename(store.filename + '/metadata.yaml')
     foo = get_frame_metadata(r, store)
     bar = foo.merge(log, how='outer') 
-    bar = bar.sort_values('Timestamp') 
-    bar = bar.fillna(method='ffill')
+    bar = bar.sort_values('Timestamp')  #integrate log data with tracking data
+    bar = bar.fillna(method='ffill')  #forward fill data from log to tracking data
+    bar = bar.loc[foo.index] #drop rows from log entries
+    bar = bar.sort_values('Timestamp') #sort again because lazy danno 
     if 'coh' in bar.columns:
         bar['coh'] = bar['coh'].fillna(method='ffill')
         bar['coherence'] = bar['coh'].copy()
