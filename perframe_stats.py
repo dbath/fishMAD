@@ -7,7 +7,11 @@ np.warnings.filterwarnings('ignore')
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed #for multiprocessing
 from utilities import *
+
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
 import stim_handling
 #from pykalman import KalmanFilter
 #import centroid_rotation
