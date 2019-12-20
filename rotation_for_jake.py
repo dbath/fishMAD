@@ -17,8 +17,9 @@ class Trial(object):
         self.prestim = DATA['prestim'].item()
         self.metadata = DATA['meta'].item()
         self.trialID = self.prestim['trialID']
-
-    
+        self.coherence = DATA['coherence']
+        self.direction = DATA['direction']
+        self.speed = DATA['speed']
     
 ### JAKE JUST FYI, HOW I MADE THIS ###
 
@@ -44,6 +45,7 @@ def sync_by_stimStart(df, ID, col='speed', REVERSALS=False):
         df.loc['reversal'] = 0
         df.loc[reversals, 'reversal'] = 1
         df.loc[df['Time'] > 300, 'reversal'] = 0
+        df.loc['coh'] = 1.0
         alignPoints = list(df[df['reversal'] == 1]['Timestamp'].values)
     else:
         XLIM = (-30,400)
@@ -120,14 +122,16 @@ def get_Tseries(expFileName):
         REVERSAL = True
         prestim_frames = 400
         poststim_frames = 2400
+        file_prefix = 'REV_'
     else:
         REVERSAL = False
         prestim_frames = 1200
         poststim_frames = 16000
-        
+        file_prefix = 'COH_'        
+
     fbf = pd.read_pickle(expFileName + '/track/frameByFrameData.pickle')
  
-    pf = pd.read_pickle(expFileName + '/track/perframe_stats.pickle')
+    pf = pd.read_pickle(expFileName + '/track/perframe_stats.pickle')#FIXME these may have the wrong stim direction because of sync_data vs sync_coherence (if made before 20191218)....
     sy = sync_by_stimStart(pf,expID, REVERSALS=REVERSAL)
     
     for ID, data in sy.groupby('trialID'):
@@ -145,12 +149,20 @@ def get_Tseries(expFileName):
         d = fbf[fbf['frame'].between(frame_0-prestim_frames, frame_0+poststim_frames)]
         rotA = d.groupby(['frame','trackid'])['rotation_cArea'].mean().unstack()
         rotM = d.groupby(['frame','trackid'])['rotation_cMass'].mean().unstack()
-        stim = data.groupby('frame')['speed']#FIXME
+        stimdir = data['dir'].fillna(0)
+        stimcoh = data['coh'].fillna(0)
+        stimspeed = data['speed'].fillna(0)
         meta = {}
+
+        COH = str(np.around(pf.coh.median(), 1))
+        GS = expFileName.split('/')[-1].split('_')[1]
+        ID = expFileName.split('/')[-1].split('_',3)[-1].split('.')[0]
+        FN = '/media/recnodes/Dan_storage/Jake_TS/'+ file_prefix + GS + '_' + COH + '_' + ID + '.npy', data)
         
-        FN = '/media/recnodes/Dan_storage/Jake_TS/'+ expFileName.split('/')[-1].rsplit('_',2)[0] + '_' + ID + '.npz'
+        #FN = '/media/recnodes/Dan_storage/Jake_TS/'+ expFileName.split('/')[-1].rsplit('_',2)[0] + '_' + ID + '.npz'
         
-        np.savez(FN, rA=rotA, rM=rotM, prestim=psMeta, meta=meta)
+        np.savez(FN, rA=rotA, rM=rotM, prestim=psMeta, meta=meta, direction=stimdir,
+                     coherence=stimcoh, speed=stimspeed)
  
     return 
     
