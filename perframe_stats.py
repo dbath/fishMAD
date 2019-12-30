@@ -508,16 +508,18 @@ def run(MAIN_DIR, RESUME=True):
         if datetime.datetime.fromtimestamp(os.path.getmtime(trackdir + 'perframe_stats.pickle')) > getTimeFromTimeString('20191218_000000'):
             PF_DONE=True
             perframe_stats = pd.read_pickle(trackdir + 'perframe_stats.pickle')
-        #if 'dir' in perframe_stats.columns: #FIXME
-        #    PF_DONE = True
+            if len(perframe_stats.shape) == 1:
+                perframe_stats = joblib.load(trackdir + 'perframe_stats.pickle')
+            if len(perframe_stats.shape) == 1:
+                PF_DONE = False
     if PF_DONE == False:
         if os.path.exists(trackdir + 'frameByFrameData.pickle'):
             try:
                 fbf = pd.read_pickle(trackdir + 'frameByFrameData.pickle')
             except:
                 fbf = joblib.load(trackdir + 'frameByFrameData.pickle')
-                if len(fbf) == 0:
-                    fbf = getFrameByFrameData(trackdir, RESUME, args.maxthreads)
+            if len(fbf.shape) == 1:
+                fbf = getFrameByFrameData(trackdir, RESUME, args.maxthreads)
                 #print("CORRUPTED FILE. DELETING frameByFrameData:", trackdir)
                 #os.remove(trackdir + 'frameByFrameData.pickle')
                 #return
