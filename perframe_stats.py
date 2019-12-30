@@ -245,7 +245,7 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
         rotationDf.to_pickle(TRACK_DIR + '/frameByFrameData.pickle')
     except:
         import joblib
-        joblib.dump(rotationDF, TRACK_DIR + '/frameByFrameData.jl')
+        joblib.dump(rotationDf, TRACK_DIR + '/frameByFrameData.jl')
     return perframe_stats
 
 
@@ -513,11 +513,14 @@ def run(MAIN_DIR, RESUME=True):
     if PF_DONE == False:
         if os.path.exists(trackdir + 'frameByFrameData.pickle'):
             try:
-                fbf = joblib.load(trackdir + 'frameByFrameData.pickle')
+                fbf = pd.read_pickle(trackdir + 'frameByFrameData.pickle')
             except:
-                print("CORRUPTED FILE. DELETING frameByFrameData:", trackdir)
-                os.remove(trackdir + 'frameByFrameData.pickle')
-                return
+                fbf = joblib.load(trackdir + 'frameByFrameData.pickle')
+                if len(fbf) == 0:
+                    fbf = getFrameByFrameData(trackdir, RESUME, args.maxthreads)
+                #print("CORRUPTED FILE. DELETING frameByFrameData:", trackdir)
+                #os.remove(trackdir + 'frameByFrameData.pickle')
+                #return
         else:
             fbf = getFrameByFrameData(trackdir, RESUME, args.maxthreads)
         

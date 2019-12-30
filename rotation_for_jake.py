@@ -11,13 +11,14 @@ def load_rotation_data(filename):
 
 class Trial(object):
     def __init__(self, pathToNpz):
+        self.experiment, self.groupsize, self.coherence, _ = pathToNpz.split('/')[-1].split('_',3)
         DATA = np.load(pathToNpz, allow_pickle=True)
         self.rotationA = DATA['rA']
         self.rotationM = DATA['rM']
         self.prestim = DATA['prestim'].item()
         self.metadata = DATA['meta'].item()
         self.trialID = self.prestim['trialID']
-        self.coherence = DATA['coherence']
+        self.coherence_TS = DATA['coherence']
         self.direction = DATA['direction']
         self.speed = DATA['speed']
     
@@ -38,7 +39,8 @@ def sync_by_stimStart(df, ID, col='speed', REVERSALS=False):
     df = df.sort_values('Time')
     df.reset_index(inplace=True)
     df = df[:-10] #drop end to avoid dealing with annoying NaN cases #lazy #FIXME
- 
+    #print(df.columns)
+    #print(df.loc[['FrameNumber','speed','dir','Timestamp'],0:5]) 
     if REVERSALS:
         XLIM = (-10,60)
         reversals = df[abs(df[col] - df.shift()[col]) ==2].index
@@ -50,10 +52,10 @@ def sync_by_stimStart(df, ID, col='speed', REVERSALS=False):
     else:
         XLIM = (-30,400)
         df.loc[:,'stimStart'] = 0
-        firstStim = df.loc[df['Time'] < df['Time'].median(), 'speed'].idxmax()
+        firstStim = df.loc[df['Timestamp'] < df['Timestamp'].median(), 'speed'].idxmax()
         df.loc[firstStim, 'stimStart'] = 1
         df.loc[:,'stimEnd'] = 0
-        lastStim = df.loc[df['Time'] > df['Time'].median(), 'speed'].idxmin()
+        lastStim = df.loc[df['Timestamp'] > df['Timestamp'].median(), 'speed'].idxmin()
         df.loc[lastStim, 'stimEnd'] = 1
         alignPoints = list(df[df['stimStart'] == 1]['Timestamp'].values)
 
@@ -78,22 +80,30 @@ def sync_by_stimStart(df, ID, col='speed', REVERSALS=False):
 def save_rotation_data(expFileName):
     try:
         fbf = pd.read_pickle(expFileName + '/track/perframe_stats.pickle')
+        if len(fbf) == 0:
+            print("FAILED TO READ PICKLE. TRYING JOBLIB")
+            fbf = joblib.load(expFileName + '/track/perframe_stats.pickle')
         rot = pd.read_pickle(expFileName + '/track/rotationOrders_cArea.pickle')
-        ret, pf = stims.sync_data(fbf, 
+        if not 'frame' in fbf.columns:
+            fbf['frame'] = fbf.index
+        if not 'FrameNumber' in fbf.columns:
+            ret, fbf = stims.sync_data(fbf, 
                           stims.get_logfile(expFileName), 
                           imgstore.new_for_filename(expFileName + '/metadata.yaml')
                           )
-        synced = sync_by_stimStart(pf)                  
+        ID = expFileName.split('/')[-1].split('_',3)[-1].split('.')[0]
+        
+        synced = sync_by_stimStart(fbf, ID)                  
         ix = synced[synced.syncTime.between(np.timedelta64(30, 's'), np.timedelta64(300,'s'))].index 
         DIR = synced.loc[ix.min()+100,'dir']     
         data = np.concatenate([rot[x] for x in range(ix.min(), ix.max())]) *DIR
-        COH = str(np.around(pf.coh.mean(), 1)) 
+        COH = str(np.around(fbf.coh.mean(), 1)) 
         GS = expFileName.split('/')[-1].split('_')[1] 
-        ID = expFileName.split('/')[-1].split('_',3)[-1].split('.')[0]
         np.save('/media/recnodes/Dan_storage/191205_rotation_data/' + GS + '_' + COH + '_' + ID + '.npy', data)
-
+        print('/media/recnodes/Dan_storage/191205_rotation_data/' + GS + '_' + COH + '_' + ID + '.npy')
         return 1
-    except:
+    except Exception as e:
+        print(e)
         return 0
 
 def rotationOrder(centreX, centreY, posX, posY, velX, velY):
@@ -128,12 +138,14 @@ def get_Tseries(expFileName):
         prestim_frames = 1200
         poststim_frames = 16000
         file_prefix = 'COH_'        
-
-    fbf = pd.read_pickle(expFileName + '/track/frameByFrameData.pickle')
+    try:
+        fbf = pd.read_pickle(expFileName + '/track/frameByFrameData.pickle')
  
-    pf = pd.read_pickle(expFileName + '/track/perframe_stats.pickle')#FIXME these may have the wrong stim direction because of sync_data vs sync_coherence (if made before 20191218)....
-    sy = sync_by_stimStart(pf,expID, REVERSALS=REVERSAL)
-    
+        pf = pd.read_pickle(expFileName + '/track/perframe_stats.pickle')#FIXME these may have the wrong stim direction because of sync_data vs sync_coherence (if made before 20191218)....
+        sy = sync_by_stimStart(pf,expID, REVERSALS=REVERSAL)
+    except Exception as e:
+        print(e)
+        return 0
     for ID, data in sy.groupby('trialID'):
         frame_0 = data.loc[data['syncTime'] == abs(data.syncTime).min(), 'frame'].values[0]
         md = data.loc[frame_0-prestim_frames:frame_0+poststim_frames]
@@ -157,14 +169,14 @@ def get_Tseries(expFileName):
         COH = str(np.around(pf.coh.median(), 1))
         GS = expFileName.split('/')[-1].split('_')[1]
         ID = expFileName.split('/')[-1].split('_',3)[-1].split('.')[0]
-        FN = '/media/recnodes/Dan_storage/Jake_TS/'+ file_prefix + GS + '_' + COH + '_' + ID + '.npy', data)
+        FN = '/media/recnodes/Dan_storage/Jake_TS/'+ file_prefix + GS + '_' + COH + '_' + ID + '.npy'
         
         #FN = '/media/recnodes/Dan_storage/Jake_TS/'+ expFileName.split('/')[-1].rsplit('_',2)[0] + '_' + ID + '.npz'
         
         np.savez(FN, rA=rotA, rM=rotM, prestim=psMeta, meta=meta, direction=stimdir,
                      coherence=stimcoh, speed=stimspeed)
  
-    return 
+    return  1
     
         
 if __name__ == "__main__":
@@ -173,8 +185,9 @@ if __name__ == "__main__":
         ret = save_rotation_data(fn)        
         if not ret:
             print("failed for: ", fn.split('/')[-1])
-
-
+        ret = get_Tseries(fn)
+        if not ret:
+            print("tseries failed for ", fn.split('/')[-1])
 
 
 
