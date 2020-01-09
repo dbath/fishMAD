@@ -161,15 +161,15 @@ def get_Tseries(expFileName):
         d = fbf[fbf['frame'].between(frame_0-prestim_frames, frame_0+poststim_frames)]
         rotA = d.groupby(['frame','trackid'])['rotation_cArea'].mean().unstack()
         rotM = d.groupby(['frame','trackid'])['rotation_cMass'].mean().unstack()
-        stimdir = data['dir'].fillna(0)
-        stimcoh = data['coh'].fillna(0)
-        stimspeed = data['speed'].fillna(0)
+        stimdir = md['dir'].fillna(0)
+        stimcoh = md['coh'].fillna(0)
+        stimspeed = md['speed'].fillna(0)
         meta = {}
 
         COH = str(np.around(pf.coh.median(), 1))
         GS = expFileName.split('/')[-1].split('_')[1]
         ID = expFileName.split('/')[-1].split('_',3)[-1].split('.')[0]
-        FN = '/media/recnodes/Dan_storage/Jake_TS/'+ file_prefix + GS + '_' + COH + '_' + ID + '.npy'
+        FN = '/media/recnodes/Dan_storage/Jake_TS/'+ file_prefix + GS + '_' + COH + '_' + ID + '.npz'
         
         #FN = '/media/recnodes/Dan_storage/Jake_TS/'+ expFileName.split('/')[-1].rsplit('_',2)[0] + '_' + ID + '.npz'
         
@@ -181,7 +181,13 @@ def get_Tseries(expFileName):
         
 if __name__ == "__main__":
     import glob
+    filelist = []
+    for fn in glob.glob('/media/recnodes/Dan_storage/Jake_TS/*.npz'):
+        filelist.append(fn.split('/')[-1].split('_',3)[-1].split('.')[0])
     for fn in glob.glob('/media/recnodes/recnode_2mfish/*coherencetestangular3m*dotbot*.stitched'):
+        ID = fn.split('/')[-1].split('_',3)[-1].split('.')[0]
+        if ID in filelist: #disabled to re-run
+            continue
         ret = save_rotation_data(fn)        
         if not ret:
             print("failed for: ", fn.split('/')[-1])
