@@ -21,6 +21,13 @@ class Trial(object):
         self.coherence_TS = DATA['coherence']
         self.direction = DATA['direction']
         self.speed = DATA['speed']
+        return
+class Rotation(Trial):
+    def __init_(self, data):
+        self.data = data
+            
+    def normed(self):
+        return self.data*np.median(self.direction)
     
 ### JAKE JUST FYI, HOW I MADE THIS ###
 
@@ -66,7 +73,7 @@ def sync_by_stimStart(df, ID, col='speed', REVERSALS=False):
         data = df.loc[df['Timestamp'].between(i+XLIM[0], i+XLIM[1]),:].copy()
         for column in data.columns:
             if 'otation' in column: #what a silly hack to catch all the different names for rotation. lazy
-                data[column] = data[column]*data['dir'].median() 
+                data[column] = data[column]*np.sign(data['dir'].mean())
         data['syncTime'] = pd.to_timedelta(data['Timestamp']-i,'s') 
         data['trialID'] = ID + '_' + str(trialID)
         data['date'] = ID.split('_')[0]   
@@ -96,6 +103,8 @@ def save_rotation_data(expFileName):
         synced = sync_by_stimStart(fbf, ID)                  
         ix = synced[synced.syncTime.between(np.timedelta64(30, 's'), np.timedelta64(300,'s'))].index 
         DIR = synced.loc[ix.min()+100,'dir']     
+        if DIR == 0:
+            return 0
         data = np.concatenate([rot[x] for x in range(ix.min(), ix.max())]) *DIR
         COH = str(np.around(fbf.coh.mean(), 1)) 
         GS = expFileName.split('/')[-1].split('_')[1] 
