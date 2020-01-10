@@ -102,10 +102,10 @@ def save_rotation_data(expFileName):
         
         synced = sync_by_stimStart(fbf, ID)                  
         ix = synced[synced.syncTime.between(np.timedelta64(30, 's'), np.timedelta64(300,'s'))].index 
-        DIR = synced.loc[ix.min()+100,'dir']     
+        DIR = np.sign(synced['dir'])
         if DIR == 0:
             return 0
-        data = np.concatenate([rot[x] for x in range(ix.min(), ix.max())]) *DIR
+        data = np.concatenate([rot[x] for x in range(ix.min(), ix.max())])*DIR*-1.0 #FLIP TO MAKE POSITIVE, JAKE
         COH = str(np.around(fbf.coh.mean(), 1)) 
         GS = expFileName.split('/')[-1].split('_')[1] 
         np.save('/media/recnodes/Dan_storage/191205_rotation_data/' + GS + '_' + COH + '_' + ID + '.npy', data)
@@ -195,7 +195,7 @@ if __name__ == "__main__":
         filelist.append(fn.split('/')[-1].split('_',3)[-1].split('.')[0])
     for fn in glob.glob('/media/recnodes/recnode_2mfish/*coherencetestangular3m*dotbot*.stitched'):
         ID = fn.split('/')[-1].split('_',3)[-1].split('.')[0]
-        if ID in filelist: #disabled to re-run
+        if 0: #ID in filelist: #disabled to re-run
             continue
         ret = save_rotation_data(fn)        
         if not ret:
