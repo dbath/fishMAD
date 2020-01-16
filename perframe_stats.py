@@ -194,6 +194,7 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
     fishR = []
     
     # PREPARE DATAFRAME
+    #fbf = fbf.loc[fbf['frame'] < 20100, :] #large files cause memory error on this old machine
     fbf = fbf.loc[fbf[XPOS].notnull(), :]
     fbf = fbf.loc[fbf[YPOS].notnull(), :]
     fbf.loc[:,'uVX'] = fbf.loc[:,XVEL] / fbf.loc[:,SPEED]
