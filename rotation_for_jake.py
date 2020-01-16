@@ -102,7 +102,7 @@ def save_rotation_data(expFileName):
         
         synced = sync_by_stimStart(fbf, ID)                  
         ix = synced[synced.syncTime.between(np.timedelta64(30, 's'), np.timedelta64(300,'s'))].index 
-        DIR = np.sign(synced['dir'])
+        DIR = np.sign(synced.loc[ix,'dir'].mean())
         if DIR == 0:
             return 0
         data = np.concatenate([rot[x] for x in range(ix.min(), ix.max())])*DIR*-1.0 #FLIP TO MAKE POSITIVE, JAKE
@@ -190,10 +190,21 @@ def get_Tseries(expFileName):
         
 if __name__ == "__main__":
     import glob
+    import argparse
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('--handle', type=str, required=False, default='', 
+                        help='provide unique identifier (or comma-separated list) to select a subset of directories.')
+
+
+                
+    args = parser.parse_args()
+    
+    #HANDLE = args.handle.split(',')
     filelist = []
-    for fn in glob.glob('/media/recnodes/Dan_storage/Jake_TS/*.npz'):
+    for fn in glob.glob('/media/recnodes/Dan_storage/Jake_TS/*' + args.handle + '*.npz'):
         filelist.append(fn.split('/')[-1].split('_',3)[-1].split('.')[0])
-    for fn in glob.glob('/media/recnodes/recnode_2mfish/*coherencetestangular3m*dotbot*.stitched'):
+    for fn in glob.glob('/media/recnodes/recnode_2mfish/coherencetestangular3m_1024_dotbot*.stitched'):
         ID = fn.split('/')[-1].split('_',3)[-1].split('.')[0]
         if 0: #ID in filelist: #disabled to re-run
             continue
