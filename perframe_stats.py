@@ -598,7 +598,7 @@ if __name__ == "__main__":
     for filenum in np.arange(len(fileList)):
         vDir = fileList[filenum]
         if os.path.exists(vDir + '/track/converted.results'):
-            if not os.path.exists(vDir + '/track/rotationOrders_cXXXArea.pickle'): #FIXME
+            if not os.path.exists(vDir + '/track/vsTime_perframe_stats_median.png'): #FIXME
                 try:
                 
                     ARENA_WIDTH = get_arena_width(vDir)
