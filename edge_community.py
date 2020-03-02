@@ -237,6 +237,16 @@ from overlay_data_on_position import plot_data_on_video
 
 MAIN_DIR = '/media/recnodes/recnode_2mfish/reversals3m_128_dotbot_20181211_151201.stitched/'
 
+
+from local_properties import sync_rotation  
+import stim_handling as stims 
+local = pd.read_pickle(MAIN_DIR +'track/localData_FBF.pickle')        
+local = sync_rotation(local, stims.get_logfile(MAIN_DIR), store)   
+local['trackid'] = local['trackid'].astype(object) 
+cols = ['R', 'EigenCen', 'objID', 'comm_R', 'comm_EigenCen', 'localArea',
+       'localPackingFraction', 'localMedianRotation', 'localRscore',
+       'localPolarization', 'localPScore', 'localSpeedScore']
+
 store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
 CT = CentroidTracker()
 FBF = pd.DataFrame()
@@ -251,6 +261,7 @@ for i in range(1823,3823):
         img, (f,t) = store.get_next_image()
     
     graph = nx.read_graphml(MAIN_DIR +'track/graphs/%06d.graphml'%i )  
+    f0 = local[local['frame'] == 0].copy()          
     poxy = dict(zip(graph.nodes.keys(),[(graph.nodes.data()[k][XPOS],graph.nodes.data()[k][YPOS]) for k in graph.nodes.keys()])) 
     data, edgecomms = edge_community(graph, CT, threshold=0.375)
     print(len(set(edgecomms.values())),len(set(data.community)), set(data.objID), len(set(data.trackid)))
@@ -261,15 +272,19 @@ for i in range(1823,3823):
     data['frame'] = i 
     #fig = plot_network_communities(img, graph, edgecomms, poxy, BY='edges', colours=cl)
     #plt.savefig(MAIN_DIR + 'track/communityvid_fromEdges/%06d.png'%i, dpi=300)
-    fig = plot_data_on_video(img, data[XPOS], data[YPOS], np.array([cl[k] for k in data.objID]), str(i))
-    plt.savefig(MAIN_DIR + 'track/communityvid/%06d.png'%i, dpi=300)
+    #fig = plot_data_on_video(img, data[XPOS], data[YPOS], np.array([cl[k] for k in data.objID]), str(i))
+    #plt.savefig(MAIN_DIR + 'track/communityvid/%06d.png'%i, dpi=300)
+    fig = plt.figure(figsize=(12,12))
+    for a in range(len(cols)):
+        ax = fig.add_subplot(3,4,a+1)
+        plot_data_on_video(img, m[XPOS], m[YPOS], m[cols[a]], cols[a], fig=fig, ax=ax)
+        plt.colorbar()
+    plt.savefig(MAIN_DIR + 'track/localdata/%06d.png'%i, dpi=300)
+    
     plt.close('all')
     FBF = pd.concat([FBF, data], axis=0)
 
 FBF.to_pickle(MAIN_DIR + 'track/community_tracked_FBF.pickle')
-
-
-
 
 
 

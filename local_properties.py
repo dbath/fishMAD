@@ -1,0 +1,213 @@
+
+import stim_handling as stims
+import pandas as pd
+import joblib
+import numpy as np
+import scipy
+import imgstore
+from concurrent.futures import ProcessPoolExecutor, as_completed #for multiprocessing
+from utilities import *
+
+import traceback
+from multiprocessing import Process
+
+XPOS = 'X#wcentroid'
+YPOS = 'Y#wcentroid'
+XVEL = 'VX#smooth#wcentroid'
+YVEL = 'VY#smooth#wcentroid'
+SPEED = 'SPEED#smooth#wcentroid'
+ACC = 'ACCELERATION#smooth#wcentroid'
+angVel = 'ANGULAR_A#wcentroid'
+angAcc = 'ANGULAR_V#wcentroid'
+
+
+
+def packingfraction(area, N):
+    FISH_AREA = 14.5  #based on 175 pixels per fish. determined empirically from data from T.Water 20200218
+    return (N*FISH_AREA)/area
+
+def sync_rotation(r, log, store):
+    """
+    pass: r - any df with frame number (0>N) as index
+          log - a corresponding log file (from get_logfile())
+          store - imgstore object of corresponding video
+    returns:  df with frame numbers from camera, timestamps, and stim info
+    """    
+
+    foo = stims.get_frame_metadata(r, store)
+    foo.reset_index(drop=True, inplace=True)
+
+    bar = foo.merge(log, how='outer') 
+    bar = bar.sort_values('Timestamp')
+    bar = bar.fillna(method='ffill')  #forward fill data from log to tracking data
+    bar['speed'] = bar['speed'].fillna(method='ffill').fillna(0)
+    bar['dir'] = bar['dir'].fillna(method='ffill').fillna(method='bfill')
+    #for some reason the following step took forever? 
+    #bar.loc[:,'Time'] = (bar.loc[:,'Timestamp'] - bar.loc[0,'Timestamp'])
+    if 'R' in bar.columns:
+        bar['R'] = bar['R']*bar['dir']
+    bar = bar.loc[foo.index] #drop rows from log entries 
+    bar = bar.sort_values('Timestamp') #sort again because lazy danno
+    bar.reset_index(drop=True, inplace=True)
+    return bar  
+
+
+
+def neighbourhoodWatch(frameData, _focalID):
+    """
+    pass a df representing all data to be included, typically for a single frame, indexed by trackid as int
+    
+    pass the trackids of the focal indiv and neighbours (integer, list of ints)
+    
+    pass the edgelengths of the neighbours (in order), returns:
+    
+    local polarization and rotation of the neighbourhood relative to focal indiv
+    'torsion' of neighbourhood - degree to which the neighbourhood is turning toward the centre
+    
+    how much are the neighbours turning? 
+    to what degree does focal's acceleration match the neighbourhood?
+            does it match those with which direction is similar?
+                or dissimilar?
+                
+    
+    """
+    #load the data in relevant slices
+    focal = frameData.loc[_focalID]
+    neighbourIDs = list(focal['edgeList'])
+    #print(neighbourIDs)
+    neighbours = frameData.loc[neighbourIDs]
+    neighbourhood = frameData.loc[np.append(neighbourIDs, int(_focalID))]
+    
+    #calculate properties of the neighbourhood
+    if len(neighbours) <2:
+        AREA = np.nan
+    elif len(neighbours) <3: #can't do convex hull, so include self:
+        AREA = scipy.spatial.ConvexHull([*zip(neighbourhood[XPOS], neighbourhood[YPOS])]).volume
+    else:
+        AREA = scipy.spatial.ConvexHull([*zip(neighbours[XPOS], neighbours[YPOS])]).volume #ConvexHull.volume returns area because flatearth
+    PACKING_FRACTION = packingfraction(AREA, len(neighbourhood)) 
+
+    Rmedian = np.median(neighbours.R)
+    #Rmean = np.mean(neighbours.R) #dropped to save 80us
+    Rscore = ((neighbourhood['R'].rank()-1)/len(neighbours))[_focalID] # =1 for highest, 0 for lowest
+    
+    polarization = abs(np.sqrt((neighbourhood['uVX'].mean())**2 + (neighbourhood['uVY'].mean())**2))
+    #uM = neighbourhood[['uVX','uVY']].mean() # /polarization #unit vector of mean direction
+    #Pscore = (1-((abs(neighbourhood[['uVX','uVY']] - uM)).sum(axis=1).rank()-1)/(len(neighbours)))[_focalID] 
+    
+    #below are the proper calculations for uM and Pscore. Since we are ranking,
+    # it is ok to remove sqrt, **2, and divide-by-scalars. this saves 1ms total. 
+    
+    uM = neighbourhood[['uVX','uVY']].mean() /polarization #unit vector of mean direction
+    Pscore = (1-(np.sqrt(((neighbourhood[['uVX','uVY']] - uM)**2).sum(axis=1)).rank()-1)/(len(neighbours)))[_focalID] #this is the proper way
+    
+    Speedscore = (1-((focal[SPEED] - neighbourhood[SPEED]).rank()-1)/len(neighbours))[_focalID]
+
+    NN = np.array([frameData.frame.mean(),
+                   focal.trackid,
+                   AREA,
+                   PACKING_FRACTION,
+                   Rmedian,
+                   Rscore,
+                   polarization,
+                   Pscore,
+                   Speedscore
+                   ]).astype(float)
+
+    """
+    NN = {'frame': frameData.frame.mean() ,
+          'trackid': focal.trackid,
+          'localArea':AREA,
+          'localPackingFraction':PACKING_FRACTION,
+          'localMedianRotation':Rmedian,
+          #'localMeanRotation':Rmean,
+          'localRScore':Rscore,
+          'localPolarization':polarization,
+          'localPScore':Pscore,
+          'localSpeedScore':Speedscore,
+          }
+    """                 
+    return NN
+
+
+def process_chunk(df):
+    maxFrame = df.frame.max()
+    if maxFrame%args.maxthreads == 0:
+        progressbar = True
+    else:
+        progressbar = False  
+    
+    frames = df.groupby('frame')
+
+    growingArray = np.zeros((1,9))
+    for f, frameData in frames:
+        frameData.index = frameData['trackid'].astype(int)
+        for ID in frameData.index:
+            growingArray = np.vstack([growingArray,neighbourhoodWatch(frameData, ID)])  
+        if progressbar == True:
+            printProgressBar(f,maxFrame, prefix='processing: ')
+    chunk = pd.DataFrame(growingArray[1:])
+    chunk.columns = ['frame','trackid','localArea',
+                         'localPackingFraction','localMedianRotation',
+                         'localRscore','localPolarization','localPScore',
+                         'localSpeedScore']   
+    return chunk
+
+#space junk?
+#H = lambda x: pd.Series(x.groupby('ndisdig')['R_stimcorrected'].mean())    
+#plt.imshow(ts.resample('1s').apply(H).unstack().T, origin='lower') 
+
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--dir', type=str, required=False, default = '/media/recnodes/recnode_2mfish',help='path to directory')
+    parser.add_argument('--handle', type=str, required=False, default='_dotbot_', 
+                        help='provide unique identifier (or comma-separated list) to select a subset of directories.')
+    parser.add_argument('--maxthreads', type=int, required=False, default=20, 
+                        help='maximum number of threads to use in parallel.')
+
+                
+    args = parser.parse_args()
+    
+    HANDLE = args.handle
+        
+    nCores = args.maxthreads 
+    
+    for MAIN_DIR in glob.glob(args.dir + '/*' + HANDLE + '.stitched'):  
+        #MAIN_DIR = '/media/recnodes/recnode_2mfish/reversals3m_128_dotbot_20181211_151201.stitched/'
+        MAIN_DIR = slashdir(MAIN_DIR)
+        print("processing ", MAIN_DIR)
+        nfbf = joblib.load(MAIN_DIR + 'track/network_FBF.pickle')
+        print("loaded data with size", nfbf.shape)
+        nfbf[SPEED] = np.sqrt(nfbf[XVEL]**2 + nfbf[YVEL]**2) 
+        nfbf['uVX'] = nfbf['VX#smooth#wcentroid']/nfbf[SPEED]
+        nfbf['uVY'] = nfbf['VY#smooth#wcentroid']/nfbf[SPEED]
+
+
+        log = stims.get_logfile(MAIN_DIR)
+        store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
+        nfbf = sync_rotation(nfbf, log, store)
+        nfbf.reset_index(drop=True, inplace=True)
+        
+        print("setting parallel processes")
+        ppe = ProcessPoolExecutor(nCores)
+        futures = []
+        Results = []
+        # INITIATE PARALLEL PROCESSES
+        nfbf['coreGroup'] = nfbf['frame']%nCores
+        nfbf.reset_index(inplace=True, drop=True)
+        for n in range(nCores):
+            p = ppe.submit(process_chunk, nfbf.loc[nfbf['coreGroup'] == n, :])
+            futures.append(p)
+        # COLLECT PROCESSED DATA AS IT IS FINISHED   
+        for future in as_completed(futures): 
+            Results.append(future.result())
+
+        #CONCATENATE RESULTS
+        localData = pd.concat(Results)
+
+        localData.to_pickle(MAIN_DIR + 'track/localData_FBF.pickle')
+            
+
