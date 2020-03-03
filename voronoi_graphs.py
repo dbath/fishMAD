@@ -126,7 +126,7 @@ def plot_delaunay(tri, points, trackIDs, xlim=(7,312), ylim=(8,327), fig=None, a
 
 
 
-def neighbourhoodWatch(_focal, neighbours):
+def neighbourhoodWatch(_focal, _neighbours):
     """
     pass dfs representing the focal indiv and neighbours, returns:
     
@@ -141,6 +141,7 @@ def neighbourhoodWatch(_focal, neighbours):
     
     """
     focal = _focal.copy()
+    neighbours = _neighbours.copy()
     # calculate distance for all neighbours
     neighbours.loc[:,'distance'] = [distance(list(focal[[XPOS,YPOS]].values), list(i[[XPOS,YPOS]].values)) for _,i in neighbours.iterrows()]
     
@@ -211,7 +212,7 @@ def delaunayNeighbours(data, CENTRE=(160,160)): #FIXME hardcoding arena centre i
     neiList=defaultdict(set)
     EDGES =[]
     IDS = np.array(data.trackid)
-    DISTANCES = defaultdict(set)
+    DISTANCES = []
     for p in tri.vertices:
         for i,j in itertools.combinations(p,2):
             i = int(IDS[i])
@@ -220,8 +221,8 @@ def delaunayNeighbours(data, CENTRE=(160,160)): #FIXME hardcoding arena centre i
             neiList[j].add(i)
             EDGES.append((i,j))
             neiDistance = np.sqrt((data.loc[i, XPOS]-data.loc[j,XPOS])**2 + (data.loc[i, YPOS]-data.loc[j,YPOS])**2)
-            DISTANCES[i].add(neiDistance)
-            DISTANCES[j].add(neiDistance)
+            DISTANCES.append(neiDistance)
+            #DISTANCES[j].add(neiDistance)
 
 
     #DISTANCES = [np.sqrt((data.loc[str(EDGES[i][0]), XPOS]-data.loc[str(EDGES[i][1]),XPOS])**2 + (data.loc[str(EDGES[i][0]),YPOS]-data.loc[str(EDGES[i][1]),YPOS])**2) for i in range(len(EDGES))]
@@ -321,8 +322,8 @@ def doit(MAIN_DIR, saveas="Not_defined", nCores=16):
     #filter out tracked reflections by removing tracks that are always near the border
     foo = fbf.groupby('trackid').max()['BORDER_DISTANCE#wcentroid']
     fbf = fbf[~(fbf.trackid.isin(foo[foo<50].index))]
-
-    fbf = fbf.drop(columns=['header'])
+    if 'header' in fbf.columns:
+        fbf = fbf.drop(columns=['header'])
     fbf['coreGroup'] = fbf['frame']%nCores  #divide into chunks labelled range(nCores)
     #store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
     
@@ -377,9 +378,10 @@ if __name__ == "__main__":
                     if not os.path.exists(vDir+'/track/graphs'):
                         os.makedirs(vDir+'/track/graphs')
                     if os.path.exists(vDir+'/track/network_FBF.pickle'):#graphs/000000.graphml'):
-                        if datetime.datetime.fromtimestamp(os.path.getmtime(vDir+'/track/graphs/000000.graphml')) > DATETIME:
-                            print(vDir.split('/')[-1], '...folder is already processed. skipping.')
-                            continue
+                        if os.path.exists(vDir+'/track/graphs/000000.graphml'):
+                            if datetime.datetime.fromtimestamp(os.path.getmtime(vDir+'/track/graphs/000000.graphml')) > DATETIME:
+                                print(vDir.split('/')[-1], '...folder is already processed. skipping.')
+                                continue
                     if int(vDir.split('/')[-1].split('_')[1]) > 512:
                         doit(vDir, nCores=4)
                     elif int(vDir.split('/')[-1].split('_')[1]) > 128:

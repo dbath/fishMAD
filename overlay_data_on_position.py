@@ -147,6 +147,55 @@ def plot_data_on_video(img, xdata, ydata, colourdata, TEXT, fig=None, ax=None,
     return fig
 
 
+def plot_network_edges(img, graph,  coords, colours='undefined', fig=None, ax=None, 
+                              xlim=(7,312), ylim=(8,327), _alpha=1.0,colourNorm='undefined'):
+    """
+    img = an image
+    graph = a networkx graph object
+    coords = xy positions to plot, in the form of a dict where {edgeID:(x,y)} with edgeID as string
+    colours = a list of numerical values the same length as graph.edges()
+    
+    """
+
+
+    if fig==None:
+        fig = plt.figure(frameon=False)
+        fig.set_size_inches(4,4)
+    if ax== None:
+        ax = fig.add_subplot(111)
+    if colours=='undefined':
+        colours = np.linspace(0,1,len(coords.values()))
+    if colourNorm=='undefined':
+        VMIN = min(colours)
+        VMAX = max(colours)
+    else:
+        VMIN, VMAX = colourNorm        
+    
+    
+        
+    imax = plt.imshow(crop_stitched_img(img), extent=[xlim[0], xlim[1],ylim[0],ylim[1]], origin='lower')    
+    
+
+    cbar = nx.draw_networkx_edges(graph, coords, edge_color=colours, 
+                           cmap='viridis', edge_vmin=VMIN, edge_vmax=VMAX,
+                           alpha=0.75, linewidth=0.1, ax=ax) 
+    nx.draw_networkx_nodes(graph, coords, node_size=2, color='white') 
+
+    plt.gca().set_aspect(1.0)
+    plt.gca().set_axis_off()
+    plt.subplots_adjust(top = 0.95, bottom = 0.05, right = 0.92, left = 0, 
+            hspace = 0, wspace = 0)    
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="2%", pad=0.05) 
+    cb = plt.colorbar(cbar, cax=cax, drawedges=False)
+    #ugh. why does networkx return a list from 0 to 1 instead of the real colour values. 
+    cb.ax.set_yticklabels([int(x) for x in np.linspace(VMIN, VMAX, len(cb.ax.get_yticks()))]) 
+        
+    return fig  
+
 def plot_network_communities(img, graph, partition, coords, BY='nodes', colours='undefined', fig=None, ax=None, 
                               xlim=(7,312), ylim=(8,327), _alpha=1.0):
     """

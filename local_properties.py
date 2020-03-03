@@ -51,6 +51,17 @@ def sync_rotation(r, log, store):
     bar.reset_index(drop=True, inplace=True)
     return bar  
 
+def set_neighbour_distance(graph):
+    neiList = defaultdict(set)    
+    DISTANCES = []
+    for u,v in graph.edges(): 
+        neiList[u].add(v) 
+        neiList[v].add(u) 
+        d = distance((graph.nodes[u][XPOS], graph.nodes[u][YPOS]),(graph.nodes[v][XPOS], graph.nodes[v][YPOS])) 
+        DISTANCES.append(d) 
+    nx.set_edge_attributes(graph, dict(zip(graph.edges(), DISTANCES)),'distance') 
+    return graph
+    
 
 
 def neighbourhoodWatch(frameData, _focalID):
