@@ -234,34 +234,50 @@ def edge_community(graph, communityObjects, threshold=0.4):
     return df.merge(foo), edge2cid
     
 from overlay_data_on_position import plot_data_on_video    
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-MAIN_DIR = '/media/recnodes/recnode_2mfish/reversals3m_128_dotbot_20181211_151201.stitched/'
+
+#MAIN_DIR = '/media/recnodes/recnode_2mfish/reversals3m_128_dotbot_20181211_151201.stitched/'
+MAIN_DIR = '/media/recnodes/recnode_2mfish/reversals3m_128_dotbot_20181106_145202.stitched/' 
+store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
 
 
 from local_properties import sync_rotation  
 import stim_handling as stims 
 local = pd.read_pickle(MAIN_DIR +'track/localData_FBF.pickle')        
 local = sync_rotation(local, stims.get_logfile(MAIN_DIR), store)   
-local['trackid'] = local['trackid'].astype(object) 
-cols = ['R', 'EigenCen', 'objID', 'comm_R', 'comm_EigenCen', 'localArea',
-       'localPackingFraction', 'localMedianRotation', 'localRscore',
-       'localPolarization', 'localPScore', 'localSpeedScore']
+local['trackid'] = local['trackid'].astype(float).astype(int) 
+local['Time'] = local.loc[:,'Timestamp'] - local.iloc[0]['Timestamp']
 
-store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
+cols = ['objIDcol', 'EigenCen', 'comm_EigenCen', 'localArea',
+       'comm_R', 'R', 'localMedianRotation', 'localRscore',
+       'localPackingFraction', 'localPolarization', 'localPScore', 'localSpeedScore']
+
+cMin = [ 0, 0, 0.0, 0, 0,
+        -1.0, -1.0, -1.0, 0,
+        0, 0, 0, 0]
+
+cMax = [ 12,0.2,0.2,6000,
+        1.0,1.0,1.0,1.0,
+       1.0,1.0,1.0,1.0]
+
+
+
 CT = CentroidTracker()
 FBF = pd.DataFrame()
 
 cl = create_colourlist(15, cmap='hsv') 
 #make a repeating colourlist
 cl = np.concatenate([cl,cl,cl,cl,cl])  
-for i in range(1823,3823):
+for i in range(0,12500):
     try:
         img, (f,t) = store.get_image(store.frame_min + i) 
     except:
         img, (f,t) = store.get_next_image()
     
     graph = nx.read_graphml(MAIN_DIR +'track/graphs/%06d.graphml'%i )  
-    f0 = local[local['frame'] == 0].copy()          
+    framedata = local[local['frame'] == i].copy()          
+
     poxy = dict(zip(graph.nodes.keys(),[(graph.nodes.data()[k][XPOS],graph.nodes.data()[k][YPOS]) for k in graph.nodes.keys()])) 
     data, edgecomms = edge_community(graph, CT, threshold=0.375)
     print(len(set(edgecomms.values())),len(set(data.community)), set(data.objID), len(set(data.trackid)))
@@ -269,22 +285,38 @@ for i in range(1823,3823):
         print('try again')
         data, edgecomms = edge_community(graph, CT, threshold=0.36)
         print(len(set(edgecomms.values())),len(set(data.community)), set(data.objID), len(set(data.trackid)))
-    data['frame'] = i 
+    data['trackid'] = data['trackid'].astype(int)
+    data['frame'] = i
+    m = data.merge(framedata, left_on='trackid', right_on='trackid')
+    m['R'] = m['R']*m['dir']
+    m['comm_R'] = m['comm_R']*m['dir']
+    m['objIDcol'] = m['objID']%13  #give one of 13 colours. sometimes two comms will match. lazy danno.
     #fig = plot_network_communities(img, graph, edgecomms, poxy, BY='edges', colours=cl)
     #plt.savefig(MAIN_DIR + 'track/communityvid_fromEdges/%06d.png'%i, dpi=300)
     #fig = plot_data_on_video(img, data[XPOS], data[YPOS], np.array([cl[k] for k in data.objID]), str(i))
     #plt.savefig(MAIN_DIR + 'track/communityvid/%06d.png'%i, dpi=300)
-    fig = plt.figure(figsize=(12,12))
+    fig = plt.figure(figsize=(27,16))
     for a in range(len(cols)):
         ax = fig.add_subplot(3,4,a+1)
-        plot_data_on_video(img, m[XPOS], m[YPOS], m[cols[a]], cols[a], fig=fig, ax=ax)
-        plt.colorbar()
-    plt.savefig(MAIN_DIR + 'track/localdata/%06d.png'%i, dpi=300)
+        fig, ax, im = plot_data_on_video(img, m[XPOS], m[YPOS], m[cols[a]], cols[a], fig=fig, ax=ax,
+                           colourNorm=(cMin[a],cMax[a]))
+        if a == 0:
+            props = dict(boxstyle='round', facecolor='#ffffff', alpha=0.5)
+            ax.text(0.02, 0.97, str(np.around(m.iloc[0]['Time'],2)) + 's', transform=ax.transAxes, fontsize=10,
+            verticalalignment='top', horizontalalignment='left', bbox=props)
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        plt.colorbar(im, cax=cax)
+    plt.subplots_adjust(top = 0.98, bottom = 0.02, right = 0.95, left = 0.05, 
+            hspace = 0.1, wspace = 0)    
+
+    plt.savefig(MAIN_DIR + 'track/localdata/%06d.png'%(i-10000), dpi=200)
     
     plt.close('all')
     FBF = pd.concat([FBF, data], axis=0)
 
 FBF.to_pickle(MAIN_DIR + 'track/community_tracked_FBF.pickle')
+
 
 
 
