@@ -7,7 +7,7 @@ import scipy
 import imgstore
 from concurrent.futures import ProcessPoolExecutor, as_completed #for multiprocessing
 from utilities import *
-
+from collections import defaultdict
 import traceback
 from multiprocessing import Process
 
@@ -51,19 +51,28 @@ def sync_rotation(r, log, store):
     bar.reset_index(drop=True, inplace=True)
     return bar  
 
-def set_neighbour_distance(graph):
-    neiList = defaultdict(set)    
-    DISTANCES = []
-    for u,v in graph.edges(): 
-        neiList[u].add(v) 
-        neiList[v].add(u) 
-        d = distance((graph.nodes[u][XPOS], graph.nodes[u][YPOS]),(graph.nodes[v][XPOS], graph.nodes[v][YPOS])) 
-        DISTANCES.append(d) 
-    nx.set_edge_attributes(graph, dict(zip(graph.edges(), DISTANCES)),'distance') 
-    return graph
+
     
+def distance(A, B):
+    return np.sqrt((A[0]-B[0])**2 + (A[1]-B[1])**2)
 
+def prune_by_distance(f0, T='twostd'):
+    """
+    f0: from a single frame including "edgeList" (the trackids of neighbours) and "edgeLengths" (an ordered list of euclidian distance to neighbours)
+    T: the threshold distance above which edges will be pruned. default is 2 std's above the median for the entire frame. alternatively, pass a numeric value for the threshold.
+    """
 
+    if T=='twostd':
+        e = np.concatenate(f0.edgeLengths.values)
+        T = np.mean(e) + 2*e.std()     
+    vals = np.array(f0.edgeLengths) 
+    neiList = np.array(f0.edgeList) 
+    keepers = np.array([k <= T for k in f0.edgeLengths])  
+
+    pruned_vals = [vals[k][keepers[k]] for k in range(len(vals))]
+    pruned_neilist = [neiList[k][keepers[k]] for k in range(len(vals))]
+    return pruned_neilist, pruned_vals
+    
 def neighbourhoodWatch(frameData, _focalID):
     """
     pass a df representing all data to be included, typically for a single frame, indexed by trackid as int
@@ -97,6 +106,7 @@ def neighbourhoodWatch(frameData, _focalID):
     else:
         AREA = scipy.spatial.ConvexHull([*zip(neighbours[XPOS], neighbours[YPOS])]).volume #ConvexHull.volume returns area because flatearth
     PACKING_FRACTION = packingfraction(AREA, len(neighbourhood)) 
+    NEIGHBOUR_DIST = np.median(focal['edgeLengths'])
 
     Rmedian = np.median(neighbours.R)
     #Rmean = np.mean(neighbours.R) #dropped to save 80us
@@ -116,6 +126,7 @@ def neighbourhoodWatch(frameData, _focalID):
 
     NN = np.array([frameData.frame.mean(),
                    focal.trackid,
+                   NEIGHBOUR_DIST,
                    AREA,
                    PACKING_FRACTION,
                    Rmedian,
@@ -128,6 +139,7 @@ def neighbourhoodWatch(frameData, _focalID):
     """
     NN = {'frame': frameData.frame.mean() ,
           'trackid': focal.trackid,
+          'neighbourDist': NEIGHBOUR_DIST,
           'localArea':AREA,
           'localPackingFraction':PACKING_FRACTION,
           'localMedianRotation':Rmedian,
@@ -150,15 +162,17 @@ def process_chunk(df):
     
     frames = df.groupby('frame')
 
-    growingArray = np.zeros((1,9))
+    growingArray = np.zeros((1,10))
     for f, frameData in frames:
         frameData.index = frameData['trackid'].astype(int)
+        #pruned_neighbourIDs, pruned_neighbourDistances = prune_by_distance(frameData)
+        frameData['edgeList'], frameData['edgeLengths'] = prune_by_distance(frameData)
         for ID in frameData.index:
             growingArray = np.vstack([growingArray,neighbourhoodWatch(frameData, ID)])  
         if progressbar == True:
             printProgressBar(f,maxFrame, prefix='processing: ')
     chunk = pd.DataFrame(growingArray[1:])
-    chunk.columns = ['frame','trackid','localArea',
+    chunk.columns = ['frame','trackid','neighbourDist','localArea',
                          'localPackingFraction','localMedianRotation',
                          'localRscore','localPolarization','localPScore',
                          'localSpeedScore']   

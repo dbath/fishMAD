@@ -67,6 +67,28 @@ def get_centroid(arr):
     except:
         return (np.nan, np.nan)
 
+def prune_graph(graph, T='twostd'):
+    graph = set_neighbour_distance(graph) 
+
+    if T=='twostd':
+        e = np.array([e['distance'] for u,v,e in graph.edges(data=True)])
+        T = np.mean(e) + 2*e.std()  
+    selected_edges = [(u,v) for u,v,e in graph.edges(data=True) if e['distance'] >T] 
+    
+    graph.remove_edges_from(selected_edges)
+    return graph
+
+def set_neighbour_distance(graph):
+    neiList = defaultdict(set)    
+    DISTANCES = []
+    for u,v in graph.edges(): 
+        neiList[u].add(v) 
+        neiList[v].add(u) 
+        d = distance((graph.nodes[u][XPOS], graph.nodes[u][YPOS]),(graph.nodes[v][XPOS], graph.nodes[v][YPOS])) 
+        DISTANCES.append(d) 
+    nx.set_edge_attributes(graph, dict(zip(graph.edges(), DISTANCES)),'distance') 
+    return graph
+
 def rotation_and_polarization(centreX, centreY, posX, posY, velX, velY):
     """
     centre - a single point marking the axis of rotation

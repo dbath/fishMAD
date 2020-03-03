@@ -147,7 +147,7 @@ def plot_data_on_video(img, xdata, ydata, colourdata, TEXT, fig=None, ax=None,
     return fig
 
 
-def plot_network_edges(img, graph,  coords, colours='undefined', fig=None, ax=None, 
+def plot_network_edges(img, graph,  coords=None, colours='k', fig=None, ax=None, 
                               xlim=(7,312), ylim=(8,327), _alpha=1.0,colourNorm='undefined'):
     """
     img = an image
@@ -163,14 +163,14 @@ def plot_network_edges(img, graph,  coords, colours='undefined', fig=None, ax=No
         fig.set_size_inches(4,4)
     if ax== None:
         ax = fig.add_subplot(111)
-    if colours=='undefined':
-        colours = np.linspace(0,1,len(coords.values()))
-    if colourNorm=='undefined':
+    if colours=='k':
+        VMIN = 0
+        VMAX=1
+    elif colourNorm=='undefined':
         VMIN = min(colours)
         VMAX = max(colours)
     else:
-        VMIN, VMAX = colourNorm        
-    
+        VMIN, VMAX = (0,100)   
     
         
     imax = plt.imshow(crop_stitched_img(img), extent=[xlim[0], xlim[1],ylim[0],ylim[1]], origin='lower')    
@@ -179,7 +179,7 @@ def plot_network_edges(img, graph,  coords, colours='undefined', fig=None, ax=No
     cbar = nx.draw_networkx_edges(graph, coords, edge_color=colours, 
                            cmap='viridis', edge_vmin=VMIN, edge_vmax=VMAX,
                            alpha=0.75, linewidth=0.1, ax=ax) 
-    nx.draw_networkx_nodes(graph, coords, node_size=2, color='white') 
+    #nx.draw_networkx_nodes(graph, coords, node_size=2, color='white') 
 
     plt.gca().set_aspect(1.0)
     plt.gca().set_axis_off()
@@ -187,12 +187,12 @@ def plot_network_edges(img, graph,  coords, colours='undefined', fig=None, ax=No
             hspace = 0, wspace = 0)    
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
-    
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="2%", pad=0.05) 
-    cb = plt.colorbar(cbar, cax=cax, drawedges=False)
-    #ugh. why does networkx return a list from 0 to 1 instead of the real colour values. 
-    cb.ax.set_yticklabels([int(x) for x in np.linspace(VMIN, VMAX, len(cb.ax.get_yticks()))]) 
+    if not colours =='k':
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="2%", pad=0.05) 
+        cb = plt.colorbar(cbar, cax=cax, drawedges=False)
+        #ugh. why does networkx return a list from 0 to 1 instead of the real colour values. 
+        cb.ax.set_yticklabels([int(x) for x in np.linspace(VMIN, VMAX, len(cb.ax.get_yticks()))]) 
         
     return fig  
 
