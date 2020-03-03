@@ -321,13 +321,15 @@ def doit(MAIN_DIR, saveas="Not_defined", nCores=16):
         saveas = MAIN_DIR + 'voronoi_overlay'
     if not os.path.exists(saveas):
         os.makedirs(saveas)
-    try:
-        fbf = pd.read_pickle(MAIN_DIR + 'track/frameByFrameData.pickle')
-        assert len(fbf.shape) ==2
+
+    fbf = pd.read_pickle(MAIN_DIR + 'track/frameByFrameData.pickle')
+    if len(fbf.shape) ==2:
         print('loaded pickle')
-    except:
+    else:
         print('joblib')
         fbf = joblib.load(MAIN_DIR + 'track/frameByFrameData.pickle')
+    if len(fbf.shape) ==2:
+        print('loaded pickle')
     #print(fbf[0:5])    
     #fbf = fbf.replace(to_replace=np.inf, value=np.nan)
     
