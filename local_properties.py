@@ -200,7 +200,7 @@ if __name__ == "__main__":
         
     nCores = args.maxthreads 
     
-    for MAIN_DIR in glob.glob(args.dir + '/*' + HANDLE + '.stitched'):  
+    for MAIN_DIR in glob.glob(args.dir + '/*' + HANDLE + '*.stitched'):  
         #MAIN_DIR = '/media/recnodes/recnode_2mfish/reversals3m_128_dotbot_20181211_151201.stitched/'
         MAIN_DIR = slashdir(MAIN_DIR)
         print("processing ", MAIN_DIR)
