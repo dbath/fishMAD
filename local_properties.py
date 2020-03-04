@@ -10,6 +10,7 @@ from utilities import *
 from collections import defaultdict
 import traceback
 from multiprocessing import Process
+from scipy.stats import spearmanr
 
 XPOS = 'X#wcentroid'
 YPOS = 'Y#wcentroid'
@@ -77,18 +78,13 @@ def neighbourhoodWatch(frameData, _focalID):
     """
     pass a df representing all data to be included, typically for a single frame, indexed by trackid as int
     
-    pass the trackids of the focal indiv and neighbours (integer, list of ints)
+    pass the trackid of the focal indiv 
     
-    pass the edgelengths of the neighbours (in order), returns:
+    returns:
     
     local polarization and rotation of the neighbourhood relative to focal indiv
-    'torsion' of neighbourhood - degree to which the neighbourhood is turning toward the centre
     
-    how much are the neighbours turning? 
-    to what degree does focal's acceleration match the neighbourhood?
-            does it match those with which direction is similar?
-                or dissimilar?
-                
+                   
     
     """
     #load the data in relevant slices
@@ -116,11 +112,15 @@ def neighbourhoodWatch(frameData, _focalID):
     #uM = neighbourhood[['uVX','uVY']].mean() # /polarization #unit vector of mean direction
     #Pscore = (1-((abs(neighbourhood[['uVX','uVY']] - uM)).sum(axis=1).rank()-1)/(len(neighbours)))[_focalID] 
     
+    #Polarization-Distance correlation: is the angle similarity to each neighbour correlated with distance?
+    #PDcor = spearmanr(focal.edgeLengths, np.sqrt((focal.uVX - neighbours.uVX)**2 + (focal.uVY - neighbours.uVY)**2))[0]
+    PDcor = spearmanr(focal.edgeLengths, (focal.uVX - neighbours.uVX)**2 + (focal.uVY - neighbours.uVY)**2)[0] #drop sqrt for speed
+    
     #below are the proper calculations for uM and Pscore. Since we are ranking,
     # it is ok to remove sqrt, **2, and divide-by-scalars. this saves 1ms total. 
     
-    uM = neighbourhood[['uVX','uVY']].mean() /polarization #unit vector of mean direction
-    Pscore = (1-(np.sqrt(((neighbourhood[['uVX','uVY']] - uM)**2).sum(axis=1)).rank()-1)/(len(neighbours)))[_focalID] #this is the proper way
+    #uM = neighbourhood[['uVX','uVY']].mean() /polarization #unit vector of mean direction
+    #Pscore = (1-(np.sqrt(((neighbourhood[['uVX','uVY']] - uM)**2).sum(axis=1)).rank()-1)/(len(neighbours)))[_focalID] #this is the proper way
     
     Speedscore = (1-((focal[SPEED] - neighbourhood[SPEED]).rank()-1)/len(neighbours))[_focalID]
 
@@ -132,7 +132,7 @@ def neighbourhoodWatch(frameData, _focalID):
                    Rmedian,
                    Rscore,
                    polarization,
-                   Pscore,
+                   PDcor,
                    Speedscore
                    ]).astype(float)
 
@@ -146,7 +146,7 @@ def neighbourhoodWatch(frameData, _focalID):
           #'localMeanRotation':Rmean,
           'localRScore':Rscore,
           'localPolarization':polarization,
-          'localPScore':Pscore,
+          'localPScore':PDcor,
           'localSpeedScore':Speedscore,
           }
     """                 
@@ -164,6 +164,7 @@ def process_chunk(df):
 
     growingArray = np.zeros((1,10))
     for f, frameData in frames:
+        frameData = frameData.copy()
         frameData.index = frameData['trackid'].astype(int)
         #pruned_neighbourIDs, pruned_neighbourDistances = prune_by_distance(frameData)
         frameData['edgeList'], frameData['edgeLengths'] = prune_by_distance(frameData)
@@ -174,7 +175,7 @@ def process_chunk(df):
     chunk = pd.DataFrame(growingArray[1:])
     chunk.columns = ['frame','trackid','neighbourDist','localArea',
                          'localPackingFraction','localMedianRotation',
-                         'localRscore','localPolarization','localPScore',
+                         'localRscore','localPolarization','localPDcor',
                          'localSpeedScore']   
     return chunk
 
