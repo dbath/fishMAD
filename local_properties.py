@@ -203,6 +203,9 @@ if __name__ == "__main__":
     for MAIN_DIR in glob.glob(args.dir + '/*' + HANDLE + '*.stitched'):  
         #MAIN_DIR = '/media/recnodes/recnode_2mfish/reversals3m_128_dotbot_20181211_151201.stitched/'
         MAIN_DIR = slashdir(MAIN_DIR)
+        if not os.path.exists(MAIN_DIR + 'track/network_FBF.pickle'):
+            print("no network_FBF.pickle found: ", MAIN_DIR.split('/')[-2])
+            continue
         print("processing ", MAIN_DIR)
         nfbf = joblib.load(MAIN_DIR + 'track/network_FBF.pickle')
         print("loaded data with size", nfbf.shape)
