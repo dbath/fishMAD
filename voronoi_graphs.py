@@ -234,7 +234,7 @@ def delaunayNeighbours(data, CENTRE=(160,160)): #FIXME hardcoding arena centre i
     neiList=defaultdict(set)
     EDGES =[]
     IDS = np.array(data.trackid)
-    DISTANCES = defaultdict()
+    DISTANCES = defaultdict(set)
     for p in tri.vertices:
         for i,j in itertools.combinations(p,2):
             i = int(IDS[i])

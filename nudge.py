@@ -24,7 +24,7 @@ def sync_by_initiation(df, log, store, ID, col='nudge'):
     bar = bar.sort_values('Timestamp')  #integrate log data with tracking data
     bar = bar.fillna(method='ffill')  #forward fill data from log to tracking data
     bar = bar.sort_values('Timestamp')    
-    XLIM = (-5,8)
+    XLIM = (-5,11)
     bar.reset_index(inplace=True)
     trials = pd.DataFrame()
     trialID = 0    
@@ -37,8 +37,8 @@ def sync_by_initiation(df, log, store, ID, col='nudge'):
         data['trialID'] = ID + '_' + str(trialID)
         data['date'] = ID.split('_')[0]   
         data['startTime'] = ID.split('_')[1] 
-        data['nudgeDir'] = data['theta'].max() #make categorical for sorting
-        data['divergence'] = data['divergence'].max()  #make categorical for sorting
+        data['nudgeDir'] = float(data['theta'].max()) #make categorical for sorting
+        data['divergence'] = float(data['divergence'].max())  #make categorical for sorting
         trialID += 1
         trials = pd.concat([trials, data], axis=0)
     return 1, trials
@@ -70,7 +70,7 @@ def ts_hist(data,ax, col='dTheta'):
 
 def compile_images(handle):
     divs = ['0.0','0.13','0.26','0.39','0.52','0.65','0.79','0.92','1.05','1.18','1.31','1.44','1.57']
-    xbins = np.linspace(-5,8,104)   
+    xbins = np.linspace(-5,11,128)   
     ybins = np.linspace(-1.0*np.pi, np.pi, 120)  
     fig = plt.figure()
     for div in divs:
@@ -102,14 +102,14 @@ if __name__ == "__main__":
     
     #HANDLE = args.handle.split(',')
     filelist = []
-    for MAIN_DIR in glob.glob('/media/recnodes/recnode_2mfish/nudge3m_*.stitched'):
+    for MAIN_DIR in glob.glob('/media/recnodes/recnode_2mfish/nudge3m_128*.stitched'):
         print(MAIN_DIR)
         MAIN_DIR = slashdir(MAIN_DIR)
         ID = MAIN_DIR.split('/')[-2].split('_',3)[-1].split('.')[0]  
         if not os.path.exists(MAIN_DIR + 'track/frameByFrameData.pickle'):
             continue
-        if len([n for n in glob.glob(MAIN_DIR + 'track/dTheta_v_Time_1.57_*.npy') if os.path.exists(n)]) >0:
-            continue
+        #if len([n for n in glob.glob(MAIN_DIR + 'track/dTheta_v_Time_1.57_*.npy') if os.path.exists(n)]) >0:
+        #    continue
         log = stims.get_logfile(MAIN_DIR)
         store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
 
@@ -143,7 +143,7 @@ if __name__ == "__main__":
         """
         g = df.groupby('divergence')  
 
-        xbins = np.linspace(-5,8,104)   
+        xbins = np.linspace(-5,11,128)   
         ybins = np.linspace(-1.0*np.pi, np.pi, 120)   
 
         for div, dat in g: 

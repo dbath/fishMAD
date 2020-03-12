@@ -45,8 +45,8 @@ def sync_rotation(r, log, store):
     bar['dir'] = bar['dir'].fillna(method='ffill').fillna(method='bfill')
     #for some reason the following step took forever? 
     #bar.loc[:,'Time'] = (bar.loc[:,'Timestamp'] - bar.loc[0,'Timestamp'])
-    if 'R' in bar.columns:
-        bar['R'] = bar['R']*bar['dir']
+    #if 'R' in bar.columns:
+    #    bar['R'] = bar['R']*bar['dir']
     bar = bar.loc[foo.index] #drop rows from log entries 
     bar = bar.sort_values('Timestamp') #sort again because lazy danno
     bar.reset_index(drop=True, inplace=True)
@@ -186,7 +186,9 @@ def process_chunk(df):
 
 
 if __name__ == "__main__":
+    import os, datetime
     import argparse
+    import utilities
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--dir', type=str, required=False, default = '/media/recnodes/recnode_2mfish',help='path to directory')
     parser.add_argument('--handle', type=str, required=False, default='_dotbot_', 
@@ -200,10 +202,14 @@ if __name__ == "__main__":
     HANDLE = args.handle
         
     nCores = args.maxthreads 
-    
+    DATETIME = utilities.getTimeFromTimeString('20200304_090000') #FIXME hardcoded
     for MAIN_DIR in glob.glob(args.dir + '/*' + HANDLE + '*.stitched'):  
-        #MAIN_DIR = '/media/recnodes/recnode_2mfish/reversals3m_128_dotbot_20181211_151201.stitched/'
         MAIN_DIR = slashdir(MAIN_DIR)
+
+        if os.path.exists(MAIN_DIR + 'track/localData_FBF.pickle'):
+            if datetime.datetime.fromtimestamp(os.path.getmtime(MAIN_DIR + 'track/localData_FBF.pickle')) > DATETIME:
+                continue
+        #MAIN_DIR = '/media/recnodes/recnode_2mfish/reversals3m_128_dotbot_20181211_151201.stitched/'
         if not os.path.exists(MAIN_DIR + 'track/network_FBF.pickle'):
             print("no network_FBF.pickle found: ", MAIN_DIR.split('/')[-2])
             continue
