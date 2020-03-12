@@ -257,7 +257,7 @@ def plot_by_RT(trials, col='Orotation', grouping='trialID', plotTrials=True, fig
             count = data.resample(RESAMPLE).count()
             removeLowDataCount = count[col] <= 0.2*count[col].max()
             r = data.resample(RESAMPLE).mean()
-            sem = 1.253*(data.resample(RESAMPLE).sem()) #http://davidmlane.com/hyperstat/A106993.html and
+            sem = 1.253*(data.resample(RESAMPLE).std()/np.sqrt(N)) #http://davidmlane.com/hyperstat/A106993.html and
             #    https://influentialpoints.com/Training/standard_error_of_median.htm
             r[removeLowDataCount] = np.nan
             sem[removeLowDataCount] = np.nan

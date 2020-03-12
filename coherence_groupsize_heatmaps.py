@@ -74,7 +74,7 @@ def align_by_stim(df, ID, stimAligner='stimStart', col='median_dRotation_cArea')
 
     return trials
         
-def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', plotTrials=True, fig= None, ax=None, colour=None, XLIM=(-30,400), RESAMPLE='1s', NORMALIZE_PRESTIM=False, YLABEL='Mean congruent rotation order $\pm$ SEM'):
+def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', plotTrials=True, fig= None, ax=None, colour=None, XLIM=(-30,400), YLIM=(-1.05,1.05),RESAMPLE='1s', NORMALIZE_PRESTIM=False, YLABEL='Mean congruent rotation order $\pm$ SEM', statistic='mean'):
     colourList = ['#EA4335','#E16D13','#FBBC05','#34A853','#4285F4','#891185',
                   '#4285F4','#FBBC05','#34A853','#EA4335','#891185','#E16D13','#0B1C2E','#347598']
 
@@ -124,8 +124,11 @@ def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', p
                                                     color=colourList[groupCount])
                     LABEL = '_nolegend_'
             data.index = data['syncTime']
-            r = data.resample(RESAMPLE).mean()
-            sem = 1.253*(data.resample(RESAMPLE).sem()) #http://davidmlane.com/hyperstat/A106993.html and
+            if statistic == 'mean':
+                r = data.resample(RESAMPLE).mean()
+            elif statistic == 'std':
+                r = data.resample(RESAMPLE).std()
+            sem = 1.253*(data.resample(RESAMPLE).std())/np.sqrt(N) #http://davidmlane.com/hyperstat/A106993.html and
             #    https://influentialpoints.com/Training/standard_error_of_median.htm
             xvals = [i.total_seconds() for i in r.index]
             prestimIdx = (np.array(xvals) < 0) * (np.array(xvals)>-1)
@@ -151,8 +154,8 @@ def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', p
         ax.set_ylabel('Normalized ' + YLABEL)#, fontsize='xx-small')
     else:
         ax.set_ylabel(YLABEL)#, fontsize='xx-small')
-    ax.set_ylim(-1.05, 1.05)
-    ax.set_yticks([-1.0, 0, 1.0])
+    ax.set_ylim(YLIM[0],YLIM[1])
+    #ax.set_yticks([-1.0, 0, 1.0])
     ax.set_xlim(XLIM[0], XLIM[1])
     if grouping == 'coh':
         plt.legend(title='Coherence', fontsize='xx-small')
@@ -273,7 +276,7 @@ def get_beta_pdf(datacol, _min=0, _max=1, NBINS=100):
 groupsizes = [4,8,16,32,64,128,256,512,1024]
 coherences = [0.0,0.2,0.4,0.6,0.8,1.0]
 
-allData = pd.read_pickle('/media/recnodes/Dan_storage/191119_coherence_data_compiled_full.pickle' )
+allData = pd.read_pickle('/media/recnodes/Dan_storage/20200120_coherence_data_compiled_full.pickle' )
 allData['groupsize'] = allData['groupsize'].astype(int)
 allData['coh'] = np.around(allData['coh'],1)
 g = allData.groupby(['groupsize','coh'])
@@ -357,7 +360,7 @@ plt.show()
 cols = ['pdfPeak1','pdfPeak1_height','pdfPeak1_fwhm']
 titles = ['Peak entropy', 'Peak height', 'FWHM']
 
-cols = ['median_dRotation_cArea','std_dRotation_cArea','entropy_normed_base']
+cols = ['median_dRotation_cArea','std_dRotation_cArea','entropy_Ra']
 titles = ['median','std','entropy']
 R=1
 S=0
@@ -366,7 +369,7 @@ S=0
 _fig = plt.figure()
 for i in range(3):
     axi = _fig.add_subplot(1,3,i+1)
-    heatmap(mydata.groupby(['groupsize','coh'])[cols[i]].mean().unstack(), 
+    heatmap(catdata.groupby(['prestimAreaGroup','coh'])[cols[i]].mean().unstack(), 
                RESIZE_FACTOR=R, SIGMA=S,
                fig=_fig, ax=axi)
     axi.set_ylabel('Group Size')
@@ -375,7 +378,7 @@ for i in range(3):
     axi.spines['top'].set_visible(False)
     axi.spines['right'].set_visible(False)
 plt.show()
-    return
+#    return
 
 
 

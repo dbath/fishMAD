@@ -60,28 +60,28 @@ df = pd.DataFrame()
 for fn in glob.glob('/media/recnodes/recnode_2mfish/*dotbot*.stitched'):
     try:
         df = df.append(collectProcessingStats(fn), ignore_index=True)
-        print "appended", fn.split('/')[-1]
+        print("appended", fn.split('/')[-1])
     except Exception as E:
-        print "ERROR: ", fn, E
+        print("ERROR: ", fn, E)
 
 plot_cumulative(df)
 df.to_pickle('/home/dan/Desktop/processing_report.pickle')
-print "DONE WITH LARGE TANK DATA"
+print("DONE WITH LARGE TANK DATA")
 
 df = pd.DataFrame()
 for DIR in ['kn-crec05','kn-crec06','kn-crec07']:
     for fn in glob.glob('/media/recnodes/' + DIR + '/coherencetestangular_*'):
         try:
             df = df.append(collectProcessingStats(fn), ignore_index=True)
-            print "appended", fn.split(',')[-1]
+            print("appended", fn.split(',')[-1])
         except Exception as E:
-            print "ERROR: ", fn, E
+            print("ERROR: ", fn, E)
 
 plot_cumulative(df)
 df.to_pickle('/home/dan/Desktop/processing_report_smalltanks.pickle')
 
 
-print "DONE"
+print("DONE")
 
 
 def plotnice(plotType='standard', ax=plt.gca()):
@@ -119,9 +119,9 @@ for DIR in ['kn-crec05','kn-crec06','kn-crec07','recnode_2mfish']:
             newdf = getTrackingStats(fn)
             newdf['groupsize'] = int(fn.split('/')[-4].split('_')[-4])
             df = pd.concat([df, newdf], axis=0)
-            print "appended", fn.split('/')[-4]
+            print("appended", fn.split('/')[-4])
         except Exception as E:
-            print "ERROR: ", fn, E
+            print("ERROR: ", fn, E)
 
 df['FPS'] = 1.0/df['T']
 g = df.groupby('groupsize')            
@@ -133,3 +133,4 @@ plt.errorbar(g['N'].mean(), g['FPS'].mean(),
 plotnice()             
 plt.xlabel('Group size')
 plt.ylabel('Tracking rate (frames/second)')
+plt.show()

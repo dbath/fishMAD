@@ -35,7 +35,7 @@ def align_by_stim(df, ID, stimAligner='reversal', col='median_dRotation_cArea'):
     trials = pd.DataFrame()
     trialID = 0        
     for i in alignPoints:
-        data = df.loc[df['Timestamp'].between(i-15.0, i+30.0), ['Timestamp','speed','dir','coh',
+        data = df.loc[df['Timestamp'].between(i-10.0, i+60.0), ['Timestamp','speed','dir','coh',
                                                                 'mean_polarization',
                                                                 'mean_radius',
                                                                 'median_radius',
@@ -68,8 +68,8 @@ def getMinMax(series, buffer=0.05):
     return (MIN, MAX)
 
 def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', plotTrials=True, fig= None, ax=None, colour=None, XLIM=(-10,60), YLIM=(-1.05,1.05), RESAMPLE='250ms', NORMALIZE_PRESTIM=False, YLABEL='Mean congruent rotation order $\pm$ SEM'):
-    colourList = ['#EA4335','#E16D13','#FBBC05','#34A853','#4285F4','#891185',
-                  '#4285F4','#FBBC05','#34A853','#EA4335','#891185','#E16D13','#0B1C2E','#347598']
+    #colourList = ['#EA4335','#E16D13','#FBBC05','#34A853','#4285F4','#891185',
+    #              '#4285F4','#FBBC05','#34A853','#EA4335','#891185','#E16D13','#0B1C2E','#347598']
 
     trials.index = trials.syncTime
 
@@ -126,7 +126,7 @@ def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', p
                     LABEL = '_nolegend_'
             data.index = data['syncTime']
             r = data.resample(RESAMPLE).mean()
-            sem = 1.253*(data.resample(RESAMPLE).sem()) #http://davidmlane.com/hyperstat/A106993.html and
+            sem = 1.253*(data.resample(RESAMPLE).std()/np.sqrt(N)) #http://davidmlane.com/hyperstat/A106993.html and
             #    https://influentialpoints.com/Training/standard_error_of_median.htm
             xvals = [i.total_seconds()  for i in r.index]
             prestimIdx = (np.array(xvals) < 0) * (np.array(xvals)>-1)
@@ -139,7 +139,7 @@ def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', p
                             r[col]-a+sem[col], 
                             r[col]-a-sem[col], 
                             color=colourList[groupCount], 
-                            alpha=0.05, 
+                            alpha=0.1, 
                             linewidth=0,
                             zorder=10)
             groupCount+=1
@@ -163,14 +163,18 @@ def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', p
     return fig
     
 groupsizes = [64,128,256,512,1024]
-
+"""
 allData = pd.DataFrame()
 
 for groupsize in groupsizes:
     print groupsize
     groupData = pd.DataFrame()
     for fn in glob.glob('/media/recnodes/recnode_2mfish/reversals3m_' + str(groupsize) + '_dotbot_*/track/perframe_stats.pickle'):
-        if '20181026' in fn:#
+        if '20181026' in fn:#day when fish were left in the tank overnight
+            continue
+        if '20190523' in fn:#on this day, timestamps were out of sync by ~25 seconds
+            continue
+        if '20190603' in fn:#on this day, timestamps were out of sync by ~25 seconds
             continue
         print fn
         try:
@@ -192,80 +196,80 @@ for groupsize in groupsizes:
         if len(reversals) == 0:
             continue
         reversals['groupsize'] = groupsize
-        """
-        for ID in list(set(reversals.trialID)):
-            IDX = reversals[reversals['trialID'] == ID].index
-            s = splrep(reversals.loc[IDX, 'Timestamp'], reversals.loc[IDX, 'median_dRotation_cArea'], k=5, s=17)
-            reversals.loc[IDX,'smoothedOrotation'] = splev(reversals.loc[IDX,'Timestamp'], s)
-            reversals.loc[IDX,'dO_by_dt'] = splev(reversals.loc[IDX,'Timestamp'], s, der=1)
-            reversals.loc[IDX,'dO_by_dt2'] = splev(reversals.loc[IDX,'Timestamp'], s, der=2)
-        """
+
         groupData = pd.concat([groupData, reversals], axis=0)
     groupData.to_pickle('/media/recnodes/Dan_storage/20200203_reversal_data_compiled_' + str(groupsize) + '.pickle')
-    """
-    minmax=(0.9*groupData.entropy_Ra_nBins.min(), 1.1*groupData.entropy_Ra_nBins.max())
-    plot_many_trials(groupData, col='entropy_Ra_nBins', grouping='byday', YLIM=minmax, XLIM=(-20,60), YLABEL='Entropy')
-    plt.savefig('/media/recnodes/Dan_storage/20200203_reversal_entropy_nBins' + str(groupsize) + '.svg')
-    plt.close('all')
-    #plot_many_trials(groupData, col='median_dRotation_cArea', grouping='byday')
-    #plt.savefig('/media/recnodes/Dan_storage/190606_reversal_cArea_' + str(groupsize) + '.svg')
-    #plt.close('all')
-    #plot_many_trials(groupData, col='median_dRotation_cMass', grouping='byday')
-    #plt.savefig('/media/recnodes/Dan_storage/190606_reversal_cMass_' + str(groupsize) + '.svg')
-    #plt.close('all')
-    #plot_many_trials(groupData, col='pdfPeak1', grouping='byday')
-    #plt.savefig('/media/recnodes/Dan_storage/190606_reversal_pdfPeak1_' + str(groupsize) + '.svg')
-    #plt.close('all')
-    """
+
     allData = pd.concat([allData, groupData], axis=0)
 allData.to_pickle('/media/recnodes/Dan_storage/20200203_reversal_data_compiled_full.pickle')
 """
 allData = pd.read_pickle('/media/recnodes/Dan_storage/20200203_reversal_data_compiled_full.pickle')
-"""
-"""
-#normalize entropy data by dividing by ln(groupsize)
-allData['entropy_normed'] = allData['entropy_Ra_nBins']/np.log(allData['groupsize']) 
-#subtract pre-stim baseline entropy
-baseline = allData.loc[allData['syncTime'] < np.timedelta64(0), :]
-g = baseline.groupby('trialID')  
-bases = dict(g['entropy_normed'].mean())
-allData['entropy_normed_base'] = allData.loc[:, 'entropy_normed'] - [bases[i] for i in allData['trialID']]
 
-plot_many_trials(allData, col='entropy_Ra_nBins', grouping='groupsize', plotTrials=False,
-                 YLABEL='Entropy of rotation (nBins)', YLIM=(2,6)) #'auto')
-                 
-plt.savefig('/media/recnodes/Dan_storage/20200203_reversals_entropy_vs_time_by_groupsize.svg')
-plt.close('all')
-plot_many_trials(allData, col='entropy_normed', grouping='groupsize', plotTrials=False, NORMALIZE_PRESTIM=False,YLABEL='Entropy of rotation /ln(N)', YLIM=(0.45,0.85)) #'auto')
-plt.savefig('/media/recnodes/Dan_storage/20200203_reversals_entropy_lnN_vs_time_by_groupsize.svg')
-plt.close('all')
-plot_many_trials(allData, col='entropy_normed_base', grouping='groupsize', plotTrials=False, NORMALIZE_PRESTIM=True,YLABEL='Entropy of rotation /ln(N)', YLIM=(-0.05,0.35)) #'auto')
-plt.savefig('/media/recnodes/Dan_storage/20200203_reversals_normed_entropy_lnN_vs_time_by_groupsize.svg')
-plt.close('all')
+colourList = create_colourlist(len(groupsizes), cmap='viridis')
+for COL in ['median_dRotation_cArea','median_dRotation_cMass']:
+    plot_many_trials(allData, col=COL, grouping='groupsize', plotTrials=False)
+    plt.savefig('/media/recnodes/Dan_storage/20200312_reversals_'+COL+'_vs_time_by_groupsize.svg')
+    plt.close('all')
+    plot_many_trials(allData, col=COL, grouping='groupsize', plotTrials=False, XLIM=(-5,15), RESAMPLE='25ms', NORMALIZE_PRESTIM=False)
+    plt.savefig('/media/recnodes/Dan_storage/20200312_reversals_'+COL+'_vs_time_by_groupsize_onset.svg')
+    plt.close('all')
 
-plot_many_trials(allData, col='median_dRotation_cArea', grouping='groupsize', plotTrials=False)
-plt.savefig('/media/recnodes/Dan_storage/190606_reversals_dRotationArea_vs_time_by_groupsize.svg')
-plt.close('all')
-plot_many_trials(allData, col='median_dRotation_cArea', grouping='groupsize', plotTrials=False, XLIM=(-5,15), RESAMPLE='25ms', NORMALIZE_PRESTIM=False)
-plt.savefig('/media/recnodes/Dan_storage/190606_reversals_dRotationArea_vs_time_by_groupsize_onset.svg')
-plt.close('all')
-plot_many_trials(allData, col='smoothedOrotation', grouping='groupsize', plotTrials=False)
-plt.savefig('/media/recnodes/Dan_storage/190606_reversals_smoothedOrotation_vs_time_by_groupsize.svg')
-plt.close('all')
-plot_many_trials(allData, col='smoothedOrotation', grouping='groupsize', plotTrials=False, XLIM=(-5,15), RESAMPLE='25ms', NORMALIZE_PRESTIM=False)
-plt.savefig('/media/recnodes/Dan_storage/190606_reversals_smoothedOrotation_vs_time_by_groupsize_onset.svg')
-plt.close('all')
-plot_many_trials(allData, col='dO_by_dt',grouping='groupsize', plotTrials=False,YLABEL='dO_by_dt', YLIM=(-0.2,0.5))
-plt.savefig('/media/recnodes/Dan_storage/190606_reversals_dO_by_dt_vs_time_by_groupsize.svg')
-plt.close('all')
-plot_many_trials(allData, col='dO_by_dt',grouping='groupsize', plotTrials=False, XLIM=(-5,15), YLIM=(-0.2,0.5), RESAMPLE='25ms', NORMALIZE_PRESTIM=False, YLABEL='dO_by_dt')
-plt.savefig('/media/recnodes/Dan_storage/190606_reversals_dO_by_dt_vs_time_by_groupsize_onset.svg')
-plt.close('all')
-plot_many_trials(allData, col='dO_by_dt2',grouping='groupsize', plotTrials=False, YLIM=(-0.2,0.2),YLABEL='dO_by_dt2')
-plt.savefig('/media/recnodes/Dan_storage/190606_reversals_dO_by_dt2_vs_time_by_groupsize.svg')
-plt.close('all')
-plot_many_trials(allData, col='dO_by_dt2',grouping='groupsize', plotTrials=False, XLIM=(-5,15), YLIM=(-0.2,0.2), RESAMPLE='25ms', NORMALIZE_PRESTIM=False, YLABEL='dO_by_dt2')
-plt.savefig('/media/recnodes/Dan_storage/190606_reversals_dO_by_dt2_vs_time_by_groupsize_onset.svg')
-plt.close('all')
-"""
-    
+#colourList = ['#EA4335', '#E16D13', '#FBBC05', '#34A853', '#4285F4', '#891185', '#4285F4', '#FBBC05', '#34A853', '#EA4335', '#891185', '#E16D13', '#0B1C2E','#347598']
+cols = ['mean_polarization',
+         'mean_radius',
+         'median_radius',
+         'median_swimSpeed',
+         'entropy_Ra',
+         'std_dRotation_cArea']
+
+
+allData['rA_rounded'] = np.around(allData['median_dRotation_cMass']/10.0, 2)*10.0 
+rev = allData[allData.syncTime.between(np.timedelta64(-10, 's'), np.timedelta64(30,'s'))]
+
+g = rev.groupby('groupsize')         
+#PLOT BY GROUPING BY ROTATION ORDER
+ymax, xmax = (4000,6000)
+my_dpi = 300
+my_figsize = [xmax/my_dpi, ymax/my_dpi]
+fig  = plt.figure(figsize=my_figsize, dpi=my_dpi)
+p = 0
+for col in cols:
+    p+=1
+    i=1
+    for gs, data in g:
+        axi = fig.add_subplot(2,3,p)
+        data.index=data['syncTime']
+        N = len(set(data.trialID))
+        foo = data.groupby('rA_rounded')
+        m = foo.mean()
+        s = foo.std()/np.sqrt(N)
+        plt.fill_between(m.median_dRotation_cMass, m[col]+s[col], m[col]-s[col], color=colourList[i-1], alpha=0.1, linewidth=0) 
+        plt.plot(m.median_dRotation_cMass, m[col], color=colourList[i-1],label=gs) 
+        plt.legend() 
+        axi.set_ylabel(col) 
+        i+=1
+plt.savefig('/media/recnodes/Dan_storage/20200312_reversals_misc_vs_dRotationMass_binsize_0.1.svg')  
+
+
+#FIRST GROUP BY TIME, THEN PLOT VS ROTATION ORDER
+
+fig  = plt.figure(figsize=my_figsize, dpi=my_dpi)
+p = 0
+for col in cols:
+    p+=1
+    i=1
+    for gs, data in g:
+        axi = fig.add_subplot(2,3,p)
+        data.index=data['syncTime']
+        N = len(set(data.trialID))
+        foo = data.resample('250ms')
+        m = foo.mean()
+        s = foo.std()/np.sqrt(N)
+        plt.fill_between(m.median_dRotation_cMass, m[col]+s[col], m[col]-s[col], color=colourList[i-1], alpha=0.1, linewidth=0) 
+        plt.plot(m.median_dRotation_cMass, m[col], color=colourList[i-1],label=gs) 
+        plt.legend() 
+        axi.set_ylabel(col) 
+        i+=1
+plt.savefig('/media/recnodes/Dan_storage/20200312_reversals_misc_vs_dRotationMass_250msBins.svg') 
+
+

@@ -211,9 +211,33 @@ def process_chunk(fbf):
         plt.close('all')
         """   
     return newfbf
+    
+def sync_by_stimStart(df, ID, col='speed'):
+    """
+    pass a df with stim information
+    returns the df with rotation values adjusted for direction so rotation of new stim is positive
+    """
+    df = df.sort_values('Time')
+    df.reset_index(inplace=True)
+    df = df[:-10] #drop end to avoid dealing with annoying NaN cases #lazy #FIXME
+    
+    df.loc[:,'stimStart'] = 0
+    firstStim = df.loc[df['Time'] < df['Time'].median(), 'speed'].idxmax()
+    df.loc[firstStim, 'stimStart'] = 1
+    df.loc[:,'stimEnd'] = 0
+    lastStim = df.loc[df['Time'] > df['Time'].median(), 'speed'].idxmin()
+    df.loc[lastStim, 'stimEnd'] = 1
+    
+    alignPoints = list(df[df['stimStart'] == 1]['Timestamp'].values)
+    #df = df[df[col].isnull() == False]
+    i = alignPoints[0]
+    df['syncTime'] = pd.to_timedelta(df['Timestamp']-i,'s') 
+    df['trialID'] = ID
+    
+    return df
 
 
-def doit(MAIN_DIR, saveas="Not_defined", nCores=16):
+def doit(MAIN_DIR, saveas="Not_defined", nCores=16, window='undefined'):
  
     # SETUP PARALLEL PROCESSING
 
@@ -241,13 +265,23 @@ def doit(MAIN_DIR, saveas="Not_defined", nCores=16):
     #filter out tracked reflections by removing tracks that are always near the border
     foo = fbf.groupby('trackid').max()['BORDER_DISTANCE#wcentroid']
     fbf = fbf[~(fbf.trackid.isin(foo[foo<50].index))]
-
-    fbf = fbf.drop(columns=['header'])
+    arena_centre=(160.0,160.0)
+    fbf['radius'] = np.sqrt((fbf[XPOS]-arena_centre[0])**2 + (fbf[YPOS]-arena_centre[1])**2) 
+    fbf = fbf.loc[fbf['radius'] <215, :]
+    fbf = fbf.loc[fbf[XPOS] < 315,:]  #FIXME hardcoding bad
+    if 'header' in fbf.columns:
+        fbf = fbf.drop(columns=['header'])
     fbf['coreGroup'] = fbf['frame']%nCores  #divide into chunks labelled range(nCores)
     store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
     
-    ret, fbf = stim_handling.sync_data(fbf, stim_handling.get_logfile(MAIN_DIR), store)
-     
+    if not 'FrameNumber' in fbf.columns:        
+        ret, fbf = stim_handling.sync_data(fbf, stim_handling.get_logfile(MAIN_DIR), store)
+    fbf = sync_by_stimStart(fbf, MAIN_DIR.split('/')[-2].split('_',3)[-1])
+    
+    if not window == 'undefined':
+        fbf = fbf.loc[fbf.syncTime.between(np.timedelta64(window[0], 's'), np.timedelta64(window[1],'s')), :]
+    
+      
     # INITIATE PARALLEL PROCESSES
     for n in range(nCores):
         p = ppe.submit(process_chunk, fbf[fbf['coreGroup'] == n])
@@ -258,7 +292,10 @@ def doit(MAIN_DIR, saveas="Not_defined", nCores=16):
         stats = future.result()
         Results.append(stats)
     NN = pd.concat(Results)
-    joblib.dump(NN, MAIN_DIR + 'track/nearest_neighbours_FBF.pickle')
+    if not window == 'undefined':
+        joblib.dump(NN, MAIN_DIR + 'track/nearest_neighbours_FBF_' + str(window[0]) + '-' +str(window[1])+'.pickle')
+    else:
+        joblib.dump(NN, MAIN_DIR + 'track/nearest_neighbours_FBF.pickle')
                 
 
     
@@ -288,7 +325,7 @@ if __name__ == "__main__":
             for vDir in glob.glob(DIR + '*' + term + '*.stitched'):
                 if os.path.exists(vDir + '/track/frameByFrameData.pickle'):
                     if not os.path.exists(vDir + '/track/nearest_neighbours_FBF.pickle'):
-                        doit(vDir, nCores=args.ncores)
+                        doit(vDir, nCores=args.ncores, window=(-20,-5))
                 
                 
 """

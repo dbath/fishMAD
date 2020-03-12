@@ -68,11 +68,11 @@ def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', p
             groupCount += 1
     else:
         g = trials.groupby([grouping])
-        if grouping == 'coh':
-            colourList = ['#EA4335','#E16D13','#FBBC05','#34A853','#4285F4','#891185',
-                  '#4285F4','#FBBC05','#34A853','#EA4335','#891185','#E16D13','#0B1C2E','#347598']
-        else:
-            colourList = create_colourlist(len(g.groups), cmap='viridis')
+        #if grouping == 'coh':
+        #    colourList = ['#EA4335','#E16D13','#FBBC05','#34A853','#4285F4','#891185',
+        #          '#4285F4','#FBBC05','#34A853','#EA4335','#891185','#E16D13','#0B1C2E','#347598']
+        #else:
+        colourList = create_colourlist(len(g.groups), cmap='viridis')
         LW = 0.5
         ALPHA = 0.5
         groupCount = 0
@@ -92,7 +92,7 @@ def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', p
                     LABEL = '_nolegend_'
             data.index = data['syncTime']
             r = data.resample(RESAMPLE).mean()
-            sem = 1.253*(data.resample(RESAMPLE).sem()) #http://davidmlane.com/hyperstat/A106993.html and
+            sem = 1.253*(data.resample(RESAMPLE).std())/np.sqrt(N) #http://davidmlane.com/hyperstat/A106993.html and
             #    https://influentialpoints.com/Training/standard_error_of_median.htm
             xvals = [i.total_seconds()  for i in r.index]
             prestimIdx = (np.array(xvals) < 0) * (np.array(xvals)>-1)
@@ -119,7 +119,7 @@ def plot_many_trials(trials, col='median_dRotation_cArea', grouping='trialID', p
     else:
         ax.set_ylabel(YLABEL)#, fontsize='xx-small')
     if not YLIM == None:
-	ax.set_ylim(YLIM[0], YLIM[1])
+        ax.set_ylim(YLIM[0], YLIM[1])
     #ax.set_yticks([-1.0, 0, 1.0])
     ax.set_xlim(XLIM[0], XLIM[1])
     if grouping == 'coh':
@@ -150,8 +150,8 @@ def align_by_stim(df, ID, stimAligner='stimStart', col='median_dRotation_cArea')
                                                             'pdfPeak2_height',
                                                             'entropy_Ra']]
     data['syncTime'] = pd.to_timedelta(data['Timestamp']-i,'s') 
-    data['median_dRotation_cArea'] = data['median_dRotation_cArea']*data['dir'].median() #make congruent and positive
-    data['median_dRotation_cMass'] = data['median_dRotation_cMass']*data['dir'].median() #make congruent and positive
+    data['median_dRotation_cArea'] = data['median_dRotation_cArea']*data['dir'].median()*-1.0 #make congruent and positive
+    data['median_dRotation_cMass'] = data['median_dRotation_cMass']*data['dir'].median()*-1.0 #make congruent and positive
     data['pdfPeak1'] = data['pdfPeak1']*data['dir'].median() #make congruent and positive
     data['pdfPeak2'] = data['pdfPeak2']*data['dir'].median() #make congruent and positive
     data['trialID'] = ID + '_' + str(trialID)
@@ -171,10 +171,10 @@ def sync_by_stimStart(df, col='speed'):
     df = df[:-10] #drop end to avoid dealing with annoying NaN cases #lazy #FIXME
     
     df.loc[:,'stimStart'] = 0
-    firstStim = df.loc[df['Time'] < df['Time'].median(), 'speed'].idxmax()
+    firstStim = df.loc[df['Timestamp'] < df['Timestamp'].median(), 'speed'].idxmax()
     df.loc[firstStim, 'stimStart'] = 1
     df.loc[:,'stimEnd'] = 0
-    lastStim = df.loc[df['Time'] > df['Time'].median(), 'speed'].idxmin()
+    lastStim = df.loc[df['Timestamp'] > df['Timestamp'].median(), 'speed'].idxmin()
     df.loc[lastStim, 'stimEnd'] = 1
     return df
 
@@ -191,12 +191,18 @@ def normalize_entropy(allData):
     return allData
 
 
-if not os.path.exists('/media/recnodes/Dan_storage/191119_coherence_data_compiled_full.pickle' ):
+if not os.path.exists('/media/recnodes/Dan_storage/20200120_coherence_data_compiled_full.pickle' ):
     allData = pd.DataFrame()
+    FIRST = True
 else:
-    allData = pd.read_pickle('/media/recnodes/Dan_storage/191119_coherence_data_compiled_full.pickle' )
-for groupsize in groupsizes:
+    allData = pd.read_pickle('/media/recnodes/Dan_storage/20200120_coherence_data_compiled_full.pickle' ) 
+    allData['variance'] = allData['std_dRotation_cArea']**2
+    FIRST = False
+RS1 = '5s'
+RS2 = '1s'
     
+for groupsize in groupsizes:
+    """
     if len(allData) > 0:
         if groupsize in list(set(allData['groupsize'])):
             continue
@@ -208,10 +214,13 @@ for groupsize in groupsizes:
             continue
         print fn
         try:
-            ret, pf = stims.sync_data(pd.read_pickle(fn), stims.get_logfile(fn.rsplit('/',2)[0]), imgstore.new_for_filename(fn.rsplit('/',2)[0] + '/metadata.yaml'))
+            pf = pd.read_pickle(fn)
+            if not 'frame' in pf.columns:
+                ret, pf = stims.sync_data(pf, stims.get_logfile(fn.rsplit('/',2)[0]), imgstore.new_for_filename(fn.rsplit('/',2)[0] + '/metadata.yaml'))
+            
             pf['dir'] = pd.to_numeric(pf['dir'], errors='coerce')
             pf['coh'] = pf['coh'].fillna(method='pad').fillna(method='backfill')
-
+            
             pf = sync_by_stimStart(pf)
             fileID = fn.split('/')[-3].split('.')[0].split('_',3)[-1]
             aligned = align_by_stim(pf, fileID)
@@ -226,25 +235,30 @@ for groupsize in groupsizes:
             pass
 
 
-    groupData = normalize_entropy(groupData)
-    groupData.to_pickle('/media/recnodes/Dan_storage/191119_coherence_data_compiled_' + str(groupsize) + '.pickle')
-    
-    #groupData = pd.read_pickle('/media/recnodes/Dan_storage/191119_coherence_data_compiled_' + str(groupsize) + '.pickle')
+    #groupData = normalize_entropy(groupData)
+    groupData.to_pickle('/media/recnodes/Dan_storage/20200120_coherence_data_compiled_' + str(groupsize) + '.pickle')
+    """
+    groupData = pd.read_pickle('/media/recnodes/Dan_storage/20200120_coherence_data_compiled_' + str(groupsize) + '.pickle')
     plot_many_trials(groupData, col='entropy_Ra', grouping='coh', plotTrials=False, 
                       YLABEL='Entropy of rotation', XLIM=(-30,400))
-    plt.savefig('/media/recnodes/Dan_storage/191119_fulllength_rot_entropy_vs_time_by_coherence_' + str(groupsize) + '.svg')
+    plt.savefig('/media/recnodes/Dan_storage/20200120_fulllength_rot_entropy_vs_time_by_coherence_' + str(groupsize) + '.svg')
     plt.close('all')
-    plot_many_trials(groupData, col='entropy_normed', grouping='coh', plotTrials=False, 
-                      YLIM=(0.2,1.2),YLABEL='Entropy of rotation / (ln(N)', XLIM=(-30,400))
-    plt.savefig('/media/recnodes/Dan_storage/191119_fulllength_rot_entropy_lnN_vs_time_by_coherence_' + str(groupsize) + '.svg')
-    plt.close('all')
-    plot_many_trials(groupData, col='entropy_normed_base', grouping='coh', plotTrials=False, 
-                      YLIM=(-0.35,0.35),YLABEL='Normalized Entropy of rotation / (ln(N)', XLIM=(-30,400))
-    plt.savefig('/media/recnodes/Dan_storage/191119_fullength_rot_entropy_lnN_normed_vs_time_by_coherence_' + str(groupsize) + '.svg')
-    plt.close('all')
+    #plot_many_trials(groupData, col='entropy_normed', grouping='coh', plotTrials=False, 
+    #                  YLIM=(0.2,1.2),YLABEL='Entropy of rotation / (ln(N)', XLIM=(-30,400))
+    #plt.savefig('/media/recnodes/Dan_storage/20200120_fulllength_rot_entropy_lnN_vs_time_by_coherence_' + str(groupsize) + '.svg')
+    #plt.close('all')
+    #plot_many_trials(groupData, col='entropy_normed_base', grouping='coh', plotTrials=False, 
+    #                  YLIM=(-0.35,0.35),YLABEL='Normalized Entropy of rotation / (ln(N)', XLIM=(-30,400))
+    #plt.savefig('/media/recnodes/Dan_storage/20200120_fullength_rot_entropy_lnN_normed_vs_time_by_coherence_' + str(groupsize) + '.svg')
+    #plt.close('all')
+    groupData['variance'] = groupData['std_dRotation_cArea']**2
     plot_many_trials(groupData, col='median_dRotation_cArea', grouping='coh', plotTrials=False, 
-                      YLIM=(-1.05,1.05),YLABEL='Order of rotation', XLIM=(-30,400))
-    plt.savefig('/media/recnodes/Dan_storage/191119_fullength_rot_order_vs_time_by_coherence_' + str(groupsize) + '.svg')
+                      YLIM=(-1.05,1.05),YLABEL='Order of rotation', XLIM=(-30,400), RESAMPLE=RS1)
+    plt.savefig('/media/recnodes/Dan_storage/20200120_fullength_rot_order_vs_time_by_coherence_' + str(groupsize) + '.svg')
+    plt.close('all')
+    plot_many_trials(groupData, col='variance', grouping='coh', plotTrials=False, 
+                      YLABEL='Variance', XLIM=(-30,400), RESAMPLE=RS1)
+    plt.savefig('/media/recnodes/Dan_storage/20200120_fullength_variance_vs_time_by_coherence_' + str(groupsize) + '.svg')
     plt.close('all')
 
 
@@ -252,71 +266,77 @@ for groupsize in groupsizes:
 
 
     plot_many_trials(groupData, col='entropy_Ra', grouping='coh', plotTrials=False, 
-                      YLABEL='Entropy of rotation')
-    plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_vs_time_by_coherence_' + str(groupsize) + '.svg')
+                      YLABEL='Entropy of rotation', RESAMPLE=RS2)
+    plt.savefig('/media/recnodes/Dan_storage/20200120_rot_entropy_vs_time_by_coherence_' + str(groupsize) + '.svg')
     plt.close('all')    
-    plot_many_trials(groupData, col='entropy_normed', grouping='coh', plotTrials=False, 
-                      YLIM=(0.2,1.2),YLABEL='Entropy of rotation / (ln(N)')
-    plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_lnN_vs_time_by_coherence_' + str(groupsize) + '.svg')
+    #plot_many_trials(groupData, col='entropy_normed', grouping='coh', plotTrials=False, 
+    #                  YLIM=(0.2,1.2),YLABEL='Entropy of rotation / (ln(N)')
+    #plt.savefig('/media/recnodes/Dan_storage/20200120_rot_entropy_lnN_vs_time_by_coherence_' + str(groupsize) + '.svg')
+    #plt.close('all')
+    #plot_many_trials(groupData, col='entropy_normed_base', grouping='coh', plotTrials=False, 
+    #                  YLIM=(-0.35,0.35),YLABEL='Normalized Entropy of rotation / (ln(N)')
+    #plt.savefig('/media/recnodes/Dan_storage/20200120_rot_entropy_lnN_normed_vs_time_by_coherence_' + str(groupsize) + '.svg')
+    #plt.close('all')
+    plot_many_trials(groupData, col='variance', grouping='coh', plotTrials=False, 
+                      YLABEL='Variance', RESAMPLE=RS2)
+    plt.savefig('/media/recnodes/Dan_storage/20200120_variance_vs_time_by_coherence_' + str(groupsize) + '.svg')
     plt.close('all')
-    plot_many_trials(groupData, col='entropy_normed_base', grouping='coh', plotTrials=False, 
-                      YLIM=(-0.35,0.35),YLABEL='Normalized Entropy of rotation / (ln(N)')
-    plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_lnN_normed_vs_time_by_coherence_' + str(groupsize) + '.svg')
-    plt.close('all')
-    plot_many_trials(groupData, col='median_dRotation_cArea', grouping='coh', plotTrials=False, 
-                      YLIM=(-1.05,1.05),YLABEL='Order of rotation')
-    plt.savefig('/media/recnodes/Dan_storage/191119_rot_order_vs_time_by_coherence_' + str(groupsize) + '.svg')
-    plt.close('all')
 
 
 
+    if FIRST:
+        allData = pd.concat([allData, groupData], axis=0)
 
-    allData = pd.concat([allData, groupData], axis=0)
-
-    #allData.to_pickle('/media/recnodes/Dan_storage/191119_coherence_data_compiled_full.pickle')
+        allData.to_pickle('/media/recnodes/Dan_storage/20200120_coherence_data_compiled_full.pickle')
 
 coherences = [0.0,0.2,0.4,0.6,0.8,1.0]
 for coherence in coherences:
     data = allData.loc[allData['coh']==coherence, :]
     #plot_many_trials(data, col='entropy_Ra', grouping='groupsize', plotTrials=False, 
     #                  YLABEL='Entropy of rotation')
-    #plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_vs_time_by_groupsize_'+str(coherence)+'.svg')
+    #plt.savefig('/media/recnodes/Dan_storage/20200120_rot_entropy_vs_time_by_groupsize_'+str(coherence)+'.svg')
     #plt.close('all')
-    plot_many_trials(data, col='entropy_normed', grouping='groupsize', plotTrials=False, 
-                      YLABEL='Entropy of rotation / (ln(N)',XLIM=(-30,400))
-    plt.savefig('/media/recnodes/Dan_storage/191119_fulllength_rot_entropy_lnN_vs_time_by_groupsize_'+str(coherence)+'.svg')
+    plot_many_trials(data, col='entropy_Ra', grouping='groupsize', plotTrials=False, 
+                      YLABEL='Entropy of rotation',XLIM=(-30,400), RESAMPLE=RS1)
+    plt.savefig('/media/recnodes/Dan_storage/20200120_fulllength_rot_entropy_vs_time_by_groupsize_'+str(coherence)+'.svg')
     plt.close('all')
-    plot_many_trials(data, col='entropy_normed_base', grouping='groupsize', plotTrials=False, YLABEL='Normalized Entropy of rotation / (ln(N)',XLIM=(-30,400))
-    plt.savefig('/media/recnodes/Dan_storage/191119_fulllength_rot_entropy_lnN_normed_vs_time_by_groupsize_'+str(coherence)+'.svg')
+    #plot_many_trials(data, col='entropy_normed_base', grouping='groupsize', plotTrials=False, YLABEL='Normalized Entropy of rotation / (ln(N)',XLIM=(-30,400))
+    #plt.savefig('/media/recnodes/Dan_storage/20200120_fulllength_rot_entropy_lnN_normed_vs_time_by_groupsize_'+str(coherence)+'.svg')
+    #plt.close('all')
+    plot_many_trials(data, col='median_dRotation_cArea', grouping='groupsize', plotTrials=False, YLABEL='Order of rotation',XLIM=(-30,400), RESAMPLE=RS1)
+    plt.savefig('/media/recnodes/Dan_storage/20200120_fulllength_rot_order_vs_time_by_groupsize_'+str(coherence)+'.svg')
     plt.close('all')
-    plot_many_trials(data, col='median_dRotation_cArea', grouping='groupsize', plotTrials=False, YLABEL='Order of rotation',XLIM=(-30,400))
-    plt.savefig('/media/recnodes/Dan_storage/191119_fulllength_rot_order_vs_time_by_groupsize_'+str(coherence)+'.svg')
+    plot_many_trials(data, col='variance', grouping='groupsize', plotTrials=False, YLABEL='Variance',XLIM=(-30,400), RESAMPLE=RS1)
+    plt.savefig('/media/recnodes/Dan_storage/20200120_fulllength_variance_vs_time_by_groupsize_'+str(coherence)+'.svg')
     plt.close('all')
 
 
 
-    plot_many_trials(data, col='entropy_normed', grouping='groupsize', plotTrials=False, 
-                      YLABEL='Entropy of rotation / (ln(N)')
-    plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_lnN_vs_time_by_groupsize_'+str(coherence)+'.svg')
+    plot_many_trials(data, col='entropy_Ra', grouping='groupsize', plotTrials=False, 
+                      YLABEL='Entropy of rotation', RESAMPLE=RS2)
+    plt.savefig('/media/recnodes/Dan_storage/20200120_rot_entropy_vs_time_by_groupsize_'+str(coherence)+'.svg')
     plt.close('all')
-    plot_many_trials(data, col='entropy_normed_base', grouping='groupsize', plotTrials=False, YLABEL='Normalized Entropy of rotation / (ln(N)')
-    plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_lnN_normed_vs_time_by_groupsize_'+str(coherence)+'.svg')
+    #plot_many_trials(data, col='entropy_normed_base', grouping='groupsize', plotTrials=False, YLABEL='Normalized Entropy of rotation / (ln(N)')
+    #plt.savefig('/media/recnodes/Dan_storage/20200120_rot_entropy_lnN_normed_vs_time_by_groupsize_'+str(coherence)+'.svg')
+    #plt.close('all')
+    plot_many_trials(data, col='median_dRotation_cArea', grouping='groupsize', plotTrials=False, YLABEL='Order of rotation', RESAMPLE=RS2)
+    plt.savefig('/media/recnodes/Dan_storage/20200120_rot_order_vs_time_by_groupsize_'+str(coherence)+'.svg')
     plt.close('all')
-    plot_many_trials(data, col='median_dRotation_cArea', grouping='groupsize', plotTrials=False, YLABEL='Order of rotation')
-    plt.savefig('/media/recnodes/Dan_storage/191119_rot_order_vs_time_by_groupsize_'+str(coherence)+'.svg')
+    plot_many_trials(data, col='variance', grouping='groupsize', plotTrials=False, YLABEL='Variance', RESAMPLE=RS2)
+    plt.savefig('/media/recnodes/Dan_storage/20200120_variance_vs_time_by_groupsize_'+str(coherence)+'.svg')
     plt.close('all')
     
 
 plot_many_trials(allData, col='entropy_Ra', grouping='coh', plotTrials=False,
-                 YLABEL='Entropy of rotation', YLIM=(1.95,4.05))
+                 YLABEL='Entropy of rotation', YLIM=(1.95,4.05), RESAMPLE=RS1)
                  
-plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_vs_time.svg')
+plt.savefig('/media/recnodes/Dan_storage/20200120_rot_entropy_vs_time.svg')
 plt.close('all')
-plot_many_trials(allData, col='entropy_normed', grouping='coh', plotTrials=False, NORMALIZE_PRESTIM=False,YLABEL='Entropy of rotation /ln(N)', YLIM=(0.26,0.82))
-plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_lnN_vs_time.svg')
-plt.close('all')
-plot_many_trials(allData, col='entropy_normed_base', grouping='coh', plotTrials=False, NORMALIZE_PRESTIM=True,YLABEL='Entropy of rotation /ln(N)', YLIM=(-0.36,0.16))
-plt.savefig('/media/recnodes/Dan_storage/191119_rot_entropy_lnN_normed_vs_time.svg')
-plt.close('all')
+#plot_many_trials(allData, col='entropy_normed', grouping='coh', plotTrials=False, NORMALIZE_PRESTIM=False,YLABEL='Entropy of rotation /ln(N)', YLIM=(0.26,0.82))
+#plt.savefig('/media/recnodes/Dan_storage/20200120_rot_entropy_lnN_vs_time.svg')
+#plt.close('all')
+#plot_many_trials(allData, col='entropy_normed_base', grouping='coh', plotTrials=False, NORMALIZE_PRESTIM=True,YLABEL='Entropy of rotation /ln(N)', YLIM=(-0.36,0.16))
+#plt.savefig('/media/recnodes/Dan_storage/20200120_rot_entropy_lnN_normed_vs_time.svg')
+#plt.close('all')
 
 

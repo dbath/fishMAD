@@ -110,7 +110,7 @@ def sync_data(r,log,store):
             correct_timestamps(store.filename)
             print("*** repair successful ***")
             store = imgstore.new_for_filename(store.filename + '/metadata.yaml')
-    foo = get_frame_metadata(r, store)
+    foo = get_frame_metadata(r.reset_index(drop=True), store)
     bar = foo.merge(log, how='outer') 
     bar = bar.sort_values('Timestamp')  #integrate log data with tracking data
     bar = bar.fillna(method='ffill')  #forward fill data from log to tracking data
