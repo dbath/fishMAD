@@ -71,7 +71,7 @@ def prune_by_distance(f0, T='twostd'):
     keepers = np.array([k <= T for k in f0.edgeLengths])  
 
     pruned_vals = [vals[k][keepers[k]] for k in range(len(vals))]
-    pruned_neilist = [neiList[k][keepers[k]] for k in range(len(vals))]
+    pruned_neilist = [neiList[k][keepers[k]] for k in range(len(neiList))]
     return pruned_neilist, pruned_vals
     
 def neighbourhoodWatch(frameData, _focalID):
@@ -167,7 +167,12 @@ def process_chunk(df):
         frameData = frameData.copy()
         frameData.index = frameData['trackid'].astype(int)
         #pruned_neighbourIDs, pruned_neighbourDistances = prune_by_distance(frameData)
-        frameData['edgeList'], frameData['edgeLengths'] = prune_by_distance(frameData)
+        try:
+            frameData['edgeList'], frameData['edgeLengths'] = prune_by_distance(frameData)
+        except:
+            print('prune_by_distance failed at:', f)
+            frameData['edgeList'] = np.nan
+            frameData['edgeLengths'] = np.nan
         for ID in frameData.index:
             growingArray = np.vstack([growingArray,neighbourhoodWatch(frameData, ID)])  
         if progressbar == True:
