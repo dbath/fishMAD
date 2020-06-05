@@ -245,6 +245,7 @@ def delaunayNeighbours(data, CENTRE=(160,160)): #FIXME hardcoding arena centre i
             neiDistance = np.sqrt((data.loc[i, XPOS]-data.loc[j,XPOS])**2 + (data.loc[i, YPOS]-data.loc[j,YPOS])**2)
             #DISTANCES.append(neiDistance)
             DISTANCES[j].add(neiDistance)
+            DISTANCES[i].add(neiDistance)
 
 
     #DISTANCES = [np.sqrt((data.loc[str(EDGES[i][0]), XPOS]-data.loc[str(EDGES[i][1]),XPOS])**2 + (data.loc[str(EDGES[i][0]),YPOS]-data.loc[str(EDGES[i][1]),YPOS])**2) for i in range(len(EDGES))]
@@ -382,7 +383,7 @@ if __name__ == "__main__":
     parser.add_argument('--handle', type=str, required=True, help='unique identifier that marks the files to process. Ideally use the timestamp of the recording, ie "20180808_153229".')
     parser.add_argument('--ncores', type=int, required=False, default=8, 
              help='provide an integer indicating the number of core processors to use for this task')
-    parser.add_argument('--redo_if_older_than', type=str, required=False, default='20191126_120000',
+    parser.add_argument('--redo_if_older_than', type=str, required=False, default='20200605_120000',
                         help='process graphs older than this datetime again (because we are always improving)')
     
     args = parser.parse_args()

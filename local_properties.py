@@ -207,7 +207,7 @@ if __name__ == "__main__":
     HANDLE = args.handle
         
     nCores = args.maxthreads 
-    DATETIME = utilities.getTimeFromTimeString('20200304_090000') #FIXME hardcoded
+    DATETIME = utilities.getTimeFromTimeString('20200604_090000') #FIXME hardcoded
     for MAIN_DIR in glob.glob(args.dir + '/*' + HANDLE + '*.stitched'):  
         MAIN_DIR = slashdir(MAIN_DIR)
 
