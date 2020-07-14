@@ -90,6 +90,10 @@ def get_logfile(MAIN_DIR):
         log['Timestamp'] = pd.to_numeric(log['Timestamp'], errors='coerce')
         log.loc[:,'Timestamp'] /=  1000.0
     
+    #some logfiles have an extra row at the bottom. let's get rid of those:
+    log = log[log['IP'] != 'IP']
+    log = log[log['comment'] != 'Protocol completed']
+    
     return log
 
 def get_frame_metadata(df, store):
