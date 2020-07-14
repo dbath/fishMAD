@@ -165,6 +165,7 @@ if __name__ == "__main__":
         results = pd.DataFrame()
         
     for MAIN_DIR in glob.glob(args.dir + '/'+ args.handle + '*.stitched'):
+        print(MAIN_DIR)
         if not os.path.exists(MAIN_DIR + '/track/localData_FBF.pickle'):
             continue
         #if datetime.datetime.fromtimestamp(os.path.getmtime(vDir+'/track/graphs/000000.graphml')) > DATETIME:
@@ -174,47 +175,47 @@ if __name__ == "__main__":
         #don't repeat if already done
         if trialID + '_0' in results.index:
             continue 
-        try:        
-            print("PROCESSING: ", MAIN_DIR)
-            store = imgstore.new_for_filename(MAIN_DIR + '/metadata.yaml')
-            fbf = pd.read_pickle(MAIN_DIR+'/track/frameByFrameData.pickle') 
-            if len(fbf) < 1000:
-                fbf = joblib.load(MAIN_DIR+'/track/frameByFrameData.pickle') 
-            
-            ret, fbf = stims.sync_data(fbf, 
-                                stims.get_logfile(MAIN_DIR), 
-                                store) 
-                                           
-            foo = fbf.groupby('trackid').max()['BORDER_DISTANCE#wcentroid']#scrubadubdub
-            fbf = fbf[~(fbf.trackid.isin(foo[foo<50].index))]#scrubadubdub
-            
-            local = pd.read_pickle(MAIN_DIR + '/track/localData_FBF.pickle')
-            #dtypes must match before merge
-            for col in ['trackid','frame']:
-                for df in [local,fbf]:
-                    df[col] = df[col].astype(int)
-            fbf = fbf.merge(local)
-            fbf = drop_bad_points(fbf)  #scrubadubdub
-            if 'coherence' in expID:   
-                synced = sync_by_stimStart(fbf.copy(), trialID)                             
-            elif 'reversal' in expID:
-                synced = sync_by_reversal(fbf.copy(), trialID)
-            
-            if len(synced) == 0: #sometimes where were no trigger events
-                continue
-            
-            prestim = synced[synced.syncTime.between(np.timedelta64(-10, 's'), np.timedelta64(0,'s'))]
-           
-            
-            for group, data in prestim.groupby('trialID'):
-                s = pd.Series(data.median(), name=group)#get_prestim_area(data)
-                s['exp'] = exp
-                s['groupsize'] = groupsize
-                results = results.append(s)
-                results.to_pickle('/media/recnodes/Dan_storage/' + args.handle + '_prestim_local_measures.pickle')
-                print(s)
-        except Exception as e:
-            print('_____________failed:________\n\n', expID, e)
+        #try:        
+        print("PROCESSING: ", MAIN_DIR)
+        store = imgstore.new_for_filename(MAIN_DIR + '/metadata.yaml')
+        fbf = pd.read_pickle(MAIN_DIR+'/track/frameByFrameData.pickle') 
+        if len(fbf) < 1000:
+            fbf = joblib.load(MAIN_DIR+'/track/frameByFrameData.pickle') 
+
+        ret, fbf = stims.sync_data(fbf, 
+                            stims.get_logfile(MAIN_DIR), 
+                            store) 
+
+        foo = fbf.groupby('trackid').max()['BORDER_DISTANCE#wcentroid']#scrubadubdub
+        fbf = fbf[~(fbf.trackid.isin(foo[foo<50].index))]#scrubadubdub
+
+        local = pd.read_pickle(MAIN_DIR + '/track/localData_FBF.pickle')
+        #dtypes must match before merge
+        for col in ['trackid','frame']:
+            for df in [local,fbf]:
+                df[col] = df[col].astype(int)
+        fbf = fbf.merge(local)
+        fbf = drop_bad_points(fbf)  #scrubadubdub
+        if 'coherence' in expID:   
+            synced = sync_by_stimStart(fbf.copy(), trialID)                             
+        elif 'reversal' in expID:
+            synced = sync_by_reversal(fbf.copy(), trialID)
+
+        if len(synced) == 0: #sometimes where were no trigger events
+            continue
+
+        prestim = synced[synced.syncTime.between(np.timedelta64(-10, 's'), np.timedelta64(0,'s'))]
+
+
+        for group, data in prestim.groupby('trialID'):
+            s = pd.Series(data.median(), name=group)#get_prestim_area(data)
+            s['exp'] = exp
+            s['groupsize'] = groupsize
+            results = results.append(s)
+            results.to_pickle('/media/recnodes/Dan_storage/' + args.handle + '_prestim_local_measures.pickle')
+            print(s)
+        #except Exception as e:
+        #    print('_____________failed:________\n\n', expID, e)
 
     results.drop('FrameNumber',axis=1, inplace=True)
     for group, data in results.groupby('groupsize'):

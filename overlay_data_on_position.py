@@ -144,7 +144,7 @@ def plot_data_on_video(img, xdata, ydata, colourdata, TEXT, fig=None, ax=None,
     ax.set_ylim(ylim)
 
     
-    return fig
+    return
 
 
 def plot_network_edges(img, graph,  coords=None, colours='k', fig=None, ax=None, 

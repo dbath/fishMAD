@@ -93,7 +93,7 @@ def process_chunk(df):
     for i, data in f:
         try:
             #angular momentum of fish
-            points = np.array(zip(data.loc[:,XPOS], data.loc[:,YPOS]))
+            points = np.array(list(zip(data.loc[:,XPOS], data.loc[:,YPOS])))
             
             if len(points) < 0:
                 print("low tracking quality: ", TRACK_DIR.rsplit('/', 3)[1], str(i), str(len(points)))
@@ -236,7 +236,7 @@ def calculate_perframe_stats(fbf, TRACK_DIR, nCores=8):
     
 
     ARENA_WIDTH = get_arena_width(TRACK_DIR.split('/track')[0])
-    perframe_stats.loc[:,'centroidRotation'] = get_centroid_rotation(perframe_stats, TRACK_DIR,  ARENA_WIDTH)
+    #perframe_stats.loc[:,'centroidRotation'] = get_centroid_rotation(perframe_stats, TRACK_DIR,  ARENA_WIDTH)
     perframe_stats['frame'] = perframe_stats.index
     log = stim_handling.get_logfile(TRACK_DIR.rsplit('/',2)[0])
     store = imgstore.new_for_filename(TRACK_DIR.rsplit('/',2)[0] + '/metadata.yaml')
@@ -449,6 +449,7 @@ def plot_perframe_vs_time(DIR, subs, ylabs, df=pd.DataFrame(), fn=''):
 
     df.dropna(subset=['FrameNumber'], inplace=True)
     if 'dir' in df.columns:
+        df['dir'] = df['dir'].isin([-1.0,0,1.0]) #drop '--' values
         df.loc[:,'dir'] = -1.0*df.loc[:,'dir']
     fig  = plt.figure(figsize=(4, 2*len(subs)))
     fig.suptitle(DIR.split('/')[-2])
@@ -542,23 +543,23 @@ def run(MAIN_DIR, RESUME=True):
             return
         perframe_stats = calculate_perframe_stats(fbf, trackdir, args.maxthreads)
     
-    store = imgstore.new_for_filename(slashdir(MAIN_DIR) + 'metadata.yaml')
-    log = stim_handling.get_logfile(MAIN_DIR)
-    if 'reversals' in MAIN_DIR:
-        #ret, perframe_stats = stim_handling.sync_reversals(perframe_stats, log, store)
-        plot_perframe_vs_time(slashdir(MAIN_DIR),         ['dir','median_polarization','median_dRotation_cMass','median_dRotation_cArea','median_swimSpeed','entropy_Ra'], 
-            ['Direction','Pol. Order','Rot. Order (CofM)','Rot. Order (Area)','Median Speed', 'Entropy'],
-            perframe_stats,
-            '_median') 
-    elif 'coherence' in MAIN_DIR:
-        #ret, perframe_stats = stim_handling.synch_coherence_with_rotation(perframe_stats, log, store)
-        plot_perframe_vs_time(slashdir(MAIN_DIR),  ['coherence','median_polarization','median_dRotation_cMass','median_dRotation_cArea','median_swimSpeed', 'entropy_Ra'], 
-            ['Coherence','Pol. Order','Rot. Order (CofM)','Rot. Order (Area)','Median Speed','Entropy'],
-            perframe_stats,
-            '_median') 
-    elif 'cogs' in MAIN_DIR:
-
-        pass #FIXME 
+        store = imgstore.new_for_filename(slashdir(MAIN_DIR) + 'metadata.yaml')
+        log = stim_handling.get_logfile(MAIN_DIR)
+        if 'reversals' in MAIN_DIR:
+         	#ret, perframe_stats = stim_handling.sync_reversals(perframe_stats, log, store)
+            plot_perframe_vs_time(slashdir(MAIN_DIR),         ['dir','median_polarization','median_dRotation_cMass','median_dRotation_cArea','median_swimSpeed','entropy_Ra'], 
+	        ['Direction','Pol. Order','Rot. Order (CofM)','Rot. Order (Area)','Median Speed', 'Entropy'],
+                perframe_stats,
+    	    '_median') 
+        elif 'coherence' in MAIN_DIR:
+	    #ret, perframe_stats = stim_handling.synch_coherence_with_rotation(perframe_stats, log, store)
+            plot_perframe_vs_time(slashdir(MAIN_DIR),  ['coherence','median_polarization','median_dRotation_cMass','median_dRotation_cArea','median_swimSpeed', 'entropy_Ra'], 
+    	    ['Coherence','Pol. Order','Rot. Order (CofM)','Rot. Order (Area)','Median Speed','Entropy'],
+                perframe_stats,
+	        '_median') 
+        elif 'cogs' in MAIN_DIR:
+    
+            pass #FIXME 
     
 
 

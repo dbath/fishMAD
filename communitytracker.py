@@ -78,12 +78,26 @@ class CommunityTracker():
             for key1 in objectIDs:
                 for key2 in inputDict.keys():
                     scores.loc[key1,key2] = cossim_score(' '.join(objects[key1]), ' '.join(inputDict[key2]))
+                    
+            #update all the matched communities:
+            #select the maximum score in each row as the child community
+            
+
+            #some columns (with sum ) are new communities without a parent community
+            rowmax = scores.max(axis=1)
+            mask =scores.div(rowmax, axis=0)
+            mask[mask < 1] = 0
+            
+            #matches = mask.idxmax(axis=1)        
+            #nomatches = (mask.T.loc[mask.max(axis=0) !=1]).index.values        
+                    
 			# in order to perform this matching we must (1) find the
 			# smallest value in each row and then (2) sort the row
 			# indexes based on their minimum values so that the row
 			# with the smallest value as at the *front* of the index
 			# list
-			rows = D.min(axis=1).argsort()
+			D = scores.copy()
+            rows = D.max(axis=1).argsort()
 
 			# next, we perform a similar process on the columns by
 			# finding the smallest value in each column and then

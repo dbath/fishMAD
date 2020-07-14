@@ -214,6 +214,8 @@ if __name__ == "__main__":
         if os.path.exists(MAIN_DIR + 'track/localData_FBF.pickle'):
             if datetime.datetime.fromtimestamp(os.path.getmtime(MAIN_DIR + 'track/localData_FBF.pickle')) > DATETIME:
                 continue
+        elif os.path.exists(MAIN_DIR + 'track/localData_FBF_1.pickle'): #FIXME
+            continue
         #MAIN_DIR = '/media/recnodes/recnode_2mfish/reversals3m_128_dotbot_20181211_151201.stitched/'
         if not os.path.exists(MAIN_DIR + 'track/network_FBF.pickle'):
             print("no network_FBF.pickle found: ", MAIN_DIR.split('/')[-2])
@@ -230,24 +232,27 @@ if __name__ == "__main__":
         store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
         nfbf = sync_rotation(nfbf, log, store)
         nfbf.reset_index(drop=True, inplace=True)
+
+	#what a ridiculous solution to running out of memory:#FIXME
         
-        print("setting parallel processes")
-        ppe = ProcessPoolExecutor(nCores)
-        futures = []
-        Results = []
-        # INITIATE PARALLEL PROCESSES
-        nfbf['coreGroup'] = nfbf['frame']%nCores
-        nfbf.reset_index(inplace=True, drop=True)
-        for n in range(nCores):
-            p = ppe.submit(process_chunk, nfbf.loc[nfbf['coreGroup'] == n, :])
-            futures.append(p)
-        # COLLECT PROCESSED DATA AS IT IS FINISHED   
-        for future in as_completed(futures): 
-            Results.append(future.result())
-
-        #CONCATENATE RESULTS
-        localData = pd.concat(Results)
-
-        localData.to_pickle(MAIN_DIR + 'track/localData_FBF.pickle')
-            
-
+        for COUNT in range(10):
+            DATA = nfbf.loc[nfbf.frame.between(np.quantile(nfbf.frame, COUNT*0.1), np.quantile(nfbf.frame, (COUNT+1)*0.1)),:]
+            #elif COUNT == 1:
+            #    DATA = nfbf.loc[nfbf.frame >= np.median(nfbf.frame)]
+            print("setting parallel processes")
+            ppe = ProcessPoolExecutor(nCores)
+            futures = []
+            Results = []
+            # INITIATE PARALLEL PROCESSES
+            DATA['coreGroup'] = DATA['frame']%nCores
+            DATA.reset_index(inplace=True, drop=True)
+            for n in range(nCores):
+                p = ppe.submit(process_chunk, DATA.loc[DATA['coreGroup'] == n, :])
+                futures.append(p)
+            # COLLECT PROCESSED DATA AS IT IS FINISHED   
+            for future in as_completed(futures): 
+                Results.append(future.result())
+            #CONCATENATE RESULTS
+            localData = pd.concat(Results)
+            localData.to_pickle(MAIN_DIR + 'track/localData_FBF_' +str(COUNT) + '.pickle')
+	            

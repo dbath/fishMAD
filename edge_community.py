@@ -231,7 +231,7 @@ def edge_community(graph, communityObjects, threshold=0.4):
     foo = foo.merge(objdf) 
     foo.columns = ['comm_cx','comm_cy','comm_vx','comm_vy','comm_R','comm_EigenCen','community','objID'] 
     
-    return df.merge(foo), edge2cid
+    return df.merge(foo, left_on='community',right_on='community'), edge2cid
     
 from overlay_data_on_position import plot_data_on_video    
 from mpl_toolkits.axes_grid1 import make_axes_locatable
