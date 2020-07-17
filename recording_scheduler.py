@@ -88,10 +88,14 @@ class Experiment(object):
         return api   
           
     def configure_camera(self):
-        
         for cam in self.CAMERA_SERIAL:
             if not (self.api.call('camera/'+cam)['camera_info']['status'] == 'ready'):
                 raise Exception('CAMERA IS ALREADY IN USE')
+        if self.MULTICAM:
+            self.api.call('cameras/configure', 
+                    AcquisitionFrameRate=40.0,
+                    ExposureTime=2500.0 )              
+        else:
             #camsn = api.call('cameras')['cameras'][0]['serial']
             self.api.call('camera/' + cam + '/configure', 
                     AcquisitionFrameRate=40.0,
