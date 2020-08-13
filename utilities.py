@@ -298,7 +298,7 @@ def getFrameByFrameData(DIRECTORY, RESUME=True, nCores=8):
         i +=1
     
     fileList = []
-    for fn in glob.glob(DIRECTORY + 'fishdata/*.npz'):
+    for fn in glob.glob(DIRECTORY + 'fishdata/*fish*.npz'):
         fileList.append(fn)
         
     # SETUP PARALLEL PROCESSING

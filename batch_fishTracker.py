@@ -6,7 +6,7 @@ from __future__ import absolute_import
 import glob
 import run_fishTracker
 import argparse
-import os
+import os, shutil
 import plot_positions
 #import polarization_rotation
 from utilities import *
@@ -107,6 +107,7 @@ if __name__ == "__main__":
 
             for vDir in glob.glob(searchterm):
                 vDir = slashdir(vDir)
+                print("THIS IS WHERE WE ARE NOW")
                 try:
                     _fishnum = int(vDir.split('/')[-2].split('_')[1])
                 except:
@@ -123,7 +124,7 @@ if __name__ == "__main__":
                 if (not os.path.exists(vDir + 'track/converted.results')):
                     if (os.path.exists(vDir + 'track/converted.pv')):
                         run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
-                
+                """
                 #catch all that have been converted and tracked but data is gone (ex for re-export)
                 if not os.path.exists(vDir + 'track/fishdata'):
                     os.makedirs(vDir + 'track/fishdata')
@@ -132,3 +133,16 @@ if __name__ == "__main__":
                 elif args.exportNewData == True:
                     run_fishTracker.track(vDir, mkBkg, args.newonly, _fishnum, args.debug)
                 
+                """
+                #new version of tracker switched the data folder from "fishdata" to "data"
+                # in order not to break all downstream pipeline, we rename to "fishdata"
+                if os.path.exists(vDir + 'track/data'):
+                    if os.path.exists(vDir + 'track/fishdata'):
+                        if len(os.listdir(vDir + 'track/fishdata') ) != 0:
+                            print( "FISHDATA FOLDER IS NOT EMPTY. CHECK THIS DIRECTORY")
+                            continue  
+                        else:
+                            shutil.rmtree(vDir + 'track/fishdata')
+                    print("DO I RENAME")
+                    os.rename(vDir + 'track/data', vDir + 'track/fishdata')
+                    

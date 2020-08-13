@@ -232,6 +232,7 @@ if __name__ == "__main__":
         store = imgstore.new_for_filename(MAIN_DIR + 'metadata.yaml')
         nfbf = sync_rotation(nfbf, log, store)
         nfbf.reset_index(drop=True, inplace=True)
+        nfbf = nfbf.loc[nfbf['frame'] <= 20000,:] #FIXME this is another hack to reduce memory usage
 
 	#what a ridiculous solution to running out of memory:#FIXME
         
