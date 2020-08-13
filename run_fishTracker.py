@@ -65,8 +65,8 @@ def setup_tristrack(_main_dir, fishnum):
             shutil.copyfile(os.path.expanduser('~/fishMAD/tristrack_defaults/conversion3m.settings'), track_dir + '/conversion.settings')
         else:
             shutil.copyfile(os.path.expanduser('~/fishMAD/tristrack_defaults/conversion.settings'), track_dir + '/conversion.settings')
-    if not os.path.exists(track_dir + '/fishdata'):
-        os.makedirs(track_dir + '/fishdata')
+    #if not os.path.exists(track_dir + '/fishdata'):
+    #    os.makedirs(track_dir + '/fishdata')
 
 
     #Get metadata from videos
@@ -237,9 +237,9 @@ def track(_main_dir, _make_bkg, NEW_ONLY, fishnum, DEBUG=False):
     track_dir = MAIN_DIR + 'track'
     # Launch tracker
     FNULL = open(os.devnull, 'w')    
-    if 1:#not (os.path.exists(track_dir + '/converted.results')):  #FIXME
-        os.rmdir(track_dir + '/fishdata')
-        os.makedirs(track_dir + '/fishdata')
+    if not (os.path.exists(track_dir + '/converted.results')):  
+        #os.rmdir(track_dir + '/fishdata')
+        #os.makedirs(track_dir + '/fishdata')
         pv_file = track_dir + '/converted.pv'
         launch_tracker = "~/FishTracker/Application/build/tracker -d '" + track_dir + "' -i '" + pv_file + "' -settings '" + track_dir + "/fishTracker.settings'"
         if  (os.path.exists(track_dir + '/converted.results')): 
